@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Portail BACO - Taxis</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/variable/geist-sans.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-mono/variable/geist-mono.css" rel="stylesheet">
+
+  <script src="https://unpkg.com/lucide@latest" defer></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Geist Sans', 'sans-serif'],
+            mono: ['Geist Mono', 'monospace'],
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="h-full bg-gray-50">
+
+  <div id="nav-placeholder"></div>
+
+  <div class="container mx-auto p-8">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">Sociétés de taxi par lieu</h1>
+
+    <div class="flex flex-wrap gap-3 mb-8" id="lieuCheckboxes">
+      <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+        <input type="checkbox" value="Charleroi" onchange="updateTaxiDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+        <span class="font-medium text-gray-700">Charleroi</span>
+      </label>
+      <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+        <input type="checkbox" value="Mons" onchange="updateTaxiDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+        <span class="font-medium text-gray-700">Mons</span>
+      </label>
+      <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+        <input type="checkbox" value="Namur" onchange="updateTaxiDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+        <span class="font-medium text-gray-700">Namur</span>
+      </label>
+      <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+        <input type="checkbox" value="Enghien" onchange="updateTaxiDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+        <span class="font-medium text-gray-700">Enghien</span>
+      </label>
+      <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+        <input type="checkbox" value="Lessines" onchange="updateTaxiDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+        <span class="font-medium text-gray-700">Lessines</span>
+      </label>
+      <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+        <input type="checkbox" value="Tournai" onchange="updateTaxiDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+        <span class="font-medium text-gray-700">Tournai</span>
+      </label>
+      <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+        <input type="checkbox" value="Ath" onchange="updateTaxiDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+        <span class="font-medium text-gray-700">Ath</span>
+      </label>
+      <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+        <input type="checkbox" value="Arlon" onchange="updateTaxiDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+        <span class="font-medium text-gray-700">Arlon</span>
+      </label>
+      <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+        <input type="checkbox" value="Braine Le Comte" onchange="updateTaxiDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+        <span class="font-medium text-gray-700">Braine Le Comte</span>
+      </label>
+      <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+        <input type="checkbox" value="Bruxelles" onchange="updateTaxiDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+        <span class="font-medium text-gray-700">Bruxelles</span>
+      </label>
+      <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+        <input type="checkbox" value="Dinant" onchange="updateTaxiDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+        <span class="font-medium text-gray-700">Dinant</span>
+      </label>
+    </div>
+
+    <hr class="my-8">
+
+    <div class="content" id="content">
+      <p class="text-gray-600">Veuillez sélectionner un lieu pour voir les taxis.</p>
+    </div>
+  </div>
+
+
+  <script src="js/layout.js" defer></script>
+  
+  <script>
+    // Variable pour stocker les données chargées
+    let taxis = [];
+
+    // Charger les données dès que la page est prête
+    document.addEventListener('DOMContentLoaded', () => {
+      fetch('data/taxi.json')
+        .then(response => {
+          if (!response.ok) throw new Error('Erreur réseau');
+          return response.json();
+        })
+        .then(data => {
+          taxis = data;
+        })
+        .catch(error => {
+          console.error('Erreur de chargement des données taxis:', error);
+          document.getElementById('content').innerHTML = "<p class='text-red-600'>Erreur: Impossible de charger les données des taxis.</p>";
+        });
+    });
+
+    // Fonction unique pour filtrer et afficher les cartes de taxis
+    function updateTaxiDisplay() {
+      const lieuxSelectionnes = Array.from(document.querySelectorAll('#lieuCheckboxes input:checked'))
+        .map(cb => cb.value);
+
+      const container = document.getElementById('content');
+
+      // Si aucun lieu n'est sélectionné
+      if (lieuxSelectionnes.length === 0) {
+        container.innerHTML = '<p class="text-gray-600">Veuillez sélectionner un lieu pour voir les taxis.</p>';
+        return;
+      }
+
+      // Filtrer les taxis qui correspondent à AU MOINS UN des lieux sélectionnés
+      const taxisAffiches = taxis.filter(taxi =>
+        taxi.lieux.some(lieu => lieuxSelectionnes.includes(lieu))
+      );
+
+      // Si aucun taxi ne correspond
+      if (taxisAffiches.length === 0) {
+        container.innerHTML = '<p class="text-gray-600">Aucune société trouvée pour les lieux sélectionnés.</p>';
+        return;
+      }
+
+      // Générer les cartes pour les taxis trouvés
+      container.innerHTML = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">' +
+        taxisAffiches.map(taxi => {
+          
+          // --- Création des sous-éléments ---
+
+          // 1. Lieux (Tags)
+          const lieuxHtml = taxi.lieux.map(lieu =>
+            `<span class="px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700 text-sm font-medium">${lieu}</span>`
+          ).join('');
+
+          // 2. Contacts (Téléphones) - J'ai gardé "etrali:" comme protocole
+          const contactsHtml = taxi.contacts.map(num =>
+            `<a href="etrali:${num}" class="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+               <i data-lucide="phone" class="w-4 h-4 text-blue-700 flex-shrink-0"></i>
+               <span class="font-mono text-sm font-medium text-blue-800">${num}</span>
+             </a>`
+          ).join('');
+
+          // 3. Mails
+          const mailsHtml = (taxi.mail.length === 0 || taxi.mail[0] === 'nihil') ? '' :
+            taxi.mail.map(email =>
+              `<a href="mailto:${email}" class="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors">
+                 <i data-lucide="mail" class="w-4 h-4 text-gray-600 flex-shrink-0"></i>
+                 <span class="text-sm font-medium text-gray-800 break-all">${email}</span>
+               </a>`
+            ).join('');
+
+          // 4. Adresse
+          const adresseHtml = (taxi.adresse.length === 0 || taxi.adresse[0] === 'nihil') ? '' :
+            taxi.adresse.map(adr =>
+              `<div class="flex items-start gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                 <i data-lucide="map-pin" class="w-4 h-4 text-gray-600 flex-shrink-0 mt-0.5"></i>
+                 <span class="text-sm font-medium text-gray-800">${adr}</span>
+               </div>`
+            ).join('');
+          
+          // 5. Remarques
+          const remarquesHtml = (taxi.remarques.length === 0 || taxi.remarques[0] === 'nihil') ? '' :
+            '<div class="border-t pt-4 mt-auto">' + // mt-auto pousse les remarques en bas de la carte
+            taxi.remarques.map(rem =>
+              `<div class="flex items-start gap-2.5 text-sm p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                 <i data-lucide="info" class="w-4 h-4 text-yellow-700 flex-shrink-0 mt-0.5"></i>
+                 <span class="text-yellow-900">${rem}</span>
+               </div>`
+            ).join('') + '</div>';
+
+          // --- Assemblage de la Carte ---
+          return `<div class="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col gap-4 p-5">
+                    
+                    <h3 class="text-xl font-semibold text-gray-900 flex items-center gap-2.5">
+                      <i data-lucide="taxi" class="w-5 h-5 text-blue-600"></i>
+                      <span>${taxi.nom}</span>
+                    </h3>
+                    
+                    <div class="flex flex-wrap gap-2 border-t pt-4">
+                      ${lieuxHtml}
+                    </div>
+
+                    <div class="flex flex-col gap-3">
+                      ${contactsHtml}
+                      ${mailsHtml}
+                      ${adresseHtml}
+                    </div>
+                    
+                    ${remarquesHtml}
+                    
+                  </div>`;
+        }).join('') +
+        '</div>'; // Fin du 'grid'
+
+      // Indispensable pour que Lucide dessine les icônes
+      lucide.createIcons();
+    }
+  </script>
+
+</body>
+</html>

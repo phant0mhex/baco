@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Portail BACO - Répertoire</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/variable/geist-sans.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-mono/variable/geist-mono.css" rel="stylesheet">
+
+  <script src="https://unpkg.com/lucide@latest" defer></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Geist Sans', 'sans-serif'],
+            mono: ['Geist Mono', 'monospace'],
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="h-full bg-gray-50">
+
+  <div id="nav-placeholder"></div>
+
+  <div class="container mx-auto p-8">
+    
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">Répertoire téléphonique</h1>
+
+    <h3 class="text-xl font-semibold text-gray-800 mb-4">1. Catégories</h3>
+    <div class="flex flex-wrap gap-3 mb-8" id="mainCategories">
+      <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+        <input type="checkbox" value="MIA" onchange="updateSubCategories()" class="rounded text-blue-600 focus:ring-blue-500">
+        <span class="font-medium text-gray-700">MIA</span>
+      </label>
+      <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+        <input type="checkbox" value="RCC-OCC" onchange="updateSubCategories()" class="rounded text-blue-600 focus:ring-blue-500">
+        <span class="font-medium text-gray-700">RCC - OCC</span>
+      </label>
+      <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+        <input type="checkbox" value="Autre" onchange="updateSubCategories()" class="rounded text-blue-600 focus:ring-blue-500">
+        <span class="font-medium text-gray-700">Autre</span>
+      </label>
+    </div>
+
+    <div id="miaSubCategoriesContainer" style="display:none;">
+      <h3 class="text-xl font-semibold text-gray-800 mb-4">2. Filtres MIA</h3>
+      <div class="flex flex-wrap gap-3 mb-8" id="miaSubCategories">
+        <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+          <input type="checkbox" value="FTY" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-gray-700">FTY</span>
+        </label>
+        <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+          <input type="checkbox" value="FMS" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-gray-700">FMS</span>
+        </label>
+        <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+          <input type="checkbox" value="FCR" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-gray-700">FCR</span>
+        </label>
+      </div>
+    </div>
+
+    <hr class="my-8">
+    <div id="resultDisplay">
+      <p class="text-gray-600">Veuillez sélectionner une catégorie pour afficher les contacts.</p>
+    </div>
+
+  </div>
+
+ <div id="resultDisplay">) ...
+  <script>
+    // 1. Créer des variables pour stocker les données du JSON
+    let miaData = {};
+    let rccData = {};
+    let autresData = {};
+
+    // 2. Charger les données au démarrage
+    document.addEventListener('DOMContentLoaded', () => {
+      fetch('data/repertoire.json') // Assurez-vous que le chemin est correct
+        .then(response => {
+          if (!response.ok) throw new Error('Erreur réseau');
+          return response.json();
+        })
+        .then(data => {
+          // 3. Assigner les données aux variables
+          miaData = data.MIA;
+          rccData = data['RCC-OCC'];
+          autresData = data.Autres;
+          console.log("Données répertoire chargées :", data);
+        })
+        .catch(error => {
+          console.error('Erreur de chargement des données répertoire:', error);
+          document.getElementById('resultDisplay').innerHTML = "<p class='text-red-600'>Erreur: Impossible de charger les données du répertoire.</p>";
+        });
+    });
+
+    // Fonction JS (inchangée)
+    function updateSubCategories() {
+      const miaChecked = document.querySelector('#mainCategories input[value="MIA"]').checked;
+      document.getElementById('miaSubCategoriesContainer').style.display = miaChecked ? 'block' : 'none';
+      updateDisplay();
+    }
+
+    // 4. Fonction updateDisplay MODIFIÉE pour utiliser les variables
+    function updateDisplay() {
+      const container = document.getElementById('resultDisplay');
+      container.innerHTML = '';
+      const columns = {}; 
+
+      // --- MIA ---
+      const miaChecked = document.querySelector('#mainCategories input[value="MIA"]').checked;
+      if (miaChecked) {
+        const subChecked = Array.from(document.querySelectorAll('#miaSubCategories input:checked')).map(cb => cb.value);
+        
+        subChecked.forEach(sub => {
+          // 'sub' vaut "FTY", "FMS" ou "FCR"
+          if (miaData[sub]) {
+            const data = miaData[sub]; // data vaut {SPI: [...], CPI: [...], ...}
+            for (const col in data) {
+              if (!columns[col]) columns[col] = [];
+              columns[col].push(...data[col]);
+            }
+          }
+        });
+      }
+
+      // --- RCC-OCC ---
+      const rccChecked = document.querySelector('#mainCategories input[value="RCC-OCC"]').checked;
+      if (rccChecked) {
+        // rccData vaut {"OCC FMS": [...], "RCC": [...]}
+        for (const col in rccData) {
+          if (!columns[col]) columns[col] = [];
+          columns[col].push(...rccData[col]);
+        }
+      }
+      
+      // --- Autres ---
+      const autreChecked = document.querySelector('#mainCategories input[value="Autre"]').checked;
+      if (autreChecked) {
+        // autresData vaut {"Service_General": [...], ...}
+         for (const col in autresData) {
+          if (!columns[col]) columns[col] = [];
+          columns[col].push(...autresData[col]);
+        }
+      }
+
+      // --- Logique d'affichage (inchangée) ---
+      let outputHTML = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">';
+      let hasContent = false;
+
+      for (const col in columns) {
+        if (columns[col] && columns[col].length > 0) {
+          hasContent = true;
+          outputHTML += `<div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">`;
+          outputHTML += `<h3 class="text-xl font-semibold text-gray-900 p-4 border-b bg-gray-50">${col}</h3>`;
+          outputHTML += `<div class="flex flex-col gap-3 p-4">`;
+          outputHTML += columns[col].map(p => 
+            `<div class="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200">
+                <span class="flex items-center gap-2.5 text-sm font-medium text-gray-900">
+                   <i data-lucide="user" class="w-4 h-4 text-gray-500"></i>
+                   <span>${p.nom}</span>
+                </span>
+                <a href="tel:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors">
+                   <i data-lucide="phone" class="w-4 h-4"></i>
+                   <span>${p.tel}</span>
+                </a>
+             </div>`
+          ).join('');
+          outputHTML += `</div></div>`;
+        }
+      }
+      outputHTML += '</div>';
+
+      if (!hasContent) {
+        container.innerHTML = '<p class="text-gray-600">Veuillez sélectionner une catégorie pour afficher les contacts.</p>';
+      } else {
+        container.innerHTML = outputHTML;
+      }
+      
+      lucide.createIcons();
+    }
+  </script>
+  
+  <script src="js/layout.js" defer></script>
+</body>
+</html>

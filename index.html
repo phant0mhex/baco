@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Connexion - Portail de données</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .login-box {
+      background: #1a2a3a; /* Gris graphite */
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+    .login-box img {
+      width: 360px;
+      margin-bottom: 20px;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    input[type="password"] {
+      padding: 10px;
+      width: 200px;
+      margin-bottom: 15px;
+      border: 1px solid #aaa;
+      border-radius: 5px;
+    }
+    button {
+      padding: 10px 20px;
+      background: #0078D7;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #005fa3;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <img src="logobaco.png" alt="Logo BACO">
+    <input type="password" id="password" placeholder="Mot de passe">
+    <br>
+    <button onclick="validerConnexion()">Connexion</button>
+  </div>
+
+  <script>
+    const utilisateurs = {
+      'CMH9100': 'Thomas',
+      'SVS7900': 'Rodrigue',
+      'GSH9000': 'Nicolas',
+      'QMC9000': 'Mercédès',
+      'TWT8501': 'Mehdi',
+      'RQF8600': 'Ludovic',
+      'LQV8200': 'Mélinda',
+      'LNF9400': 'Alexandra',
+      'SKN6801': 'Marie-France',
+      'FSK9300': 'Indiana'
+    };
+
+    function validerConnexion() {
+      const input = document.getElementById('password').value.trim();
+      if (utilisateurs[input]) {
+        alert(`Bonjour ${utilisateurs[input]} 👋`);
+        localStorage.setItem('utilisateur', utilisateurs[input]);
+        window.location.href = "accueil.html";
+      } else {
+        alert("Mot de passe incorrect.");
+      }
+    }
+
+    document.getElementById('password').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        validerConnexion();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,314 @@
+<head>
+  <meta charset="UTF-8">
+  <title>Portail BACO - Lignes</title> <script src="https://cdn.tailwindcss.com"></script>
+  
+  <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/variable/geist-sans.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-mono/variable/geist-mono.css" rel="stylesheet">
+
+  <script src="https://unpkg.com/lucide@latest" defer></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Geist Sans', 'sans-serif'], // Définit Geist Sans comme police par défaut
+            mono: ['Geist Mono', 'monospace'],
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="h-full">
+
+  <div id="nav-placeholder"></div>
+
+  <div class="container mx-auto p-8">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">Répertoire des lignes</h1>
+
+    <h3 class="text-xl font-semibold text-gray-800 mb-4">1. Catégories</h3>
+    <div class="flex flex-wrap gap-3 mb-8" id="mainCategories">
+      <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+        <input type="checkbox" value="Lignes" onchange="updateSubCategories()" class="rounded text-blue-600 focus:ring-blue-500">
+        <span class="font-medium text-gray-700">Lignes</span>
+      </label>
+      <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+        <input type="checkbox" value="Adresse PN" onchange="updateSubCategories()" class="rounded text-blue-600 focus:ring-blue-500">
+        <span class="font-medium text-gray-700">Adresse PN</span>
+      </label>
+      <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+        <input type="checkbox" value="Zone SPI" onchange="updateSubCategories()" class="rounded text-blue-600 focus:ring-blue-500">
+        <span class="font-medium text-gray-700">Zone SPI</span>
+      </label>
+    </div>
+
+    <div id="lineSelectorContainer" style="display:none;">
+      <h3 class="text-xl font-semibold text-gray-800 mb-4">2. Lignes</h3>
+      <div class="flex flex-wrap gap-3 mb-8" id="lineSelector">
+         <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+          <input type="checkbox" value="L.75" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-gray-700">L.75</span>
+        </label> 
+        <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+          <input type="checkbox" value="L.75A" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-gray-700">L.75A</span>
+        </label>
+        <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+          <input type="checkbox" value="L.78" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-gray-700">L.78</span>
+        </label>
+        <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+          <input type="checkbox" value="L.90" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-gray-700">L.90</span>
+        </label>
+        <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+          <input type="checkbox" value="L.90C" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-gray-700">L.90C</span>
+        </label>
+        <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+          <input type="checkbox" value="L.94" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-gray-700">L.94</span>
+        </label>
+         <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+          <input type="checkbox" value="L.96" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-gray-700">L.96</span>
+        </label>
+        <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+          <input type="checkbox" value="L.97" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-gray-700">L.97</span>
+        </label>
+        <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+          <input type="checkbox" value="L.108" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-gray-700">L.108</span>
+        </label>
+         <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+          <input type="checkbox" value="L.112" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-gray-700">L.112</span>
+        </label>
+         <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+          <input type="checkbox" value="L.117" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-gray-700">L.117</span>
+        </label>
+         <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+          <input type="checkbox" value="L.118" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-gray-700">L.118</span>
+        </label>
+        <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+          <input type="checkbox" value="L.124" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-gray-700">L.124</span>
+        </label>
+         <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+          <input type="checkbox" value="L.130" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-gray-700">L.130</span>
+        </label>
+        <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+          <input type="checkbox" value="L.130A" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-gray-700">L.130A</span>
+        </label>
+        <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+          <input type="checkbox" value="L.132" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-gray-700">L.132</span>
+        </label>
+          <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+          <input type="checkbox" value="L.134" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-gray-700">L.134</span>
+        </label>
+          <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+          <input type="checkbox" value="L.140" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-gray-700">L.140</span>
+        </label>
+      </div>
+    </div>
+
+    <div id="zoneFilterContainer" style="display:none;">
+        <h3 class="text-xl font-semibold text-gray-800 mb-4">3. Filtres SPI</h3>
+        <div class="flex flex-wrap gap-3 mb-8" id="zoneFilter">
+          <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+            <input type="checkbox" value="FTY" class="spi-filter" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+            <span class="font-medium text-gray-700">FTY</span>
+          </label>
+          <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+            <input type="checkbox" value="FMS" class="spi-filter" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+            <span class="font-medium text-gray-700">FMS</span>
+          </label>
+          <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+            <input type="checkbox" value="FCR" class="spi-filter" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+            <span class="font-medium text-gray-700">FCR</span>
+          </label>
+      </div>
+    </div>
+    
+    <hr class="my-8">
+    <div id="resultDisplay">
+      <p class="text-gray-600">Veuillez sélectionner une catégorie et une ligne pour afficher les résultats.</p>
+    </div>
+  </div>
+
+
+  <script src="js/layout.js" defer></script>
+  <script>
+    // Variables pour stocker les données du JSON
+    let ligneData = {};
+    let pnData = {};
+    let spiData = {};
+
+    // Charger les données
+    document.addEventListener('DOMContentLoaded', () => {
+      fetch('data/lignes.json')
+        .then(response => {
+          if (!response.ok) throw new Error('Erreur réseau');
+          return response.json();
+        })
+        .then(data => {
+          ligneData = data.ligneData;
+          pnData = data.pnData;
+          spiData = data.spiData;
+        })
+
+    
+
+        .catch(error => {
+          console.error('Erreur de chargement des données lignes:', error);
+          document.getElementById('resultDisplay').innerHTML = "<p class='text-red-600'>Erreur: Impossible de charger les données des lignes.</p>";
+        });
+
+    
+    });
+
+    // --- Fonctions logiques (identiques à l'original, sauf pour le HTML généré) ---
+
+    function updateSubCategories() {
+      const selected = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
+      const lineBox = document.getElementById('lineSelectorContainer');
+      
+      // Affiche les lignes si au moins une catégorie est cochée
+      lineBox.style.display = selected.length > 0 ? 'block' : 'none';
+      
+      console.log(ligneData);
+      updateDisplay(); // Mettre à jour l'affichage
+    }
+
+    function updateDisplay() {
+      const selectedMain = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
+      const selectedLines = Array.from(document.querySelectorAll('#lineSelector input:checked')).map(cb => cb.value);
+      const selectedZones = Array.from(document.querySelectorAll('.spi-filter:checked')).map(cb => cb.value);
+      const container = document.getElementById('resultDisplay');
+      const zoneBox = document.getElementById('zoneFilterContainer');
+
+      // Affiche ou masque les filtres SPI
+      const zoneSelected = selectedMain.includes("Zone SPI");
+      zoneBox.style.display = zoneSelected && selectedLines.length > 0 ? 'block' : 'none';
+
+      container.innerHTML = ''; // Vider les résultats
+
+      if (selectedLines.length === 0 && selectedMain.length > 0) {
+          container.innerHTML = '<p class="text-gray-600">Veuillez sélectionner au moins une ligne.</p>';
+          return;
+      }
+      if (selectedLines.length === 0 && selectedMain.length === 0) {
+          container.innerHTML = '<p class="text-gray-600">Veuillez sélectionner une catégorie et une ligne pour afficher les résultats.</p>';
+          return;
+      }
+
+      selectedLines.forEach(line => {
+        let lineContent = '';
+
+        if (selectedMain.includes("Lignes") && ligneData[line]) {
+          lineContent += `<h3 class="text-xl font-semibold text-gray-700 mt-4 mb-3">Gares</h3><div class="flex flex-wrap gap-3">` +
+            ligneData[line].map(e => 
+              `<div class="bg-white p-3 rounded-lg border shadow-sm text-gray-800 font-medium">${e}</div>`
+            ).join('') +
+            `</div>`;
+        }
+
+     if (selectedMain.includes("Adresse PN") && pnData[line]) {
+    lineContent += `<h3 class="text-xl font-semibold text-gray-700 mt-4 mb-3">Adresse PN</h3><div class="flex flex-wrap gap-4">` +
+        pnData[line].map(e => 
+            // Carte: Ajout de flex-col pour mieux gérer l'espacement
+            `<div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm flex-1 min-w-[250px] flex flex-col gap-2">
+                
+                <div class="flex justify-between items-center">
+                    
+                    <span class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-800 text-sm font-semibold">
+                        <i data-lucide="train-track" class="w-4 h-4 text-gray-600"></i>
+                        <span>${e.PN}</span>
+                    </span>
+                    
+                    <span class="flex items-center gap-1.5 text-sm font-semibold font-mono text-blue-500">
+                         <i data-lucide="milestone" class="w-4 h-4"></i>
+                        <span>${e.BK}</span>
+                    </span>
+                </div>
+                
+                <div class="flex items-start gap-2 text-sm text-gray-700 mt-1">
+                    <i data-lucide="map-pin" class="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5"></i>
+                    <span class="block">${e.adresse}</span>
+                </div>
+
+             </div>`
+        ).join('') +
+        `</div>`;
+}
+       if (selectedMain.includes("Zone SPI") && spiData[line]) {
+          const filtered = selectedZones.length > 0
+            ? spiData[line].filter(e => selectedZones.includes(e.zone))
+            : spiData[line];
+
+   // ... (début de la condition "Zone SPI")
+          if (filtered.length > 0) {
+            // Changé gap-3 en gap-4 pour correspondre à pnData
+            lineContent += `<h3 class="text-xl font-semibold text-gray-700 mt-4 mb-3">Zone SPI</h3><div class="flex flex-wrap gap-4">` +
+              filtered.map(e => 
+                // Structure copiée de pnData et adaptée pour spiData
+                `<div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm flex-1 min-w-[250px] flex flex-col gap-2">
+                    
+                    <div class="flex justify-between items-center">
+                        
+                        <span class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-800 text-sm font-semibold">
+                            <i data-lucide="building-2" class="w-4 h-4 text-gray-600"></i>
+                            <span>${e.lieu}</span>
+                        </span>
+                        
+                        <span class="flex items-center gap-1.5 text-sm font-semibold font-mono text-blue-500">
+                             <i data-lucide="tag" class="w-4 h-4"></i>
+                            <span>${e.zone}</span>
+                        </span>
+                    </div>
+                    
+                    <div class="flex items-start gap-2 text-sm text-gray-700 mt-1">
+                        <i data-lucide="map-pin" class="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5"></i>
+                        <span class="block">${e.adresse}</span>
+                    </div>
+
+                    ${e.remarques ? 
+                      `<div class="flex items-start gap-2 text-sm text-gray-600 mt-2 pt-2 border-t border-gray-100">
+                          <i data-lucide="info" class="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5"></i>
+                          <span class="block italic">${e.remarques}</span>
+                       </div>` 
+                    : ''}
+                    </div>`
+              ).join('') +
+              `</div>`;
+          }
+// ... (suite de la fonction)
+        }
+        
+        // Ajouter un titre de section pour la ligne
+        if (lineContent) {
+            container.innerHTML += `<div class="mb-8"><h2 class="text-3xl font-bold text-gray-900 border-b pb-2 mb-4">${line}</h2>${lineContent}</div>`;
+        }
+
+        // console.log(selectedLines);
+      });
+      
+      if (container.innerHTML === '') {
+          container.innerHTML = '<p class="text-gray-600">Aucun résultat pour les filtres sélectionnés.</p>';
+      }
+lucide.createIcons();
+
+    }
+  </script>
+
+</body>
+</html>

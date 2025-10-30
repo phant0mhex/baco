@@ -1,0 +1,186 @@
+[
+  {
+    "nom": "Taxi Top",
+    "lieux": ["Mons"],
+    "contacts": ["0495/20.92.09"],
+    "mail":["info@taxitop.be"],
+    "adresse":["Chussée Roi Baudouin 54, 7030  Saint-Symphorien"],
+    "remarques":["NV, MR CRP ok. Pas de taxi special PMR"]
+  },
+  {
+    "nom": "Taxi Carolo",
+    "lieux": ["Charleroi"],
+    "contacts": ["071/32.32.00", "0800/32.327"],
+    "mail":["info@taxiscarolo.be"],
+    "adresse":["Rue de la Baillerie, 6010 Couillet"],
+    "remarques":["nihil"]
+  },
+  {
+    "nom": "Sympa Tax",
+    "lieux": ["Charleroi"],
+    "contacts": ["071/30.30.33", "0800/30.999"],
+    "mail":["centrale@sympatax.be"],
+    "adresse":["Rue des Fougères 128, 6010 Couillet"],
+    "remarques":["n°PMR : 0472/97.00.22. Ne plus utiliser entre FNVT et FBMZ."]
+  },
+  {
+    "nom": "Rapid Tax",
+    "lieux": ["Charleroi"],
+    "contacts": ["071/31.55.55"],
+    "mail":["rapidtax@hotmail.be"],
+    "adresse":["Boulevard Joseph Tirou 17, 6000 Charleroi"],
+    "remarques":["nihil"]
+  },
+  {
+    "nom": "Taxis Willy",
+    "lieux": ["Mons", "Braine Le Comte"],
+    "contacts": ["065/82.21.55", "065/31.98.08", "0477/69.41.40"],
+    "mail":["taxiswilly@skynet.be"],
+    "adresse":["Avenue Wilson 453, 7012 Mons"],
+    "remarques":["nihil"]
+  },
+  {
+    "nom": "Taxis Philippe",
+    "lieux": ["Mons"],
+    "contacts": ["0474/69.22.72"],
+    "mail":["taxisphilippe@proximus.be"],
+    "adresse":["Rue des iris 11, 7000 Mons"],
+    "remarques":["nihil"]
+  },
+  {
+    "nom": "Taxi Loisirs",
+    "lieux": ["Mons"],
+    "contacts": ["065/76.19.97"],
+    "mail":["nihil"],
+    "adresse":["Rue de Chièvres 17, 7333 Tertre"],
+    "remarques":["nihil"]
+  },
+  {
+    "nom": "Taxi Doudou",
+    "lieux": ["Mons"],
+    "contacts": ["0473/62.67.09"],
+    "mail":["reservation@taxidoudoumons.be"],
+    "adresse":["Rue du marché 21, 7000 Mons"],
+    "remarques":["nihil"]
+  },
+   {
+    "nom": "Taxi Delisse",
+    "lieux": ["Lessines", "Ath", "Enghien"],
+    "contacts": ["068/33.77.75", "0478/85.95.20"],
+    "mail":["delissecyrille@skynet.be"],
+    "adresse":["Chemin de la croix 13, 7860 Lessines"],
+    "remarques":["nihil"]
+  },
+  {
+    "nom": "Travel-Auto SPRL",
+    "lieux": ["Lessines", "Ath", "Enghien"],
+    "contacts": ["068/28.51.36", "0476/70.51.57"],
+    "mail":["nihil"],
+    "adresse":["Chaussée de Mons 484, 7810 Maffle"],
+    "remarques":["réservation en ligne"]
+  },
+  {
+    "nom": "Taxis Coupez",
+    "lieux": ["Tournai"],
+    "contacts": ["069/22.23.51", "0476/49.92.11"],
+    "mail":["christian1960@me.com"],
+    "adresse":["Rue du Préau 9, 7500 Tournai"],
+    "remarques":["nihil"]
+  },
+  {
+    "nom": "Taxi Charly",
+    "lieux": ["Tournai", "Ath"],
+    "contacts": ["069/22.28.79", "0495/22.28.79"],
+    "mail":["info@taxicharly.com"],
+    "adresse":["Rue du Crampon 92, 7500 Tournai"],
+    "remarques":["Taxi jusqu'à 6 personnes"]
+  },
+  {
+    "nom": "Taxi Mol",
+    "lieux": ["Tournai"],
+    "contacts": ["069/22.48.17", "0476/49.92.11"],
+    "mail":["info@mol-tournai.com"],
+    "adresse":["Rue des Jésuites 49, 7500 Tournai"],
+    "remarques":["nihil"]
+  },
+  {
+    "nom": "Taxi Mouscron Centre",
+    "lieux": ["Tournai"],
+    "contacts": ["0474/20.06.00", "0475/69.94.94"],
+    "mail":["info@taxi-mouscron.com"],
+    "adresse":["Rue Sainte Germaine 134, 7700 Mouscron"],
+    "remarques":["PMR light ok"]
+  },
+  {
+    "nom": "Taxi Schmit Arlon",
+    "lieux": ["Arlon"],
+    "contacts": ["0475/24.60.59", "0473/91.15.22"],
+    "mail":["taxischmit@yahoo.fr"],
+    "adresse":["Rue Saint-Mathias 19, 6700 Arlon"],
+    "remarques":["nihil"]
+  },
+ {
+    "nom": "Taxi Courcellois",
+    "lieux": ["Charleroi"],
+    "contacts": ["071/45.90.90"],
+    "mail":["nihil"],
+    "adresse":["Rue du Pasteur Noir 30, 6180 Courcelles"],
+    "remarques":["nihil"]
+  },
+  {
+    "nom": "Taxi Bonjour",
+    "lieux": ["Braine Le Comte", "Charleroi"],
+    "contacts": ["067/78.08.43", "0495/80.92.15"],
+    "mail":["contact@taxibonjour.be"],
+    "adresse":["Rue de Namur 76, 1400 Nivelles"],
+    "remarques":["nihil"]
+  },
+  {
+    "nom": "Aclotaxi",
+    "lieux": ["Braine Le Comte"],
+    "contacts": ["067/83.03.05", "0488/58.55.88"],
+    "mail":["aclotaxi@gmail.com"],
+    "adresse":["Place René Branquart1, 7090 Braine Le Comte"],
+    "remarques":["Plus pour PMR"]
+  },
+  {
+    "nom": "Taxi Bleu",
+    "lieux": ["Braine Le Comte", "Bruxelles"],
+    "contacts": ["02/268.00.00"],
+    "mail":["dispatching@taxisbleus.be"],
+    "adresse":["Avenue Sylvain Dupuis 231, 1070 Bruxelles"],
+    "remarques":["nihil"]
+  },
+   {
+    "nom": "Taxi Confort",
+    "lieux": ["Braine Le Comte"],
+    "contacts": ["064/22.32.32", "0800/92.232"],
+    "mail":["nihil"],
+    "adresse":["Rue Hamoir 99, 7100 La Louvière"],
+    "remarques":["nihil"]
+  },
+  {
+    "nom": "Taxi Victor",
+    "lieux": ["Braine Le Comte"],
+    "contacts": ["064/33.13.33", "0484/53.28.00"],
+    "mail":["taxi.victor@hotmail.com"],
+    "adresse":["Chaussée du pont du Sart 232, 7100 La Louvière"],
+    "remarques":["Taxi jusqu'à 9 personnes"]
+  },
+  {
+    "nom": "Taxi BLC",
+    "lieux": ["Braine Le Comte"],
+    "contacts": ["0470/96.96.46"],
+    "mail":["taxiblc.gil@gmail.com"],
+    "adresse":["Rue de Bruxelles 112, 7090 Braine Le Comte"],
+    "remarques":["nihil"]
+  },
+   {
+    "nom": "LC Taxi",
+    "lieux": ["Dinant"],
+    "contacts": ["0470/54.01.02", "0471/62.64.40"],
+    "mail":["loic.clarenne@lcmobility.be"],
+    "adresse":["Chaussée de Dinant 71, 5522 Anhée"],
+    "remarques":["nihil"]
+  }
+]

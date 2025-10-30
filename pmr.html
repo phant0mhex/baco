@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>PMR</title>
+  <style>
+    body { font-family: Arial; }
+    .tabs { display: flex; gap: 10px; margin: 20px; }
+    .tab { padding: 10px; background: #eee; cursor: pointer; border-radius: 5px; }
+    .tab:hover { background: #ddd; }
+    .content { margin: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Section PMR</h1>
+  <div class="tabs">
+    <div class="tab" onclick="showContent('lieux')">Lieux</div>
+    <div class="tab" onclick="showContent('numeros')">Numéros</div>
+    <div class="tab" onclick="showContent('autres')">Autres</div>
+  </div>
+  <div class="content" id="content"></div>
+
+  <script>
+    const data = {
+      lieux: ['Site A', 'Site B', 'Site C'],
+      numeros: ['0123456789', '0987654321'],
+      autres: ['Info 1', 'Info 2']
+    };
+
+    function showContent(tab) {
+      const container = document.getElementById('content');
+      container.innerHTML = `<h2>${tab.charAt(0).toUpperCase() + tab.slice(1)}</h2><ul>` +
+        data[tab].map(item => `<li>${item}</li>`).join('') + '</ul>';
+    }
+  </script>
+</body>
+</html>

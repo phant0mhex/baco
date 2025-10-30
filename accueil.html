@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-gray-100">
+<head>
+  <meta charset="UTF-8">
+  <title>Accueil - Portail BACO</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/variable/geist-sans.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-mono/variable/geist-mono.css" rel="stylesheet">
+
+  <script src="https://unpkg.com/lucide@latest" defer></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Geist Sans', 'sans-serif'],
+            mono: ['Geist Mono', 'monospace'],
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="h-full">
+
+  <div id="nav-placeholder"></div>
+
+  <div class="container mx-auto p-8">
+    <header class="mb-10 text-center">
+      <h1 class="text-4xl font-bold text-gray-800 mb-2">Bienvenue sur le portail de données</h1>
+      <p class="text-lg text-gray-600">Choisissez votre domaine :</p>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+      <a href="operationnel.html" class="block h-full p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
+        <h3 class="flex items-center gap-3 text-xl font-semibold text-gray-900 mb-2">
+          <i data-lucide="shield" class="w-5 h-5 text-blue-600"></i>
+          <span>Opérationnel</span>
+        </h3>
+        <p class="text-sm text-gray-600 pl-8">Informations sur les sites et numéros d'urgence.</p>
+      </a>
+
+      <a href="pmr.html" class="block h-full p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
+        <h3 class="flex items-center gap-3 text-xl font-semibold text-gray-900 mb-2">
+          <i data-lucide="wheelchair" class="w-5 h-5 text-blue-600"></i>
+          <span>PMR</span>
+        </h3>
+        <p class="text-sm text-gray-600 pl-8">Données relatives aux Personnes à Mobilité Réduite.</p>
+      </a>
+      
+      <a href="bus.html" class="block h-full p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
+        <h3 class="flex items-center gap-3 text-xl font-semibold text-gray-900 mb-2">
+          <i data-lucide="bus" class="w-5 h-5 text-blue-600"></i>
+          <span>Bus</span>
+        </h3>
+        <p class="text-sm text-gray-600 pl-8">Filtrage des chauffeurs par société et par ligne.</p>
+      </a>
+
+      <a href="taxi.html" class="block h-full p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
+        <h3 class="flex items-center gap-3 text-xl font-semibold text-gray-900 mb-2">
+          <i data-lucide="car" class="w-5 h-5 text-blue-600"></i>
+          <span>Taxi</span>
+        </h3>
+        <p class="text-sm text-gray-600 pl-8">Filtrage des sociétés de taxi par lieu d'intervention.</p>
+      </a>
+
+      <a href="repertoire.html" class="block h-full p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
+        <h3 class="flex items-center gap-3 text-xl font-semibold text-gray-900 mb-2">
+          <i data-lucide="book-user" class="w-5 h-5 text-blue-600"></i>
+          <span>Répertoire</span>
+        </h3>
+        <p class="text-sm text-gray-600 pl-8">Répertoire téléphonique interne (MIA, RCC, OCC).</p>
+      </a>
+
+      <a href="lignes.html" class="block h-full p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
+        <h3 class="flex items-center gap-3 text-xl font-semibold text-gray-900 mb-2">
+          <i data-lucide="train" class="w-5 h-5 text-blue-600"></i>
+          <span>Lignes</span>
+        </h3>
+        <p class="text-sm text-gray-600 pl-8">Détails des lignes, adresses PN et zones SPI.</p>
+      </a>
+
+    </div>
+  </div>
+
+  <script src="js/layout.js" defer></script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Activer les icônes qui sont dans le HTML de cette page
+      lucide.createIcons();
+    });
+  </script>
+
+</body>
+</html>
