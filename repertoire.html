@@ -89,12 +89,11 @@
       updateDisplay();
     }
 
-    // 4. Fonction updateDisplay CORRIGÉE (avec la nouvelle règle)
+    // Fonction updateDisplay MISE A JOUR
     async function updateDisplay() {
       const container = document.getElementById('resultDisplay');
       container.innerHTML = '<p class="text-gray-600">Chargement...</p>';
 
-      // --- Collecte des filtres ---
       const mainChecked = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
       const miaSubChecked = Array.from(document.querySelectorAll('#miaSubCategories input:checked')).map(cb => cb.value);
       
@@ -102,48 +101,32 @@
       const columns = {};
 
       if (mainChecked.length > 0) {
+        // --- MODIFICATION 1 : Ajout de 'email' au select ---
         let query = supabaseClient
           .from('contacts_repertoire')
-          .select('nom, tel, groupe');
+          .select('nom, tel, groupe, email'); // <-- EMAIL AJOUTÉ ICI
 
-        // On construit une requête "OU" complexe
         const orFilters = [];
-
-        // --- NOUVELLE LOGIQUE DE FILTRAGE ---
         
-        // Cas 1: Filtre MIA
         if (mainChecked.includes('MIA') && miaSubChecked.length > 0) {
-          
-          // Logique pour FMS (si coché)
           if (miaSubChecked.includes('FMS')) {
-            // Ajoute tous les contacts FMS
             orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FMS)`);
           }
-          
-          // Logique pour FCR (si coché)
           if (miaSubChecked.includes('FCR')) {
             orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FCR)`);
           }
-
-          // Logique spéciale pour FTY (si coché)
           if (miaSubChecked.includes('FTY')) {
-            // 1. Ajoute tous les contacts FTY
             orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FTY)`);
-            // 2. AJOUTE le groupe TL/MPI de FMS
             orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FMS,groupe.eq.TL/MPI)`);
           }
         }
         
-        // Cas 2: Filtre RCC-OCC
         if (mainChecked.includes('RCC-OCC')) {
           orFilters.push('categorie_principale.eq.RCC-OCC');
         }
-        // Cas 3: Filtre Autre
         if (mainChecked.includes('Autre')) {
           orFilters.push('categorie_principale.eq.Autre');
         }
-        // --- FIN DE LA NOUVELLE LOGIQUE ---
-
 
         if (orFilters.length > 0) {
           query = query.or(orFilters.join(','));
@@ -155,19 +138,16 @@
             return;
           }
 
-          // --- Traitement des résultats (regroupement) ---
           for (const contact of contacts) {
             const col = contact.groupe;
-            if (!columns[col]) {
-              columns[col] = [];
-            }
+            if (!columns[col]) columns[col] = [];
             columns[col].push(contact);
             hasContent = true;
           }
         }
       }
 
-      // --- Logique d'affichage (inchangée) ---
+      // --- MODIFICATION 2 : Logique d'affichage pour inclure l'email ---
       let outputHTML = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">';
       const sortedKeys = Object.keys(columns).sort();
 
@@ -175,18 +155,43 @@
           outputHTML += `<div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">`;
           outputHTML += `<h3 class="text-xl font-semibold text-gray-900 p-4 border-b bg-gray-50">${col}</h3>`;
           outputHTML += `<div class="flex flex-col gap-3 p-4">`;
-          outputHTML += columns[col].map(p => 
-            `<div class="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200">
+          
+          // La carte de contact est maintenant générée ici
+          outputHTML += columns[col].map(p => {
+            
+            // On gère le cas "(manquant)"
+            const telHtml = (p.tel === '(manquant)')
+              ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500">
+                   <i data-lucide="phone-off" class="w-4 h-4"></i>
+                   <span>(manquant)</span>
+                 </span>`
+              : `<a href="tel:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors">
+                   <i data-lucide="phone" class="w-4 h-4"></i>
+                   <span>${p.tel}</span>
+                 </a>`;
+
+            // On génère le HTML pour l'email (s'il existe)
+            const emailHtml = p.email
+              ? `<a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800 transition-colors" title="${p.email}">
+                   <i data-lucide="mail" class="w-4 h-4"></i>
+                   <span class="truncate" style="max-width: 200px;">${p.email}</span>
+                 </a>`
+              : ''; // Vide s'il n'y a pas d'email
+
+            // On assemble la carte
+            return `
+              <div class="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200">
                 <span class="flex items-center gap-2.5 text-sm font-medium text-gray-900">
                    <i data-lucide="user" class="w-4 h-4 text-gray-500"></i>
                    <span>${p.nom}</span>
                 </span>
-                <a href="tel:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors">
-                   <i data-lucide="phone" class="w-4 h-4"></i>
-                   <span>${p.tel}</span>
-                </a>
-             </div>`
-          ).join('');
+                <div class="flex flex-col items-end gap-1">
+                  ${telHtml}
+                  ${emailHtml}
+                </div>
+              </div>`;
+          }).join('');
+          
           outputHTML += `</div></div>`;
       }
       outputHTML += '</div>';
@@ -202,7 +207,6 @@
     
     document.addEventListener('DOMContentLoaded', updateDisplay);
   </script>
-  
   <script src="js/layout.js" defer></script>
 </body>
 </html>
