@@ -122,8 +122,8 @@
 
 
   <script src="js/layout.js" defer></script>
-  
-<script>
+
+  <script>
     document.addEventListener('DOMContentLoaded', () => {
     
       // --- Références aux éléments du DOM ---
@@ -141,7 +141,7 @@
       window.handleBusFormSubmit = handleBusFormSubmit;
       window.deleteBus = deleteBus;
 
-      // --- FONCTION 1 : AFFICHER LES SOCIÉTÉS (DESIGN CORRIGÉ) ---
+      // --- FONCTION 1 : AFFICHER LES SOCIÉTÉS ---
       async function updateSocieteDisplay() {
         const lignesSelectionnees = Array.from(document.querySelectorAll('#ligneCheckboxes input:checked'))
           .map(cb => cb.value);
@@ -181,10 +181,9 @@
           return;
         }
 
-        // --- NOUVEAU HTML POUR LES SOCIÉTÉS ---
         contentContainer.innerHTML = '<div>' +
             '<h3 class="text-2xl font-semibold text-gray-800 mb-4">Sociétés concernées :</h3>' +
-            '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-8" id="societeCheckboxes">' + // Changé en grid
+            '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-8" id="societeCheckboxes">' +
               societesAffichees.map(s => {
                 const societeJson = JSON.stringify(s).replace(/"/g, "&quot;");
                 return `
@@ -225,13 +224,11 @@
           return;
         }
 
-        // 1. Récupérer les contacts
         const { data: contactList, error: contactError } = await supabaseClient
           .from('contacts_bus')
           .select('nom, tel, societes_bus ( nom )')
           .in('societe_id', societesSelectionneesIds);
 
-        // 2. Récupérer les chauffeurs
         const { data: chauffeursList, error: chauffeursError } = await supabaseClient
           .from('chauffeurs_bus')
           .select('nom, tel, societes_bus ( nom )')
@@ -242,10 +239,10 @@
           return;
         }
         
-        // --- NOUVEAU HTML POUR LES LISTES ---
+        // --- CORRECTION : suppression de 'max-w-2xl' ---
         contactsContainer.innerHTML = contactList.length === 0 ? '' :
           '<h3 class="text-2xl font-semibold text-gray-800 mb-4">Contacts de la société :</h3>' +
-          '<ul class="space-y-3 list-none p-0 max-w-2xl grid grid-cols-1 md:grid-cols-2 gap-3">' + // Changé en grid
+          '<ul class="list-none p-0 grid grid-cols-1 md:grid-cols-2 gap-3">' + // max-w-2xl supprimé
           contactList.map(c => 
             `<li class="bg-gray-50 rounded-lg border border-gray-200 p-3 flex items-center justify-between">
               <span class="flex items-center gap-2 text-sm font-medium text-gray-900">
@@ -259,9 +256,10 @@
             </li>`
           ).join('') + '</ul>';
 
+        // --- CORRECTION : suppression de 'max-w-2xl' ---
         chauffeursContainer.innerHTML = chauffeursList.length === 0 ? '' :
           '<h3 class="text-2xl font-semibold text-gray-800 mb-4 mt-8">Chauffeurs à contacter :</h3>' +
-          '<ul class="space-y-3 list-none p-0 max-w-2xl grid grid-cols-1 md:grid-cols-2 gap-3">' + // Changé en grid
+          '<ul class="list-none p-0 grid grid-cols-1 md:grid-cols-2 gap-3">' + // max-w-2xl supprimé
           chauffeursList.map(c => 
             `<li class="bg-gray-50 rounded-lg border border-gray-200 p-3 flex items-center justify-between">
               <span class="flex items-center gap-2 text-sm font-medium text-gray-900">
