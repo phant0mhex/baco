@@ -98,8 +98,8 @@
 
   <script src="js/layout.js" defer></script>
   
-  <script>
-    // --- FONCTION PRINCIPALE (MODIFIÉE) ---
+<script>
+    // --- FONCTION PRINCIPALE (CORRIGÉE) ---
 
     async function updateTaxiDisplay() {
       const lieuxSelectionnes = Array.from(document.querySelectorAll('#lieuCheckboxes input:checked'))
@@ -114,7 +114,6 @@
 
       container.innerHTML = '<p class="text-gray-600">Chargement...</p>';
       
-      // MODIFIÉ : On sélectionne 'id' et toutes les colonnes dont on a besoin
       const { data: taxisAffiches, error } = await supabaseClient
         .from('taxis')
         .select('id, nom, lieux, contacts, mail, adresse, remarques')
@@ -130,7 +129,7 @@
         return;
       }
 
-      // --- MODIFIÉ : Génération des cartes avec boutons ---
+      // --- CORRECTION : Génération du HTML complet ---
       container.innerHTML = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">' +
         taxisAffiches.map(taxi => {
           
@@ -141,30 +140,41 @@
             `<span class="px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700 text-sm font-medium">${lieu}</span>`
           ).join('');
 
-          // 2. Contacts (Téléphones)
+          // 2. Contacts (Téléphones) - HTML COMPLET
           const contactsHtml = (taxi.contacts.length === 0 || taxi.contacts[0] === 'nihil') ? '' :
             taxi.contacts.map(num =>
-            `<a href="etrali:${num}" class="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">...</a>`
+            `<a href="etrali:${num}" class="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+               <i data-lucide="phone" class="w-4 h-4 text-blue-700 flex-shrink-0"></i>
+               <span class="font-mono text-sm font-medium text-blue-800">${num}</span>
+             </a>`
             ).join('');
 
-          // 3. Mails
-          // MODIFIÉ : On vérifie juste la longueur
-          const mailsHtml = (taxi.mail.length === 0) ? '' :
+          // 3. Mails - HTML COMPLET
+          const mailsHtml = (taxi.mail.length === 0 || taxi.mail[0] === 'nihil') ? '' :
             taxi.mail.map(email =>
-              `<a href="mailto:${email}" class="flex items-center gap-3 p-3 bg-gray-50 border ...">...</a>`
+              `<a href="mailto:${email}" class="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors">
+                 <i data-lucide="mail" class="w-4 h-4 text-gray-600 flex-shrink-0"></i>
+                 <span class="text-sm font-medium text-gray-800 break-all">${email}</span>
+               </a>`
             ).join('');
 
-          // 4. Adresse
-          const adresseHtml = (taxi.adresse.length === 0) ? '' :
+          // 4. Adresse - HTML COMPLET
+          const adresseHtml = (taxi.adresse.length === 0 || taxi.adresse[0] === 'nihil') ? '' :
             taxi.adresse.map(adr =>
-              `<div class="flex items-start gap-3 p-3 bg-gray-50 border ...">...</div>`
+              `<div class="flex items-start gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                 <i data-lucide="map-pin" class="w-4 h-4 text-gray-600 flex-shrink-0 mt-0.5"></i>
+                 <span class="text-sm font-medium text-gray-800">${adr}</span>
+               </div>`
             ).join('');
           
-          // 5. Remarques
-          const remarquesHtml = (taxi.remarques.length === 0) ? '' :
-            '<div class="border-t pt-4 mt-4">' + // mt-auto enlevé pour que le footer soit juste en dessous
+          // 5. Remarques - HTML COMPLET
+          const remarquesHtml = (taxi.remarques.length === 0 || taxi.remarques[0] === 'nihil') ? '' :
+            '<div class="border-t pt-4 mt-4">' +
             taxi.remarques.map(rem =>
-              `<div class="flex items-start gap-2.5 text-sm p-3 bg-yellow-50 ...">...</div>`
+              `<div class="flex items-start gap-2.5 text-sm p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                 <i data-lucide="info" class="w-4 h-4 text-yellow-700 flex-shrink-0 mt-0.5"></i>
+                 <span class="text-yellow-900">${rem}</span>
+               </div>`
             ).join('') + '</div>';
 
           // --- Assemblage de la Carte ---
@@ -181,12 +191,12 @@
                       </div>
 
                       <div class="flex flex-col gap-3 mt-4">
-                        ${contactsHtml.replace(/\.\.\./g, '')}
-                        ${mailsHtml.replace(/\.\.\./g, '')}
-                        ${adresseHtml.replace(/\.\.\./g, '')}
+                        ${contactsHtml}
+                        ${mailsHtml}
+                        ${adresseHtml}
                       </div>
                       
-                      ${remarquesHtml.replace(/\.\.\./g, '')}
+                      ${remarquesHtml}
                     </div>
 
                     <div class="p-3 bg-gray-50 border-t flex justify-end gap-2">
@@ -205,21 +215,16 @@
       lucide.createIcons();
     }
     
-    // --- NOUVELLES FONCTIONS D'ÉDITION ---
+    // --- FONCTIONS D'ÉDITION (INCHANGÉES) ---
 
     const modal = document.getElementById('taxi-modal');
     const modalTitle = document.getElementById('modal-title');
     const taxiForm = document.getElementById('taxi-form');
     const taxiIdInput = document.getElementById('modal-taxi-id');
     
-    /**
-     * Ouvre et pré-remplit le modal taxi
-     */
     function showTaxiModal(taxi = null) {
       const isEdit = taxi !== null;
       taxiForm.reset();
-
-      // Fonction utilitaire pour joindre les arrays, en gérant les "nihil"
       const joinIfNotEmpty = (arr) => (arr && arr.length > 0 && arr[0] !== 'nihil') ? arr.join(', ') : '';
       
       if (isEdit) {
@@ -235,43 +240,41 @@
         modalTitle.textContent = 'Ajouter un taxi';
         taxiIdInput.value = '';
       }
-      
       modal.style.display = 'flex';
       lucide.createIcons();
     }
 
-    /**
-     * Cache le modal taxi
-     */
     function hideTaxiModal() {
       modal.style.display = 'none';
     }
 
-    /**
-     * Gère la soumission du formulaire (Ajout / Modification)
-     */
     async function handleTaxiFormSubmit(event) {
       event.preventDefault();
       
       const taxiId = taxiIdInput.value;
       const isEdit = taxiId !== '';
       
-      // Fonction utilitaire pour transformer le texte en array
-      // On envoie un array vide si le champ est vide
-      const splitAndClean = (str) => str.split(',').map(s => s.trim()).filter(Boolean);
+      const splitAndClean = (str) => {
+        const arr = str.split(',').map(s => s.trim()).filter(Boolean);
+        return arr.length > 0 ? arr : ['nihil']; // Assure de ne pas envoyer un array vide
+      };
+
+      // CORRECTION : S'assurer que 'nihil' n'est envoyé que si le champ est vide
+      const cleanNom = document.getElementById('modal-nom').value;
+      const cleanLieux = splitAndClean(document.getElementById('modal-lieux').value);
+      const cleanContacts = splitAndClean(document.getElementById('modal-contacts').value);
+      const cleanMail = splitAndClean(document.getElementById('modal-mail').value);
+      const cleanAdresse = splitAndClean(document.getElementById('modal-adresse').value);
+      const cleanRemarques = splitAndClean(document.getElementById('modal-remarques').value);
 
       const taxiData = {
-        nom: document.getElementById('modal-nom').value,
-        lieux: splitAndClean(document.getElementById('modal-lieux').value),
-        contacts: splitAndClean(document.getElementById('modal-contacts').value),
-        mail: splitAndClean(document.getElementById('modal-mail').value),
-        adresse: splitAndClean(document.getElementById('modal-adresse').value),
-        remarques: splitAndClean(document.getElementById('modal-remarques').value)
+        nom: cleanNom,
+        lieux: cleanLieux.length > 0 ? cleanLieux : ['nihil'],
+        contacts: cleanContacts.length > 0 ? cleanContacts : ['nihil'],
+        mail: cleanMail.length > 0 ? cleanMail : ['nihil'],
+        adresse: cleanAdresse.length > 0 ? cleanAdresse : ['nihil'],
+        remarques: cleanRemarques.length > 0 ? cleanRemarques : ['nihil']
       };
-      
-      // On s'assure que les champs obligatoires ne sont pas vides
-      if (taxiData.lieux.length === 0) taxiData.lieux = ['nihil'];
-      if (taxiData.contacts.length === 0) taxiData.contacts = ['nihil'];
 
       let error;
       const submitButton = document.getElementById('modal-submit-button');
@@ -303,24 +306,19 @@
       }
     }
 
-    /**
-     * Gère la suppression d'un taxi
-     */
     async function deleteTaxi(id, nom) {
       if (!confirm(`Êtes-vous sûr de vouloir supprimer le taxi "${nom}" ?`)) {
         return;
       }
-
       const { error } = await supabaseClient
         .from('taxis')
         .delete()
         .eq('id', id);
-
       if (error) {
         alert("Erreur lors de la suppression: " + error.message);
       } else {
         alert("Taxi supprimé avec succès !");
-        updateTaxiDisplay(); // Rafraîchir la liste
+        updateTaxiDisplay();
       }
     }
   </script>
