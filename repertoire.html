@@ -27,6 +27,67 @@
     }
   </script>
 </head>
+
+<div id="contact-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4" style="display: none;">
+  <div class="bg-white rounded-lg shadow-xl w-full max-w-lg">
+    <div class="flex justify-between items-center p-4 border-b">
+      <h3 id="modal-title" class="text-xl font-semibold text-gray-800">Ajouter un contact</h3>
+      <button onclick="hideContactModal()" class="p-1 rounded-full text-gray-500 hover:bg-gray-200">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+    
+    <form id="contact-form" onsubmit="handleFormSubmit(event)">
+      <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <input type="hidden" id="modal-contact-id">
+        
+        <div class="md:col-span-2">
+          <label for="modal-nom" class="block text-sm font-medium text-gray-700">Nom</label>
+          <input type="text" id="modal-nom" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        
+        <div>
+          <label for="modal-tel" class="block text-sm font-medium text-gray-700">Téléphone</label>
+          <input type="text" id="modal-tel" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        
+        <div>
+          <label for="modal-email" class="block text-sm font-medium text-gray-700">Email (optionnel)</label>
+          <input type="email" id="modal-email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        
+        <div>
+          <label for="modal-categorie" class="block text-sm font-medium text-gray-700">Catégorie</label>
+          <select id="modal-categorie" required class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            <option value="MIA">MIA</option>
+            <option value="RCC-OCC">RCC-OCC</option>
+            <option value="Autre">Autre</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="modal-zone" class="block text-sm font-medium text-gray-700">Zone (optionnel)</label>
+          <input type="text" id="modal-zone" placeholder="FMS, FTY, FCR..." class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        
+        <div class="md:col-span-2">
+          <label for="modal-groupe" class="block text-sm font-medium text-gray-700">Groupe</label>
+          <input type="text" id="modal-groupe" required placeholder="SPI, CPI, PACO..." class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+      </div>
+      
+      <div class="flex justify-end items-center p-4 bg-gray-50 border-t rounded-b-lg">
+        <button type="button" onclick="hideContactModal()" class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none">
+          Annuler
+        </button>
+        <button type="submit" id="modal-submit-button" class="ml-3 px-4 py-2 bg-blue-600 text-white border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none">
+          Enregistrer
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <body class="h-full bg-gray-50">
 
   <div id="nav-placeholder"></div>
@@ -39,9 +100,7 @@
         <span>Ajouter un contact</span>
       </button>
     </div>
-    <h3 class="text-xl font-semibold text-gray-800 mb-4">1. Catégories</h3>
-
-
+   
     <h1 class="text-3xl font-bold text-gray-800 mb-6">Répertoire téléphonique</h1>
 
     <h3 class="text-xl font-semibold text-gray-800 mb-4">1. Catégories</h3>
@@ -143,7 +202,7 @@
         }
       }
 
-      // --- NOUVEAU DESIGN DE CARTE ---
+      // --- DESIGN DE CARTE (INCHANGÉ) ---
       let outputHTML = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">';
       const sortedKeys = Object.keys(columns).sort();
 
@@ -153,30 +212,16 @@
           outputHTML += `<div class="flex flex-col gap-3 p-4">`;
           
           outputHTML += columns[col].map(p => {
-            
-            // Pour passer l'objet 'p' en paramètre, on le stringify et on échappe les guillemets
             const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
 
-            // On gère le cas "(manquant)"
             const telHtml = (p.tel === '(manquant)' || !p.tel)
-              ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500">
-                   <i data-lucide="phone-off" class="w-4 h-4"></i>
-                   <span>(manquant)</span>
-                 </span>`
-              : `<a href="tel:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors">
-                   <i data-lucide="phone" class="w-4 h-4"></i>
-                   <span>${p.tel}</span>
-                 </a>`;
+              ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500"><i data-lucide="phone-off" class="w-4 h-4"></i><span>(manquant)</span></span>`
+              : `<a href="tel:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors"><i data-lucide="phone" class="w-4 h-4"></i><span>${p.tel}</span></a>`;
 
-            // On génère le HTML pour l'email (s'il existe)
             const emailHtml = p.email
-              ? `<a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800 transition-colors" title="${p.email}">
-                   <i data-lucide="mail" class="w-4 h-4"></i>
-                   <span class="truncate" style="max-width: 200px;">${p.email}</span>
-                 </a>`
-              : ''; // Vide s'il n'y a pas d'email
+              ? `<a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800 transition-colors" title="${p.email}"><i data-lucide="mail" class="w-4 h-4"></i><span class="truncate" style="max-width: 200px;">${p.email}</span></a>`
+              : '';
 
-            // On assemble la nouvelle carte
             return `
               <div class="bg-gray-50 rounded-lg border border-gray-200 transition-all hover:shadow-sm">
                 <div class="flex items-center justify-between p-3 border-b border-gray-100">
@@ -216,66 +261,98 @@
     document.addEventListener('DOMContentLoaded', updateDisplay);
 
     
-    // --- FONCTIONS D'ÉDITION ET SUPPRESSION (INCHANGÉES MAIS VÉRIFIÉES) ---
+    // --- GESTION DE LA SUPPRESSION (INCHANGÉE) ---
 
     async function deleteContact(id, nom) {
       if (!confirm(`Êtes-vous sûr de vouloir supprimer le contact "${nom}" ?`)) {
         return;
       }
-
-      const { error } = await supabaseClient
-        .from('contacts_repertoire')
-        .delete()
-        .eq('id', id);
-
+      const { error } = await supabaseClient.from('contacts_repertoire').delete().eq('id', id);
       if (error) {
         alert("Erreur lors de la suppression: " + error.message);
       } else {
         alert("Contact supprimé avec succès !");
-        updateDisplay(); // Rafraîchir la liste
+        updateDisplay();
       }
     }
 
-    async function showContactModal(contact = null) {
+    
+    // --- NOUVELLES FONCTIONS POUR LE MODAL COMPLEXE ---
+
+    const modal = document.getElementById('contact-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const contactForm = document.getElementById('contact-form');
+    const contactIdInput = document.getElementById('modal-contact-id');
+
+    /**
+     * Ouvre et pré-remplit le modal.
+     * Si 'contact' est null, c'est un ajout.
+     * Si 'contact' est fourni, c'est une modification.
+     */
+    function showContactModal(contact = null) {
       const isEdit = contact !== null;
-      const title = isEdit ? 'Modifier le contact' : 'Ajouter un contact';
-
-      // On utilise des 'prompt'
-      const nom = prompt(`Nom:`, isEdit ? contact.nom : '');
-      if (nom === null) return; // Annulé
       
-      // VÉRIFICATION : Le prompt pour 'tel' est bien ici
-      const tel = prompt(`Téléphone:`, isEdit ? contact.tel : '');
-      if (tel === null) return; // Annulé
+      // Réinitialiser le formulaire
+      contactForm.reset();
+      
+      if (isEdit) {
+        // Mode ÉDITION
+        modalTitle.textContent = 'Modifier le contact';
+        contactIdInput.value = contact.id;
+        document.getElementById('modal-nom').value = contact.nom;
+        document.getElementById('modal-tel').value = contact.tel;
+        document.getElementById('modal-email').value = contact.email || '';
+        document.getElementById('modal-categorie').value = contact.categorie_principale;
+        document.getElementById('modal-zone').value = contact.zone || '';
+        document.getElementById('modal-groupe').value = contact.groupe;
+      } else {
+        // Mode AJOUT
+        modalTitle.textContent = 'Ajouter un contact';
+        contactIdInput.value = ''; // Pas d'ID
+      }
+      
+      // Afficher le modal
+      modal.style.display = 'flex';
+      lucide.createIcons(); // Redessiner l'icône 'x' si elle n'est pas encore là
+    }
 
-      const email = prompt(`Email (optionnel):`, isEdit ? (contact.email || '') : '');
-      if (email === null) return; // Annulé
+    /**
+     * Cache le modal
+     */
+    function hideContactModal() {
+      modal.style.display = 'none';
+    }
 
-      const categorie = prompt(`Catégorie (MIA, RCC-OCC, Autre):`, isEdit ? contact.categorie_principale : 'MIA');
-      if (categorie === null) return; // Annulé
-
-      const zone = prompt(`Zone (FMS, FTY, FCR, ou vide):`, isEdit ? (contact.zone || '') : '');
-      if (zone === null) return; // Annulé
-
-      const groupe = prompt(`Groupe (SPI, CPI, PACO, etc.):`, isEdit ? contact.groupe : '');
-      if (groupe === null) return; // Annulé
-
+    /**
+     * Gère la soumission du formulaire (Ajout / Modification)
+     */
+    async function handleFormSubmit(event) {
+      event.preventDefault(); // Empêche le rechargement de la page
+      
+      const contactId = contactIdInput.value;
+      const isEdit = contactId !== '';
+      
+      // Récupérer les données du formulaire
       const contactData = {
-        nom: nom,
-        tel: tel,
-        email: email || null,
-        categorie_principale: categorie,
-        zone: zone || null,
-        groupe: groupe
+        nom: document.getElementById('modal-nom').value,
+        tel: document.getElementById('modal-tel').value,
+        email: document.getElementById('modal-email').value || null,
+        categorie_principale: document.getElementById('modal-categorie').value,
+        zone: document.getElementById('modal-zone').value || null,
+        groupe: document.getElementById('modal-groupe').value
       };
 
       let error;
+      const submitButton = document.getElementById('modal-submit-button');
+      submitButton.disabled = true;
+      submitButton.textContent = 'Enregistrement...';
+
       if (isEdit) {
         // --- REQUÊTE UPDATE ---
         const { error: updateError } = await supabaseClient
           .from('contacts_repertoire')
           .update(contactData)
-          .eq('id', contact.id);
+          .eq('id', contactId);
         error = updateError;
       } else {
         // --- REQUÊTE INSERT ---
@@ -285,10 +362,16 @@
         error = insertError;
       }
 
+      // Réactiver le bouton
+      submitButton.disabled = false;
+      submitButton.textContent = 'Enregistrer';
+
+      // Gestion du résultat
       if (error) {
         alert("Erreur lors de l'opération: " + error.message);
       } else {
         alert(isEdit ? "Contact mis à jour !" : "Contact ajouté !");
+        hideContactModal();
         updateDisplay(); // Rafraîchir la liste
       }
     }
