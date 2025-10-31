@@ -28,9 +28,7 @@
   <div id="nav-placeholder"></div>
 
   <div class="container mx-auto p-8">
-    <h1 class="text-3xl font-bold text-gray-800 mb-6">Filtrer les chauffeurs par ligne</h1>
-
-    <h1 class="text-3xl font-bold text-gray-800 mb-6">Filtrer les chauffeurs par ligne</h1>
+       <h1 class="text-3xl font-bold text-gray-800 mb-6">Filtrer les chauffeurs par ligne</h1>
 
 <div class="mb-6 flex justify-end">
   <button onclick="showBusModal()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
@@ -137,17 +135,13 @@
 
       // Exposer les fonctions à 'onclick'
       window.updateSocieteDisplay = updateSocieteDisplay;
-      window.updateChauffeursDisplay = updateChauffeursDisplay; // <-- RESTAURÉE
+      window.updateChauffeursDisplay = updateChauffeursDisplay;
       window.showBusModal = showBusModal;
       window.hideBusModal = hideBusModal;
       window.handleBusFormSubmit = handleBusFormSubmit;
       window.deleteBus = deleteBus;
 
-      // Pas d'affichage initial, l'utilisateur doit d'abord cocher une ligne
-      // updateSocieteDisplay();
-
-
-      // --- FONCTION 1 : AFFICHER LES SOCIÉTÉS ---
+      // --- FONCTION 1 : AFFICHER LES SOCIÉTÉS (DESIGN CORRIGÉ) ---
       async function updateSocieteDisplay() {
         const lignesSelectionnees = Array.from(document.querySelectorAll('#ligneCheckboxes input:checked'))
           .map(cb => cb.value);
@@ -187,24 +181,26 @@
           return;
         }
 
-        // --- AFFICHAGE MODIFIÉ (avec boutons) ---
+        // --- NOUVEAU HTML POUR LES SOCIÉTÉS ---
         contentContainer.innerHTML = '<div>' +
             '<h3 class="text-2xl font-semibold text-gray-800 mb-4">Sociétés concernées :</h3>' +
-            '<div class="flex flex-wrap gap-3 mb-8" id="societeCheckboxes">' +
+            '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-8" id="societeCheckboxes">' + // Changé en grid
               societesAffichees.map(s => {
                 const societeJson = JSON.stringify(s).replace(/"/g, "&quot;");
                 return `
-                <div class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-full shadow-sm">
-                  <label class="flex items-center space-x-2 cursor-pointer hover:opacity-80">
+                <div class="flex items-center justify-between px-4 py-3 bg-white border border-gray-300 rounded-lg shadow-sm">
+                  <label class="flex items-center space-x-2 cursor-pointer grow mr-2">
                     <input type="checkbox" value="${s.id}" onchange="updateChauffeursDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
                     <span class="font-medium text-gray-700">${s.nom}</span>
                   </label>
-                  <button onclick='showBusModal(${societeJson})' class="p-1 text-blue-600 rounded-full hover:bg-blue-100" title="Modifier ${s.nom}">
-                    <i data-lucide="pencil" class="w-4 h-4"></i>
-                  </button>
-                  <button onclick="deleteBus(${s.id}, '${s.nom}')" class="p-1 text-red-600 rounded-full hover:bg-red-100" title="Supprimer ${s.nom}">
-                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                  </button>
+                  <div class="flex items-center gap-2 flex-shrink-0">
+                    <button onclick='showBusModal(${societeJson})' class="p-1 text-blue-600 rounded-full hover:bg-blue-100" title="Modifier ${s.nom}">
+                      <i data-lucide="pencil" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="deleteBus(${s.id}, '${s.nom}')" class="p-1 text-red-600 rounded-full hover:bg-red-100" title="Supprimer ${s.nom}">
+                      <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                  </div>
                 </div>`;
               }).join('') +
             '</div>' +
@@ -215,7 +211,7 @@
         lucide.createIcons();
       }
 
-      // --- FONCTION 2 : AFFICHER CONTACTS/CHAUFFEURS (RESTAURÉE) ---
+      // --- FONCTION 2 : AFFICHER CONTACTS/CHAUFFEURS (DESIGN CORRIGÉ) ---
       async function updateChauffeursDisplay() {
         const societesSelectionneesIds = Array.from(document.querySelectorAll('#societeCheckboxes input:checked'))
           .map(cb => cb.value);
@@ -246,29 +242,43 @@
           return;
         }
         
-        // Logique d'affichage (identique à celle d'avant)
+        // --- NOUVEAU HTML POUR LES LISTES ---
         contactsContainer.innerHTML = contactList.length === 0 ? '' :
           '<h3 class="text-2xl font-semibold text-gray-800 mb-4">Contacts de la société :</h3>' +
-          '<ul class="space-y-3 list-none p-0 max-w-md">' +
+          '<ul class="space-y-3 list-none p-0 max-w-2xl grid grid-cols-1 md:grid-cols-2 gap-3">' + // Changé en grid
           contactList.map(c => 
-            `<li class="flex flex-col sm:flex-row ...">
-              <span class="font-semibold text-gray-800">${c.nom} <span class="font-normal text-gray-500">(${c.societes_bus.nom})</span></span>
-              <a href="tel:${c.tel}" class="px-4 py-2 bg-blue-600 ...">${c.tel}</a>
+            `<li class="bg-gray-50 rounded-lg border border-gray-200 p-3 flex items-center justify-between">
+              <span class="flex items-center gap-2 text-sm font-medium text-gray-900">
+                <i data-lucide="user" class="w-4 h-4 text-gray-500"></i>
+                ${c.nom} <span class="font-normal text-gray-500">(${c.societes_bus.nom})</span>
+              </span>
+              <a href="tel:${c.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800">
+                <i data-lucide="phone" class="w-4 h-4"></i>
+                <span>${c.tel}</span>
+              </a>
             </li>`
           ).join('') + '</ul>';
 
         chauffeursContainer.innerHTML = chauffeursList.length === 0 ? '' :
-          '<h3 class="text-2xl font-semibold text-gray-800 mb-4">Chauffeurs à contacter :</h3>' +
-          '<ul class="space-y-3 list-none p-0 max-w-md">' +
+          '<h3 class="text-2xl font-semibold text-gray-800 mb-4 mt-8">Chauffeurs à contacter :</h3>' +
+          '<ul class="space-y-3 list-none p-0 max-w-2xl grid grid-cols-1 md:grid-cols-2 gap-3">' + // Changé en grid
           chauffeursList.map(c => 
-            `<li class="flex flex-col sm:flex-row ...">
-              <span class="font-semibold text-gray-800">${c.nom} <span class="font-normal text-gray-500">(${c.societes_bus.nom})</span></span>
-              <a href="tel:${c.tel}" class="px-4 py-2 bg-blue-600 ...">${c.tel}</a>
+            `<li class="bg-gray-50 rounded-lg border border-gray-200 p-3 flex items-center justify-between">
+              <span class="flex items-center gap-2 text-sm font-medium text-gray-900">
+                <i data-lucide="user" class="w-4 h-4 text-gray-500"></i>
+                ${c.nom} <span class="font-normal text-gray-500">(${c.societes_bus.nom})</span>
+              </span>
+              <a href="tel:${c.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800">
+                <i data-lucide="phone" class="w-4 h-4"></i>
+                <span>${c.tel}</span>
+              </a>
             </li>`
           ).join('') + '</ul>';
+          
+        lucide.createIcons();
       }
 
-      // --- FONCTIONS DU MODAL (Identiques à la réponse précédente) ---
+      // --- FONCTIONS DU MODAL (INCHANGÉES) ---
 
       async function showBusModal(societe = null) {
         const isEdit = societe !== null;
@@ -349,7 +359,7 @@
         } else {
           alert(busId ? "Société mise à jour !" : "Société ajoutée !");
           hideBusModal();
-          updateSocieteDisplay(); // Rafraîchir la liste des sociétés
+          updateSocieteDisplay();
         }
       }
 
@@ -364,7 +374,7 @@
           alert("Erreur lors de la suppression: " + error.message);
         } else {
           alert("Société supprimée avec succès !");
-          updateSocieteDisplay(); // Rafraîchir la liste
+          updateSocieteDisplay();
         }
       }
 
