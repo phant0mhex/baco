@@ -29,7 +29,7 @@
 </head>
 
 <div id="contact-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4" style="display: none;">
-  <div class="bg-white rounded-lg shadow-xl w-full max-w-lg">
+  <div class="bg-white rounded-lg shadow-xl w-full max-w-lg admin-only">
     <div class="flex justify-between items-center p-4 border-b">
       <h3 id="modal-title" class="text-xl font-semibold text-gray-800">Ajouter un contact</h3>
       <button onclick="hideContactModal()" class="p-1 rounded-full text-gray-500 hover:bg-gray-200">
@@ -240,7 +240,7 @@
                      <i data-lucide="user" class="w-4 h-4 text-gray-600"></i>
                      <span>${p.nom}</span>
                   </span>
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-2 admin-only">
                     <button onclick="showContactModal(${contactJson})" class="p-1 text-blue-600 rounded hover:bg-blue-100" title="Modifier">
                       <i data-lucide="pencil" class="w-4 h-4"></i>
                     </button>

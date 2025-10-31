@@ -3,7 +3,11 @@
 // (Ce code est celui que vous aviez déjà)
 document.addEventListener('DOMContentLoaded', () => {
   const navPlaceholder = document.getElementById('nav-placeholder');
-  
+
+  // --- NOUVELLE FONCTION ---
+  // À appeler APRÈS que le HTML principal est chargé
+  hideAdminElements();
+
   if (navPlaceholder) {
     fetch('_nav.html')
       .then(response => {
@@ -14,16 +18,16 @@ document.addEventListener('DOMContentLoaded', () => {
         navPlaceholder.innerHTML = html;
         highlightActiveLink();
         lucide.createIcons();
-        
-        // AJOUT : Attacher un événement au nouveau bouton de déconnexion
+
         const logoutButton = document.getElementById('logout-button');
         if (logoutButton) {
           logoutButton.onclick = async () => {
-            const { error } = await supabaseClient.auth.signOut(); // Utilise le client de auth.js
+            sessionStorage.removeItem('userRole'); // Nettoyer le rôle
+            const { error } = await supabaseClient.auth.signOut();
             if (error) {
               console.error('Erreur de déconnexion:', error);
             } else {
-              window.location.href = 'index.html'; // Retour à la connexion
+              window.location.href = 'index.html';
             }
           };
         }
@@ -46,5 +50,29 @@ function highlightActiveLink() {
         activeLink.classList.add('bg-gray-700', 'font-bold');
       }
     }
+  }
+}
+
+// --- NOUVELLE FONCTION ---
+/**
+ * Cache tous les éléments avec la classe 'admin-only' si l'utilisateur
+ * n'est pas un admin (rôle récupéré depuis sessionStorage).
+ */
+function hideAdminElements() {
+  const userRole = sessionStorage.getItem('userRole');
+
+  if (userRole !== 'admin') {
+    const adminElements = document.querySelectorAll('.admin-only');
+    console.log(`Utilisateur 'user', masquage de ${adminElements.length} élément(s) admin.`);
+
+    // On crée une règle CSS pour les cacher, c'est plus performant
+    const style = document.createElement('style');
+    style.innerHTML = '.admin-only { display: none !important; }';
+    document.head.appendChild(style);
+
+    // Note : pour les éléments générés dynamiquement (comme les cartes taxi),
+    // il faut appeler cette fonction *après* leur génération.
+  } else {
+    console.log("Utilisateur 'admin', affichage de tous les éléments.");
   }
 }
