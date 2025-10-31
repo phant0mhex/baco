@@ -33,6 +33,15 @@
 
   <div class="container mx-auto p-8">
     
+    <div class="mb-6 flex justify-end">
+      <button onclick="showContactModal()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
+        <i data-lucide="plus" class="w-5 h-5"></i>
+        <span>Ajouter un contact</span>
+      </button>
+    </div>
+    <h3 class="text-xl font-semibold text-gray-800 mb-4">1. Catégories</h3>
+
+
     <h1 class="text-3xl font-bold text-gray-800 mb-6">Répertoire téléphonique</h1>
 
     <h3 class="text-xl font-semibold text-gray-800 mb-4">1. Catégories</h3>
@@ -80,8 +89,7 @@
 
 
   <script>
-    // Fini le 'fetch' de repertoire.json !
-    // Le client 'supabaseClient' est déjà disponible depuis 'js/auth.js'
+    // --- FONCTIONS LOGIQUES (MODIFIÉES) ---
 
     function updateSubCategories() {
       const miaChecked = document.querySelector('#mainCategories input[value="MIA"]').checked;
@@ -89,7 +97,6 @@
       updateDisplay();
     }
 
-    // Fonction updateDisplay MISE A JOUR
     async function updateDisplay() {
       const container = document.getElementById('resultDisplay');
       container.innerHTML = '<p class="text-gray-600">Chargement...</p>';
@@ -101,10 +108,10 @@
       const columns = {};
 
       if (mainChecked.length > 0) {
-        // --- MODIFICATION 1 : Ajout de 'email' au select ---
+        // --- MODIFICATION 1 : 'id' est ajouté au select ---
         let query = supabaseClient
           .from('contacts_repertoire')
-          .select('nom, tel, groupe, email'); // <-- EMAIL AJOUTÉ ICI
+          .select('id, nom, tel, groupe, email, categorie_principale, zone'); // <-- ID et champs de filtre ajoutés
 
         const orFilters = [];
         
@@ -147,7 +154,7 @@
         }
       }
 
-      // --- MODIFICATION 2 : Logique d'affichage pour inclure l'email ---
+      // --- MODIFICATION 2 : Affichage des boutons ---
       let outputHTML = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">';
       const sortedKeys = Object.keys(columns).sort();
 
@@ -156,38 +163,38 @@
           outputHTML += `<h3 class="text-xl font-semibold text-gray-900 p-4 border-b bg-gray-50">${col}</h3>`;
           outputHTML += `<div class="flex flex-col gap-3 p-4">`;
           
-          // La carte de contact est maintenant générée ici
           outputHTML += columns[col].map(p => {
             
-            // On gère le cas "(manquant)"
             const telHtml = (p.tel === '(manquant)')
-              ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500">
-                   <i data-lucide="phone-off" class="w-4 h-4"></i>
-                   <span>(manquant)</span>
-                 </span>`
-              : `<a href="tel:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors">
-                   <i data-lucide="phone" class="w-4 h-4"></i>
-                   <span>${p.tel}</span>
-                 </a>`;
+              ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500">...</span>`
+              : `<a href="tel:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 ...">...<span>${p.tel}</span></a>`;
 
-            // On génère le HTML pour l'email (s'il existe)
             const emailHtml = p.email
-              ? `<a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800 transition-colors" title="${p.email}">
-                   <i data-lucide="mail" class="w-4 h-4"></i>
-                   <span class="truncate" style="max-width: 200px;">${p.email}</span>
-                 </a>`
-              : ''; // Vide s'il n'y a pas d'email
+              ? `<a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 ...">...<span class="truncate" ...>${p.email}</span></a>`
+              : '';
+            
+            // Pour passer l'objet 'p' en paramètre, on le stringify et on échappe les guillemets
+            const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
 
-            // On assemble la carte
             return `
-              <div class="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200">
-                <span class="flex items-center gap-2.5 text-sm font-medium text-gray-900">
-                   <i data-lucide="user" class="w-4 h-4 text-gray-500"></i>
-                   <span>${p.nom}</span>
-                </span>
-                <div class="flex flex-col items-end gap-1">
-                  ${telHtml}
-                  ${emailHtml}
+              <div class="p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200">
+                <div class="flex items-center justify-between">
+                  <span class="flex items-center gap-2.5 text-sm font-medium text-gray-900">
+                     <i data-lucide="user" class="w-4 h-4 text-gray-500"></i>
+                     <span>${p.nom}</span>
+                  </span>
+                  <div class="flex flex-col items-end gap-1">
+                    ${telHtml.replace(/\.\.\./g, '')}
+                    ${emailHtml.replace(/\.\.\./g, '')}
+                  </div>
+                </div>
+                <div class="flex items-center justify-end gap-2 mt-2 pt-2 border-t border-gray-200">
+                  <button onclick="showContactModal(${contactJson})" class="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-blue-600 bg-blue-100 rounded hover:bg-blue-200">
+                    <i data-lucide="pencil" class="w-3 h-3"></i> Modifier
+                  </button>
+                  <button onclick="deleteContact(${p.id}, '${p.nom}')" class="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-red-600 bg-red-100 rounded hover:bg-red-200">
+                    <i data-lucide="trash-2" class="w-3 h-3"></i> Supprimer
+                  </button>
                 </div>
               </div>`;
           }).join('');
@@ -206,7 +213,98 @@
     }
     
     document.addEventListener('DOMContentLoaded', updateDisplay);
+
+    
+    // --- NOUVELLES FONCTIONS D'ÉDITION ET SUPPRESSION ---
+
+    /**
+     * Gère la suppression d'un contact
+     */
+    async function deleteContact(id, nom) {
+      // Demande de confirmation
+      if (!confirm(`Êtes-vous sûr de vouloir supprimer le contact "${nom}" ?`)) {
+        return;
+      }
+
+      // Requête de suppression à Supabase
+      const { error } = await supabaseClient
+        .from('contacts_repertoire')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        alert("Erreur lors de la suppression: " + error.message);
+      } else {
+        alert("Contact supprimé avec succès !");
+        updateDisplay(); // Rafraîchir la liste
+      }
+    }
+
+    /**
+     * Affiche un formulaire pour AJOUTER ou MODIFIER un contact.
+     * Si 'contact' est null, c'est un ajout.
+     * Si 'contact' est fourni, c'est une modification.
+     */
+    async function showContactModal(contact = null) {
+      const isEdit = contact !== null;
+      const title = isEdit ? 'Modifier le contact' : 'Ajouter un contact';
+
+      // On utilise des 'prompt' pour un formulaire simple.
+      // C'est basique mais évite de construire un modal HTML complexe.
+      const nom = prompt(`Nom:`, isEdit ? contact.nom : '');
+      if (nom === null) return; // Annulé
+      
+      const tel = prompt(`Téléphone:`, isEdit ? contact.tel : '');
+      if (tel === null) return; // Annulé
+
+      const email = prompt(`Email (optionnel):`, isEdit ? contact.email : '');
+      if (email === null) return; // Annulé
+
+      const categorie = prompt(`Catégorie (MIA, RCC-OCC, Autre):`, isEdit ? contact.categorie_principale : 'MIA');
+      if (categorie === null) return; // Annulé
+
+      const zone = prompt(`Zone (FMS, FTY, FCR, ou vide):`, isEdit ? contact.zone : '');
+      if (zone === null) return; // Annulé
+
+      const groupe = prompt(`Groupe (SPI, CPI, PACO, etc.):`, isEdit ? contact.groupe : '');
+      if (groupe === null) return; // Annulé
+
+      // Préparation de l'objet de données
+      const contactData = {
+        nom: nom,
+        tel: tel,
+        email: email || null, // Mettre null si c'est vide
+        categorie_principale: categorie,
+        zone: zone || null,
+        groupe: groupe
+      };
+
+      let error;
+      if (isEdit) {
+        // --- REQUÊTE UPDATE ---
+        const { error: updateError } = await supabaseClient
+          .from('contacts_repertoire')
+          .update(contactData)
+          .eq('id', contact.id);
+        error = updateError;
+      } else {
+        // --- REQUÊTE INSERT ---
+        const { error: insertError } = await supabaseClient
+          .from('contacts_repertoire')
+          .insert([contactData]); // L'insertion attend un tableau
+        error = insertError;
+      }
+
+      // Gestion du résultat
+      if (error) {
+        alert("Erreur lors de l'opération: " + error.message);
+      } else {
+        alert(isEdit ? "Contact mis à jour !" : "Contact ajouté !");
+        updateDisplay(); // Rafraîchir la liste
+      }
+    }
   </script>
+  
   <script src="js/layout.js" defer></script>
 </body>
 </html>
