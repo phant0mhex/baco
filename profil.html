@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-gray-50">
+<head>
+  <meta charset="UTF-8">
+  <title>Mon Profil - Portail BACO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/variable/geist-sans.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-mono/variable/geist-mono.css" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/auth.js" defer></script> 
+
+  <style>
+    /* Style pour l'upload d'avatar */
+    .avatar-upload-label {
+      cursor: pointer;
+      position: relative;
+      display: inline-block;
+      width: 128px; /* 8rem */
+      height: 128px; /* 8rem */
+    }
+    .avatar-upload-label:hover .avatar-overlay {
+      opacity: 1;
+    }
+    .avatar-overlay {
+      position: absolute;
+      inset: 0;
+      background-color: rgba(0,0,0,0.4);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s;
+      border-radius: 9999px; /* full */
+    }
+  </style>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Geist Sans', 'sans-serif'],
+            mono: ['Geist Mono', 'monospace'],
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="h-full">
+
+  <div id="nav-placeholder"></div>
+
+  <div class="container mx-auto p-8 max-w-2xl">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">Mon Profil</h1>
+    
+    <div class="bg-white p-6 rounded-lg shadow border border-gray-200">
+      <form id="profile-form">
+        <div class="flex flex-col items-center gap-4 mb-6">
+          
+          <label for="avatar-file" class="avatar-upload-label">
+            <img id="avatar-preview" src="https://via.placeholder.com/128" alt="Avatar" class="w-32 h-32 rounded-full object-cover border border-gray-300">
+            <div class="avatar-overlay">
+              <i data-lucide="camera" class="w-8 h-8"></i>
+            </div>
+          </label>
+          <input type="file" id="avatar-file" class="hidden" accept="image/png, image/jpeg">
+          <span id="avatar-upload-status" class="text-sm text-gray-500"></span>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+            <input type="email" id="email" disabled class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 cursor-not-allowed">
+          </div>
+          <div>
+            <label for="username" class="block text-sm font-medium text-gray-700">Nom d'utilisateur</label>
+            <input type="text" id="username" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          </div>
+          <div>
+            <label for="full_name" class="block text-sm font-medium text-gray-700">Nom complet</label>
+            <input type="text" id="full_name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          </div>
+          
+          <div class="flex justify-end pt-4">
+            <button type="submit" id="save-button" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
+              Enregistrer les modifications
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/layout.js" defer></script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const profileForm = document.getElementById('profile-form');
+      const saveButton = document.getElementById('save-button');
+      const emailInput = document.getElementById('email');
+      const usernameInput = document.getElementById('username');
+      const fullNameInput = document.getElementById('full_name');
+      const avatarPreview = document.getElementById('avatar-preview');
+      const avatarFileInput = document.getElementById('avatar-file');
+      const avatarStatus = document.getElementById('avatar-upload-status');
+      
+      let currentUserId = null;
+      let uploading = false; // Pour éviter les double-clics
+
+      // 1. Charger le profil existant
+      async function getProfile() {
+        try {
+          // D'abord, récupérer l'utilisateur connecté
+          const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+          if (authError || !user) throw authError || new Error('Utilisateur non trouvé');
+          
+          currentUserId = user.id;
+          emailInput.value = user.email;
+
+          // Ensuite, récupérer son profil public
+          const { data, error, status } = await supabaseClient
+            .from('profiles')
+            .select(`username, full_name, avatar_url`)
+            .eq('id', user.id)
+            .single();
+
+          if (error && status !== 406) throw error;
+
+          if (data) {
+            usernameInput.value = data.username || '';
+            fullNameInput.value = data.full_name || '';
+            if (data.avatar_url) {
+              avatarPreview.src = data.avatar_url + `?t=${new Date().getTime()}`; // Ajout d'un cache-buster
+            }
+          }
+        } catch (error) {
+          console.error("Erreur lors du chargement du profil:", error.message);
+          alert("Impossible de charger le profil : " + error.message);
+        }
+      }
+
+      // 2. Mettre à jour le profil (textes)
+      async function updateProfile() {
+        try {
+          saveButton.disabled = true;
+          saveButton.textContent = 'Enregistrement...';
+
+          const updates = {
+            id: currentUserId,
+            username: usernameInput.value,
+            full_name: fullNameInput.value,
+            updated_at: new Date(),
+          };
+
+          const { error } = await supabaseClient.from('profiles').upsert(updates);
+          if (error) throw error;
+
+          alert('Profil mis à jour !');
+        } catch (error) {
+          alert('Erreur lors de la mise à jour : ' + error.message);
+        } finally {
+          saveButton.disabled = false;
+          saveButton.textContent = 'Enregistrer les modifications';
+        }
+      }
+      
+      // 3. Gérer l'upload d'avatar
+      async function handleAvatarUpload(event) {
+        if (uploading || !currentUserId) return;
+        
+        const file = event.target.files[0];
+        if (!file) return;
+
+        uploading = true;
+        avatarStatus.textContent = 'Téléchargement...';
+        
+        try {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${Math.random()}.${fileExt}`;
+          // Le chemin est l'ID de l'utilisateur + nom de fichier
+          const filePath = `${currentUserId}/${fileName}`;
+
+          // A. Uploader sur Supabase Storage
+          const { error: uploadError } = await supabaseClient
+            .storage
+            .from('avatars')
+            .upload(filePath, file, { upsert: true }); // 'upsert: true' écrase l'ancien si besoin
+
+          if (uploadError) throw uploadError;
+
+          // B. Obtenir l'URL publique
+          const { data: urlData } = supabaseClient
+            .storage
+            .from('avatars')
+            .getPublicUrl(filePath);
+            
+          if (!urlData) throw new Error("Impossible d'obtenir l'URL publique.");
+
+          const publicURL = urlData.publicUrl;
+
+          // C. Mettre à jour la table 'profiles' avec la nouvelle URL
+          const { error: updateError } = await supabaseClient
+            .from('profiles')
+            .update({ avatar_url: publicURL, updated_at: new Date() })
+            .eq('id', currentUserId);
+            
+          if (updateError) throw updateError;
+          
+          // D. Mettre à jour l'aperçu
+          avatarPreview.src = publicURL + `?t=${new Date().getTime()}`; // Cache-buster
+          avatarStatus.textContent = 'Avatar mis à jour !';
+          setTimeout(() => { avatarStatus.textContent = ''; }, 3000);
+
+        } catch (error) {
+          console.error("Erreur d'upload d'avatar:", error.message);
+          avatarStatus.textContent = "Échec de l'upload.";
+        } finally {
+          uploading = false;
+        }
+      }
+
+      // Lancer le chargement initial
+      getProfile();
+      
+      // Attacher les écouteurs d'événements
+      profileForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        updateProfile();
+      });
+      
+      avatarFileInput.addEventListener('change', handleAvatarUpload);
+
+    });
+  </script>
+
+</body>
+</html>

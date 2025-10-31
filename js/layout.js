@@ -19,6 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
         highlightActiveLink();
         lucide.createIcons();
 
+        loadNavAvatar();
+
         const logoutButton = document.getElementById('logout-button');
         if (logoutButton) {
           logoutButton.onclick = async () => {
@@ -50,6 +52,38 @@ function highlightActiveLink() {
         activeLink.classList.add('bg-gray-700', 'font-bold');
       }
     }
+  }
+}
+
+
+// --- NOUVELLE FONCTION ---
+/**
+ * Récupère l'avatar de l'utilisateur connecté et l'affiche dans la nav.
+ */
+async function loadNavAvatar() {
+  const navAvatar = document.getElementById('nav-avatar');
+  if (!navAvatar) return; // Si la nav n'est pas chargée, abandonner
+
+  try {
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) return; // Pas connecté
+
+    const { data, error } = await supabaseClient
+      .from('profiles')
+      .select('avatar_url')
+      .eq('id', user.id)
+      .single();
+
+    if (error) throw error;
+
+    if (data && data.avatar_url) {
+      navAvatar.src = data.avatar_url;
+    } else {
+      // Optionnel : générer un avatar par défaut basé sur l'email
+      // Pour l'instant, on garde le placeholder
+    }
+  } catch (error) {
+    console.error("Impossible de charger l'avatar de la nav:", error.message);
   }
 }
 
