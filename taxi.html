@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <title>Portail BACO - Taxis</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/auth.js" defer></script>
+
   <script src="https://cdn.tailwindcss.com"></script>
   
   <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/variable/geist-sans.css" rel="stylesheet">
@@ -88,50 +92,51 @@
   <script src="js/layout.js" defer></script>
   
   <script>
-    // Variable pour stocker les données chargées
-    let taxis = [];
-
-    // Charger les données dès que la page est prête
-    document.addEventListener('DOMContentLoaded', () => {
-      fetch('data/taxi.json')
-        .then(response => {
-          if (!response.ok) throw new Error('Erreur réseau');
-          return response.json();
-        })
-        .then(data => {
-          taxis = data;
-        })
-        .catch(error => {
-          console.error('Erreur de chargement des données taxis:', error);
-          document.getElementById('content').innerHTML = "<p class='text-red-600'>Erreur: Impossible de charger les données des taxis.</p>";
-        });
-    });
+    // Fini la variable globale 'let taxis = []' !
+    // Fini le 'fetch' au chargement ! Les données sont chargées à la demande.
 
     // Fonction unique pour filtrer et afficher les cartes de taxis
-    function updateTaxiDisplay() {
+    // On la transforme en 'async' pour pouvoir utiliser 'await'
+    async function updateTaxiDisplay() {
       const lieuxSelectionnes = Array.from(document.querySelectorAll('#lieuCheckboxes input:checked'))
         .map(cb => cb.value);
 
       const container = document.getElementById('content');
 
-      // Si aucun lieu n'est sélectionné
+      // Si aucun lieu n'est sélectionné (logique inchangée)
       if (lieuxSelectionnes.length === 0) {
         container.innerHTML = '<p class="text-gray-600">Veuillez sélectionner un lieu pour voir les taxis.</p>';
         return;
       }
 
-      // Filtrer les taxis qui correspondent à AU MOINS UN des lieux sélectionnés
-      const taxisAffiches = taxis.filter(taxi =>
-        taxi.lieux.some(lieu => lieuxSelectionnes.includes(lieu))
-      );
+      // --- C'EST ICI QUE TOUT CHANGE ---
+      // Au lieu de filtrer un tableau local, on interroge Supabase.
+      // .overlaps('lieux', ...) signifie "Trouve-moi toutes les lignes où le tableau 'lieux'
+      // a au moins un élément en commun avec mon tableau 'lieuxSelectionnes'".
+      // C'est l'équivalent parfait de votre ancien filtre .some() !
+      
+      const { data: taxisAffiches, error } = await supabaseClient
+        .from('taxis') // Le nom de votre table
+        .select('*')  // On veut toutes les colonnes
+        .overlaps('lieux', lieuxSelectionnes); // Le filtre magique !
 
-      // Si aucun taxi ne correspond
+      if (error) {
+        console.error('Erreur de la requête Supabase:', error);
+        container.innerHTML = `<p class='text-red-600'>Erreur: Impossible de charger les données : ${error.message}</p>`;
+        return;
+      }
+      // --- FIN DU CHANGEMENT DE LOGIQUE ---
+
+
+      // Si aucun taxi ne correspond (logique inchangée)
       if (taxisAffiches.length === 0) {
         container.innerHTML = '<p class="text-gray-600">Aucune société trouvée pour les lieux sélectionnés.</p>';
         return;
       }
 
       // Générer les cartes pour les taxis trouvés
+      // Cette partie reste IDENTIQUE, car les données de Supabase
+      // ont la même structure que votre ancien JSON (nom, lieux, contacts...)
       container.innerHTML = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">' +
         taxisAffiches.map(taxi => {
           
@@ -142,7 +147,7 @@
             `<span class="px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700 text-sm font-medium">${lieu}</span>`
           ).join('');
 
-          // 2. Contacts (Téléphones) - J'ai gardé "etrali:" comme protocole
+          // 2. Contacts (Téléphones)
           const contactsHtml = taxi.contacts.map(num =>
             `<a href="etrali:${num}" class="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
                <i data-lucide="phone" class="w-4 h-4 text-blue-700 flex-shrink-0"></i>
@@ -170,7 +175,7 @@
           
           // 5. Remarques
           const remarquesHtml = (taxi.remarques.length === 0 || taxi.remarques[0] === 'nihil') ? '' :
-            '<div class="border-t pt-4 mt-auto">' + // mt-auto pousse les remarques en bas de la carte
+            '<div class="border-t pt-4 mt-auto">' +
             taxi.remarques.map(rem =>
               `<div class="flex items-start gap-2.5 text-sm p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                  <i data-lucide="info" class="w-4 h-4 text-yellow-700 flex-shrink-0 mt-0.5"></i>
@@ -206,6 +211,5 @@
       lucide.createIcons();
     }
   </script>
-
 </body>
 </html>

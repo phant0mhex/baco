@@ -2,6 +2,9 @@
   <meta charset="UTF-8">
   <title>Portail BACO - BUS</title> <script src="https://cdn.tailwindcss.com"></script>
   
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/auth.js" defer></script>
+
   <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/variable/geist-sans.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-mono/variable/geist-mono.css" rel="stylesheet">
 
@@ -114,96 +117,137 @@
   <script src="js/layout.js" defer></script>
   
   <script>
-    // Variable pour stocker les données chargées
-    let societes = [];
+    // Fini le 'fetch' de bus.json !
+    // Le client 'supabaseClient' est déjà disponible depuis 'js/auth.js'
 
-    // Charger les données dès que la page est prête
-    document.addEventListener('DOMContentLoaded', () => {
-      fetch('data/bus.json') // Assurez-vous d'avoir créé data/bus.json
-        .then(response => {
-          if (!response.ok) throw new Error('Erreur réseau');
-          return response.json();
-        })
-        .then(data => {
-          societes = data; // Stocker les données dans la variable
-        })
-        .catch(error => {
-          console.error('Erreur de chargement des données bus:', error);
-          document.getElementById('content').innerHTML = "<p class='text-red-600'>Erreur: Impossible de charger les données des sociétés de bus.</p>";
-        });
-    });
-
-   // Fonction pour afficher les sociétés
-    function updateSocieteDisplay() {
+    // Fonction pour afficher les sociétés
+    async function updateSocieteDisplay() {
       const lignesSelectionnees = Array.from(document.querySelectorAll('#ligneCheckboxes input:checked'))
         .map(cb => cb.value);
 
-      const societesAffichees = societes.filter(societe =>
-        societe.lignes.some(ligne => lignesSelectionnees.includes(ligne))
-      );
-
       const container = document.getElementById('content');
-      if (societesAffichees.length === 0) {
+      container.innerHTML = ''; // Vider le contenu précédent
+
+      if (lignesSelectionnees.length === 0) {
+        container.innerHTML = '<p class="text-gray-600">Veuillez sélectionner au moins une ligne.</p>';
+        return;
+      }
+
+      // --- NOUVELLE LOGIQUE SUPABASE ---
+      
+      // 1. Trouver les ID de sociétés qui correspondent aux lignes sélectionnées
+      const { data: lignesData, error: lignesError } = await supabaseClient
+        .from('lignes_bus')
+        .select('societe_id')
+        .in('ligne', lignesSelectionnees);
+
+      if (lignesError) {
+        container.innerHTML = `<p class='text-red-600'>Erreur Etape 1: ${lignesError.message}</p>`;
+        return;
+      }
+
+      // Filtrer les ID uniques
+      const societeIds = [...new Set(lignesData.map(item => item.societe_id))];
+
+      if (societeIds.length === 0) {
         container.innerHTML = '<p class="text-gray-600">Aucune société trouvée pour les lignes sélectionnées.</p>';
         return;
       }
 
-      // Injection de HTML stylisé avec Tailwind
+      // 2. Récupérer les noms de ces sociétés
+      const { data: societesAffichees, error: societesError } = await supabaseClient
+        .from('societes_bus')
+        .select('id, nom')
+        .in('id', societeIds);
+        
+      if (societesError) {
+        container.innerHTML = `<p class='text-red-600'>Erreur Etape 2: ${societesError.message}</p>`;
+        return;
+      }
+      // --- FIN DE LA LOGIQUE ---
+
+      // Injection de HTML (similaire à l'ancien, mais on stocke l'ID !)
       container.innerHTML = '<div>' +
           '<h3 class="text-2xl font-semibold text-gray-800 mb-4">Sociétés concernées :</h3>' +
           '<div class="flex flex-wrap gap-3 mb-8" id="societeCheckboxes">' +
             societesAffichees.map(s =>
               `<label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">` +
-                `<input type="checkbox" value="${s.nom}" onchange="updateChauffeursDisplay()" class="rounded text-blue-600 focus:ring-blue-500">` +
+                // !! CHANGEMENT IMPORTANT : on utilise s.id dans "value"
+                `<input type="checkbox" value="${s.id}" onchange="updateChauffeursDisplay()" class="rounded text-blue-600 focus:ring-blue-500">` +
                 `<span class="font-medium text-gray-700">${s.nom}</span></label>`
             ).join('') +
           '</div>' +
          
           '<div id="contact" class="mt-6"></div>' + // Conteneur pour les contacts
-        
           '<div id="chauffeurs" class="mt-6"></div>' + // Conteneur pour les chauffeurs
         '</div>';
     }
 
     // Fonction pour afficher les chauffeurs
-   
-function updateChauffeursDisplay() {
-  const societesSelectionnees = Array.from(document.querySelectorAll('#societeCheckboxes input:checked'))
-    .map(cb => cb.value);
+    async function updateChauffeursDisplay() {
+      const societesSelectionneesIds = Array.from(document.querySelectorAll('#societeCheckboxes input:checked'))
+        .map(cb => cb.value); // Contient maintenant les ID (ex: "1", "3")
 
-  const contactList = societes
-    .filter(s => societesSelectionnees.includes(s.nom) && s.contact)
-    .flatMap(s => s.contact.map(c => 
-      `<li class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">` +
-        `<span class="font-semibold text-gray-800">${c.nom} <span class="font-normal text-gray-500">(${s.nom})</span></span>` +
-        `<a href="tel:${c.tel}" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors w-full sm:w-auto text-center">${c.tel}</a>` +
-      `</li>`
-    ));
+      const chauffeursContainer = document.getElementById('chauffeurs');
+      const contactsContainer = document.getElementById('contact');
 
-  const chauffeursList = societes
-    .filter(s => societesSelectionnees.includes(s.nom) && s.chauffeurs)
-    .flatMap(s => s.chauffeurs.map(c => 
-      `<li class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">` +
-        `<span class="font-semibold text-gray-800">${c.nom} <span class="font-normal text-gray-500">(${s.nom})</span></span>` +
-        `<a href="tel:${c.tel}" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors w-full sm:w-auto text-center">${c.tel}</a>` +
-      `</li>`
-    ));
+      if (societesSelectionneesIds.length === 0) {
+        chauffeursContainer.innerHTML = '';
+        contactsContainer.innerHTML = '';
+        return;
+      }
 
-  const chauffeursContainer = document.getElementById('chauffeurs');
-  const contactsContainer = document.getElementById('contact');
+      // --- NOUVELLE LOGIQUE SUPABASE ---
 
-  chauffeursContainer.innerHTML = chauffeursList.length === 0 ? '' :
-    '<h3 class="text-2xl font-semibold text-gray-800 mb-4">Chauffeurs à contacter :</h3>' +
-    '<ul class="space-y-3 list-none p-0 max-w-md">' + chauffeursList.join('') + '</ul>';
+      // 1. Récupérer les contacts
+      // On fait une "jointure" pour récupérer le nom de la société en même temps
+      const { data: contactList, error: contactError } = await supabaseClient
+        .from('contacts_bus')
+        .select(`
+          nom,
+          tel,
+          societes_bus ( nom ) 
+        `)
+        .in('societe_id', societesSelectionneesIds);
 
-  contactsContainer.innerHTML = contactList.length === 0 ? '' :
-    '<h3 class="text-2xl font-semibold text-gray-800 mb-4">Contacts de la société :</h3>' +
-    '<ul class="space-y-3 list-none p-0 max-w-md">' + contactList.join('') + '</ul>';
-}
+      // 2. Récupérer les chauffeurs
+      const { data: chauffeursList, error: chauffeursError } = await supabaseClient
+        .from('chauffeurs_bus')
+        .select(`
+          nom,
+          tel,
+          societes_bus ( nom )
+        `)
+        .in('societe_id', societesSelectionneesIds);
+      
+      // --- FIN DE LA LOGIQUE ---
 
+      if (contactError || chauffeursError) {
+        contactsContainer.innerHTML = `<p class='text-red-600'>Erreur chargement contacts: ${contactError?.message || chauffeursError?.message}</p>`;
+        return;
+      }
+      
+      // Logique d'affichage (presque identique, mais on accède à 'societes_bus.nom')
+      contactsContainer.innerHTML = contactList.length === 0 ? '' :
+        '<h3 class="text-2xl font-semibold text-gray-800 mb-4">Contacts de la société :</h3>' +
+        '<ul class="space-y-3 list-none p-0 max-w-md">' +
+        contactList.map(c => 
+          `<li class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">` +
+            `<span class="font-semibold text-gray-800">${c.nom} <span class="font-normal text-gray-500">(${c.societes_bus.nom})</span></span>` +
+            `<a href="tel:${c.tel}" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors w-full sm:w-auto text-center">${c.tel}</a>` +
+          `</li>`
+        ).join('') + '</ul>';
 
-    
+      chauffeursContainer.innerHTML = chauffeursList.length === 0 ? '' :
+        '<h3 class="text-2xl font-semibold text-gray-800 mb-4">Chauffeurs à contacter :</h3>' +
+        '<ul class="space-y-3 list-none p-0 max-w-md">' +
+        chauffeursList.map(c => 
+          `<li class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">` +
+            `<span class="font-semibold text-gray-800">${c.nom} <span class="font-normal text-gray-500">(${c.societes_bus.nom})</span></span>` +
+            `<a href="tel:${c.tel}" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors w-full sm:w-auto text-center">${c.tel}</a>` +
+          `</li>`
+        ).join('') + '</ul>';
+    }
   </script>
-
 </body>
 </html>

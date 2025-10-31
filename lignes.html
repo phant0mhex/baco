@@ -2,6 +2,9 @@
   <meta charset="UTF-8">
   <title>Portail BACO - Lignes</title> <script src="https://cdn.tailwindcss.com"></script>
   
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/auth.js" defer></script>
+
   <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/variable/geist-sans.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-mono/variable/geist-mono.css" rel="stylesheet">
 
@@ -148,165 +151,189 @@
 
   <script src="js/layout.js" defer></script>
   <script>
-    // Variables pour stocker les données du JSON
-    let ligneData = {};
-    let pnData = {};
-    let spiData = {};
+    // Fini le 'fetch' de lignes.json !
+    // Le client 'supabaseClient' est déjà disponible depuis 'js/auth.js'
 
-    // Charger les données
-    document.addEventListener('DOMContentLoaded', () => {
-      fetch('data/lignes.json')
-        .then(response => {
-          if (!response.ok) throw new Error('Erreur réseau');
-          return response.json();
-        })
-        .then(data => {
-          ligneData = data.ligneData;
-          pnData = data.pnData;
-          spiData = data.spiData;
-        })
-
-    
-
-        .catch(error => {
-          console.error('Erreur de chargement des données lignes:', error);
-          document.getElementById('resultDisplay').innerHTML = "<p class='text-red-600'>Erreur: Impossible de charger les données des lignes.</p>";
-        });
-
-    
-    });
-
-    // --- Fonctions logiques (identiques à l'original, sauf pour le HTML généré) ---
-
+    // Fonction pour afficher/masquer les sous-catégories
     function updateSubCategories() {
       const selected = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
       const lineBox = document.getElementById('lineSelectorContainer');
       
-      // Affiche les lignes si au moins une catégorie est cochée
       lineBox.style.display = selected.length > 0 ? 'block' : 'none';
       
-      console.log(ligneData);
       updateDisplay(); // Mettre à jour l'affichage
     }
 
-    function updateDisplay() {
+    // Fonction principale d'affichage, maintenant asynchrone
+    async function updateDisplay() {
       const selectedMain = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
       const selectedLines = Array.from(document.querySelectorAll('#lineSelector input:checked')).map(cb => cb.value);
       const selectedZones = Array.from(document.querySelectorAll('.spi-filter:checked')).map(cb => cb.value);
       const container = document.getElementById('resultDisplay');
       const zoneBox = document.getElementById('zoneFilterContainer');
 
-      // Affiche ou masque les filtres SPI
+      // Gérer l'affichage des filtres (logique inchangée)
       const zoneSelected = selectedMain.includes("Zone SPI");
       zoneBox.style.display = zoneSelected && selectedLines.length > 0 ? 'block' : 'none';
 
-      container.innerHTML = ''; // Vider les résultats
+      // Gérer les états vides (logique inchangée)
+      if (selectedLines.length === 0) {
+          container.innerHTML = selectedMain.length > 0 
+              ? '<p class="text-gray-600">Veuillez sélectionner au moins une ligne.</p>'
+              : '<p class="text-gray-600">Veuillez sélectionner une catégorie et une ligne pour afficher les résultats.</p>';
+          return;
+      }
 
-      if (selectedLines.length === 0 && selectedMain.length > 0) {
-          container.innerHTML = '<p class="text-gray-600">Veuillez sélectionner au moins une ligne.</p>';
-          return;
+      container.innerHTML = '<p class="text-gray-600">Chargement des données...</p>';
+
+      // --- NOUVELLE LOGIQUE SUPABASE ---
+
+      // 1. Préparer un objet pour stocker tous les résultats
+      const results = {};
+      selectedLines.forEach(line => {
+        results[line] = { gares: [], pn: [], spi: [] };
+      });
+
+      // 2. Créer les promesses de requête
+      const promises = [];
+
+      if (selectedMain.includes("Lignes")) {
+        promises.push(
+          supabaseClient
+            .from('ligne_data')
+            .select('ligne_nom, gare')
+            .in('ligne_nom', selectedLines)
+            .order('ordre') // On garde l'ordre !
+        );
       }
-      if (selectedLines.length === 0 && selectedMain.length === 0) {
-          container.innerHTML = '<p class="text-gray-600">Veuillez sélectionner une catégorie et une ligne pour afficher les résultats.</p>';
-          return;
+      if (selectedMain.includes("Adresse PN")) {
+        promises.push(
+          supabaseClient
+            .from('pn_data')
+            .select('*')
+            .in('ligne_nom', selectedLines)
+        );
       }
+      if (selectedMain.includes("Zone SPI")) {
+        let spiQuery = supabaseClient
+          .from('spi_data')
+          .select('*')
+          .in('ligne_nom', selectedLines);
+        
+        // Appliquer le filtre de zone SPI si nécessaire
+        if (selectedZones.length > 0) {
+          spiQuery = spiQuery.in('zone', selectedZones);
+        }
+        promises.push(spiQuery);
+      }
+
+      // 3. Exécuter toutes les requêtes en parallèle
+      const responses = await Promise.all(promises);
+
+      // 4. Traiter et trier les réponses
+      for (const response of responses) {
+        if (response.error) {
+          container.innerHTML = `<p class='text-red-600'>Erreur: ${response.error.message}</p>`;
+          return;
+        }
+
+        if (response.data && response.data.length > 0) {
+          // On devine de quel type de données il s'agit
+          const firstItem = response.data[0];
+          
+          if (firstItem.hasOwnProperty('gare')) { // Données de Gares
+            response.data.forEach(item => results[item.ligne_nom].gares.push(item));
+          } else if (firstItem.hasOwnProperty('pn')) { // Données de PN
+            response.data.forEach(item => results[item.ligne_nom].pn.push(item));
+          } else if (firstItem.hasOwnProperty('lieu')) { // Données SPI
+            response.data.forEach(item => results[item.ligne_nom].spi.push(item));
+          }
+        }
+      }
+
+      // --- FIN DE LA LOGIQUE SUPABASE ---
+      
+      // 5. Construire le HTML (logique d'affichage similaire à l'ancienne)
+      container.innerHTML = ''; // Vider le "Chargement..."
 
       selectedLines.forEach(line => {
+        const data = results[line];
         let lineContent = '';
 
-        if (selectedMain.includes("Lignes") && ligneData[line]) {
+        // Section Gares
+        if (selectedMain.includes("Lignes") && data.gares.length > 0) {
           lineContent += `<h3 class="text-xl font-semibold text-gray-700 mt-4 mb-3">Gares</h3><div class="flex flex-wrap gap-3">` +
-            ligneData[line].map(e => 
-              `<div class="bg-white p-3 rounded-lg border shadow-sm text-gray-800 font-medium">${e}</div>`
+            data.gares.map(e => 
+              `<div class="bg-white p-3 rounded-lg border shadow-sm text-gray-800 font-medium">${e.gare}</div>`
             ).join('') +
             `</div>`;
         }
 
-     if (selectedMain.includes("Adresse PN") && pnData[line]) {
-    lineContent += `<h3 class="text-xl font-semibold text-gray-700 mt-4 mb-3">Adresse PN</h3><div class="flex flex-wrap gap-4">` +
-        pnData[line].map(e => 
-            // Carte: Ajout de flex-col pour mieux gérer l'espacement
-            `<div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm flex-1 min-w-[250px] flex flex-col gap-2">
-                
-                <div class="flex justify-between items-center">
-                    
-                    <span class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-800 text-sm font-semibold">
-                        <i data-lucide="train-track" class="w-4 h-4 text-gray-600"></i>
-                        <span>${e.PN}</span>
-                    </span>
-                    
-                    <span class="flex items-center gap-1.5 text-sm font-semibold font-mono text-blue-500">
-                         <i data-lucide="milestone" class="w-4 h-4"></i>
-                        <span>${e.BK}</span>
-                    </span>
-                </div>
-                
-                <div class="flex items-start gap-2 text-sm text-gray-700 mt-1">
-                    <i data-lucide="map-pin" class="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5"></i>
-                    <span class="block">${e.adresse}</span>
-                </div>
+        // Section Adresse PN
+        if (selectedMain.includes("Adresse PN") && data.pn.length > 0) {
+          lineContent += `<h3 class="text-xl font-semibold text-gray-700 mt-4 mb-3">Adresse PN</h3><div class="flex flex-wrap gap-4">` +
+            data.pn.map(e => 
+              `<div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm flex-1 min-w-[250px] flex flex-col gap-2">
+                  <div class="flex justify-between items-center">
+                      <span class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-800 text-sm font-semibold">
+                          <i data-lucide="train-track" class="w-4 h-4 text-gray-600"></i>
+                          <span>${e.pn}</span>
+                      </span>
+                      <span class="flex items-center gap-1.5 text-sm font-semibold font-mono text-blue-500">
+                           <i data-lucide="milestone" class="w-4 h-4"></i>
+                          <span>${e.bk}</span>
+                      </span>
+                  </div>
+                  <div class="flex items-start gap-2 text-sm text-gray-700 mt-1">
+                      <i data-lucide="map-pin" class="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5"></i>
+                      <span class="block">${e.adresse}</span>
+                  </div>
+               </div>`
+            ).join('') +
+            `</div>`;
+        }
 
-             </div>`
-        ).join('') +
-        `</div>`;
-}
-       if (selectedMain.includes("Zone SPI") && spiData[line]) {
-          const filtered = selectedZones.length > 0
-            ? spiData[line].filter(e => selectedZones.includes(e.zone))
-            : spiData[line];
-
-   // ... (début de la condition "Zone SPI")
-          if (filtered.length > 0) {
-            // Changé gap-3 en gap-4 pour correspondre à pnData
-            lineContent += `<h3 class="text-xl font-semibold text-gray-700 mt-4 mb-3">Zone SPI</h3><div class="flex flex-wrap gap-4">` +
-              filtered.map(e => 
-                // Structure copiée de pnData et adaptée pour spiData
-                `<div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm flex-1 min-w-[250px] flex flex-col gap-2">
-                    
-                    <div class="flex justify-between items-center">
-                        
-                        <span class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-800 text-sm font-semibold">
-                            <i data-lucide="building-2" class="w-4 h-4 text-gray-600"></i>
-                            <span>${e.lieu}</span>
-                        </span>
-                        
-                        <span class="flex items-center gap-1.5 text-sm font-semibold font-mono text-blue-500">
-                             <i data-lucide="tag" class="w-4 h-4"></i>
-                            <span>${e.zone}</span>
-                        </span>
-                    </div>
-                    
-                    <div class="flex items-start gap-2 text-sm text-gray-700 mt-1">
-                        <i data-lucide="map-pin" class="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5"></i>
-                        <span class="block">${e.adresse}</span>
-                    </div>
-
-                    ${e.remarques ? 
-                      `<div class="flex items-start gap-2 text-sm text-gray-600 mt-2 pt-2 border-t border-gray-100">
-                          <i data-lucide="info" class="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5"></i>
-                          <span class="block italic">${e.remarques}</span>
-                       </div>` 
-                    : ''}
-                    </div>`
-              ).join('') +
-              `</div>`;
-          }
-// ... (suite de la fonction)
+        // Section Zone SPI
+        if (selectedMain.includes("Zone SPI") && data.spi.length > 0) {
+          lineContent += `<h3 class="text-xl font-semibold text-gray-700 mt-4 mb-3">Zone SPI</h3><div class="flex flex-wrap gap-4">` +
+            data.spi.map(e => 
+              `<div class="bg-white p-4 rounded-lg border border-gray-100 shadow-sm flex-1 min-w-[250px] flex flex-col gap-2">
+                  <div class="flex justify-between items-center">
+                      <span class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-800 text-sm font-semibold">
+                          <i data-lucide="building-2" class="w-4 h-4 text-gray-600"></i>
+                          <span>${e.lieu}</span>
+                      </span>
+                      <span class="flex items-center gap-1.5 text-sm font-semibold font-mono text-blue-500">
+                           <i data-lucide="tag" class="w-4 h-4"></i>
+                          <span>${e.zone}</span>
+                      </span>
+                  </div>
+                  <div class="flex items-start gap-2 text-sm text-gray-700 mt-1">
+                      <i data-lucide="map-pin" class="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5"></i>
+                      <span class="block">${e.adresse}</span>
+                  </div>
+                  ${e.remarques ? 
+                    `<div class="flex items-start gap-2 text-sm text-gray-600 mt-2 pt-2 border-t border-gray-100">
+                        <i data-lucide="info" class="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5"></i>
+                        <span class="block italic">${e.remarques}</span>
+                     </div>` 
+                  : ''}
+                  </div>`
+            ).join('') +
+            `</div>`;
         }
         
         // Ajouter un titre de section pour la ligne
         if (lineContent) {
             container.innerHTML += `<div class="mb-8"><h2 class="text-3xl font-bold text-gray-900 border-b pb-2 mb-4">${line}</h2>${lineContent}</div>`;
         }
-
-        // console.log(selectedLines);
       });
       
       if (container.innerHTML === '') {
           container.innerHTML = '<p class="text-gray-600">Aucun résultat pour les filtres sélectionnés.</p>';
       }
-lucide.createIcons();
 
+      lucide.createIcons();
     }
   </script>
 

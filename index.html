@@ -14,7 +14,7 @@
       height: 100vh;
     }
     .login-box {
-      background: #1a2a3a; /* Gris graphite */
+      background: #1a2a3a;
       padding: 30px;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.2);
@@ -27,7 +27,7 @@
       margin-left: auto;
       margin-right: auto;
     }
-    input[type="password"] {
+    input[type="text"], input[type="password"] { /* Changé le type pour l'email */
       padding: 10px;
       width: 200px;
       margin-bottom: 15px;
@@ -45,45 +45,65 @@
     button:hover {
       background: #005fa3;
     }
+    #error-message {
+      color: red;
+      font-size: 0.9em;
+      margin-top: 10px;
+      height: 15px; /* Pour éviter que la boîte ne saute */
+    }
   </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <div class="login-box">
     <img src="logobaco.png" alt="Logo BACO">
+    <input type="text" id="email" placeholder="Email">
+    <br>
     <input type="password" id="password" placeholder="Mot de passe">
     <br>
     <button onclick="validerConnexion()">Connexion</button>
+    <div id="error-message"></div>
   </div>
 
   <script>
-    const utilisateurs = {
-      'CMH9100': 'Thomas',
-      'SVS7900': 'Rodrigue',
-      'GSH9000': 'Nicolas',
-      'QMC9000': 'Mercédès',
-      'TWT8501': 'Mehdi',
-      'RQF8600': 'Ludovic',
-      'LQV8200': 'Mélinda',
-      'LNF9400': 'Alexandra',
-      'SKN6801': 'Marie-France',
-      'FSK9300': 'Indiana'
-    };
+    // 2. INITIALISER SUPABASE
+    const SUPABASE_URL = 'https://mgljaheyimizrydazrxh.supabase.co';       // Collez votre URL ici
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1nbGphaGV5aW1penJ5ZGF6cnhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4NTc1MDIsImV4cCI6MjA3NzQzMzUwMn0.nwMgm-ehAppq0WP-MK8459ZIvsWKjbJmsq6qL_t5sQo';   // Collez votre clé ici
 
-    function validerConnexion() {
-      const input = document.getElementById('password').value.trim();
-      if (utilisateurs[input]) {
-        alert(`Bonjour ${utilisateurs[input]} 👋`);
-        localStorage.setItem('utilisateur', utilisateurs[input]);
-        window.location.href = "accueil.html";
+    const { createClient } = supabase;
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+    const errorDiv = document.getElementById('error-message');
+
+    // 3. NOUVELLE FONCTION DE CONNEXION
+    async function validerConnexion() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      errorDiv.textContent = ''; // Vider l'erreur
+
+      // On se connecte avec Supabase Auth
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+      if (error) {
+        // Gérer l'erreur
+        console.error("Erreur de connexion:", error.message);
+        errorDiv.textContent = "Email ou mot de passe incorrect.";
       } else {
-        alert("Mot de passe incorrect.");
+        // Connexion réussie !
+        console.log("Connecté !", data.user);
+        window.location.href = "accueil.html"; // On redirige
       }
     }
 
+    // Garder la validation avec "Entrée"
     document.getElementById('password').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') {
-        validerConnexion();
-      }
+      if (e.key === 'Enter') validerConnexion();
+    });
+    document.getElementById('email').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') validerConnexion();
     });
   </script>
 </body>

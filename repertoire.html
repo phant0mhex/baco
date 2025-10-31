@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <title>Portail BACO - Répertoire</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/auth.js" defer></script>
+
   <script src="https://cdn.tailwindcss.com"></script>
   
   <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/variable/geist-sans.css" rel="stylesheet">
@@ -72,90 +76,102 @@
 
   </div>
 
- <div id="resultDisplay">) ...
+ <div id="resultDisplay">
+
+
   <script>
-    // 1. Créer des variables pour stocker les données du JSON
-    let miaData = {};
-    let rccData = {};
-    let autresData = {};
+    // Fini le 'fetch' de repertoire.json !
+    // Le client 'supabaseClient' est déjà disponible depuis 'js/auth.js'
 
-    // 2. Charger les données au démarrage
-    document.addEventListener('DOMContentLoaded', () => {
-      fetch('data/repertoire.json') // Assurez-vous que le chemin est correct
-        .then(response => {
-          if (!response.ok) throw new Error('Erreur réseau');
-          return response.json();
-        })
-        .then(data => {
-          // 3. Assigner les données aux variables
-          miaData = data.MIA;
-          rccData = data['RCC-OCC'];
-          autresData = data.Autres;
-          console.log("Données répertoire chargées :", data);
-        })
-        .catch(error => {
-          console.error('Erreur de chargement des données répertoire:', error);
-          document.getElementById('resultDisplay').innerHTML = "<p class='text-red-600'>Erreur: Impossible de charger les données du répertoire.</p>";
-        });
-    });
-
-    // Fonction JS (inchangée)
     function updateSubCategories() {
       const miaChecked = document.querySelector('#mainCategories input[value="MIA"]').checked;
       document.getElementById('miaSubCategoriesContainer').style.display = miaChecked ? 'block' : 'none';
       updateDisplay();
     }
 
-    // 4. Fonction updateDisplay MODIFIÉE pour utiliser les variables
-    function updateDisplay() {
+    // 4. Fonction updateDisplay CORRIGÉE (avec la nouvelle règle)
+    async function updateDisplay() {
       const container = document.getElementById('resultDisplay');
-      container.innerHTML = '';
-      const columns = {}; 
+      container.innerHTML = '<p class="text-gray-600">Chargement...</p>';
 
-      // --- MIA ---
-      const miaChecked = document.querySelector('#mainCategories input[value="MIA"]').checked;
-      if (miaChecked) {
-        const subChecked = Array.from(document.querySelectorAll('#miaSubCategories input:checked')).map(cb => cb.value);
-        
-        subChecked.forEach(sub => {
-          // 'sub' vaut "FTY", "FMS" ou "FCR"
-          if (miaData[sub]) {
-            const data = miaData[sub]; // data vaut {SPI: [...], CPI: [...], ...}
-            for (const col in data) {
-              if (!columns[col]) columns[col] = [];
-              columns[col].push(...data[col]);
-            }
-          }
-        });
-      }
-
-      // --- RCC-OCC ---
-      const rccChecked = document.querySelector('#mainCategories input[value="RCC-OCC"]').checked;
-      if (rccChecked) {
-        // rccData vaut {"OCC FMS": [...], "RCC": [...]}
-        for (const col in rccData) {
-          if (!columns[col]) columns[col] = [];
-          columns[col].push(...rccData[col]);
-        }
-      }
+      // --- Collecte des filtres ---
+      const mainChecked = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
+      const miaSubChecked = Array.from(document.querySelectorAll('#miaSubCategories input:checked')).map(cb => cb.value);
       
-      // --- Autres ---
-      const autreChecked = document.querySelector('#mainCategories input[value="Autre"]').checked;
-      if (autreChecked) {
-        // autresData vaut {"Service_General": [...], ...}
-         for (const col in autresData) {
-          if (!columns[col]) columns[col] = [];
-          columns[col].push(...autresData[col]);
+      let hasContent = false;
+      const columns = {};
+
+      if (mainChecked.length > 0) {
+        let query = supabaseClient
+          .from('contacts_repertoire')
+          .select('nom, tel, groupe');
+
+        // On construit une requête "OU" complexe
+        const orFilters = [];
+
+        // --- NOUVELLE LOGIQUE DE FILTRAGE ---
+        
+        // Cas 1: Filtre MIA
+        if (mainChecked.includes('MIA') && miaSubChecked.length > 0) {
+          
+          // Logique pour FMS (si coché)
+          if (miaSubChecked.includes('FMS')) {
+            // Ajoute tous les contacts FMS
+            orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FMS)`);
+          }
+          
+          // Logique pour FCR (si coché)
+          if (miaSubChecked.includes('FCR')) {
+            orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FCR)`);
+          }
+
+          // Logique spéciale pour FTY (si coché)
+          if (miaSubChecked.includes('FTY')) {
+            // 1. Ajoute tous les contacts FTY
+            orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FTY)`);
+            // 2. AJOUTE le groupe TL/MPI de FMS
+            orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FMS,groupe.eq.TL/MPI)`);
+          }
+        }
+        
+        // Cas 2: Filtre RCC-OCC
+        if (mainChecked.includes('RCC-OCC')) {
+          orFilters.push('categorie_principale.eq.RCC-OCC');
+        }
+        // Cas 3: Filtre Autre
+        if (mainChecked.includes('Autre')) {
+          orFilters.push('categorie_principale.eq.Autre');
+        }
+        // --- FIN DE LA NOUVELLE LOGIQUE ---
+
+
+        if (orFilters.length > 0) {
+          query = query.or(orFilters.join(','));
+          
+          const { data: contacts, error } = await query;
+
+          if (error) {
+            container.innerHTML = `<p class='text-red-600'>Erreur: ${error.message}</p>`;
+            return;
+          }
+
+          // --- Traitement des résultats (regroupement) ---
+          for (const contact of contacts) {
+            const col = contact.groupe;
+            if (!columns[col]) {
+              columns[col] = [];
+            }
+            columns[col].push(contact);
+            hasContent = true;
+          }
         }
       }
 
       // --- Logique d'affichage (inchangée) ---
       let outputHTML = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">';
-      let hasContent = false;
+      const sortedKeys = Object.keys(columns).sort();
 
-      for (const col in columns) {
-        if (columns[col] && columns[col].length > 0) {
-          hasContent = true;
+      for (const col of sortedKeys) {
           outputHTML += `<div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">`;
           outputHTML += `<h3 class="text-xl font-semibold text-gray-900 p-4 border-b bg-gray-50">${col}</h3>`;
           outputHTML += `<div class="flex flex-col gap-3 p-4">`;
@@ -172,18 +188,19 @@
              </div>`
           ).join('');
           outputHTML += `</div></div>`;
-        }
       }
       outputHTML += '</div>';
 
       if (!hasContent) {
-        container.innerHTML = '<p class="text-gray-600">Veuillez sélectionner une catégorie pour afficher les contacts.</p>';
+        container.innerHTML = '<p class="text-gray-600">Veuillez sélectionner une catégorie (et une sous-catégorie si MIA) pour afficher les contacts.</p>';
       } else {
         container.innerHTML = outputHTML;
       }
       
       lucide.createIcons();
     }
+    
+    document.addEventListener('DOMContentLoaded', updateDisplay);
   </script>
   
   <script src="js/layout.js" defer></script>
