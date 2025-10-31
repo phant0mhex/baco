@@ -158,117 +158,77 @@
  <div id="resultDisplay">
 
 
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-    
-      // --- Références aux éléments du DOM ---
-      const modal = document.getElementById('crud-modal');
-      const modalTitle = document.getElementById('modal-title');
-      const crudForm = document.getElementById('crud-form');
-      const itemIdInput = document.getElementById('modal-item-id');
+  <script>
+    // --- FONCTIONS LOGIQUES ---
+
+    function updateSubCategories() {
+      const miaChecked = document.querySelector('#mainCategories input[value="MIA"]').checked;
+      document.getElementById('miaSubCategoriesContainer').style.display = miaChecked ? 'block' : 'none';
+      updateDisplay();
+    }
+
+    async function updateDisplay() {
       const container = document.getElementById('resultDisplay');
-      const searchBar = document.getElementById('search-bar'); // NOUVEAU
+      container.innerHTML = '<p class="text-gray-600">Chargement...</p>';
 
-      // --- Exposer les fonctions au HTML ---
-      window.showModal = showModal;
-      window.hideModal = hideModal;
-      window.handleFormSubmit = handleFormSubmit;
-      window.deleteItem = deleteItem;
-      window.updateDisplay = updateDisplay; // Exposer pour 'oninput'
-      window.updateSubCategories = updateSubCategories; // Exposer pour 'onchange'
+      const mainChecked = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
+      const miaSubChecked = Array.from(document.querySelectorAll('#miaSubCategories input:checked')).map(cb => cb.value);
+      
+      let hasContent = false;
+      const columns = {};
 
-      // --- FONCTION LOGIQUE (pour les filtres) ---
-      function updateSubCategories() {
-        const miaChecked = document.querySelector('#mainCategories input[value="MIA"]').checked;
-        document.getElementById('miaSubCategoriesContainer').style.display = miaChecked ? 'block' : 'none';
-        updateDisplay(); // Déclenche la mise à jour
-      }
-
-      // --- AFFICHAGE PRINCIPAL (MODIFIÉ POUR LA RECHERCHE) ---
-      async function updateDisplay() {
-        container.innerHTML = '<p class="text-gray-600">Chargement...</p>';
-
-        // --- 1. Récupérer tous les filtres ---
-        const mainChecked = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
-        const miaSubChecked = Array.from(document.querySelectorAll('#miaSubCategories input:checked')).map(cb => cb.value);
-        const searchTerm = searchBar.value;
-
-        let hasContent = false;
-        const columns = {};
-
-        // --- 2. Construire la requête Supabase ---
+      if (mainChecked.length > 0) {
         let query = supabaseClient
           .from('contacts_repertoire')
           .select('id, nom, tel, groupe, email, categorie_principale, zone');
 
-        // A. Construire le filtre des catégories (cases à cocher)
-        const categoryOrFilters = [];
-        if (mainChecked.includes('MIA') && miaSubChecked.length > 0) {
-          if (miaSubChecked.includes('FMS')) categoryOrFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FMS)`);
-          if (miaSubChecked.includes('FCR')) categoryOrFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FCR)`);
-          if (miaSubChecked.includes('FTY')) {
-            categoryOrFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FTY)`);
-            categoryOrFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FMS,groupe.eq.TL/MPI)`);
-          }
-        }
-        if (mainChecked.includes('RCC-OCC')) categoryOrFilters.push('categorie_principale.eq.RCC-OCC');
-        if (mainChecked.includes('Autre')) categoryOrFilters.push('categorie_principale.eq.Autre');
-
-        // B. Construire le filtre de recherche
-        let searchOrString = null;
-        if (searchTerm) {
-          // 'ilike' est insensible à la casse
-          searchOrString = `or(nom.ilike.%${searchTerm}%,tel.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%)`;
-        }
-
-        // C. Combiner les filtres
-        if (categoryOrFilters.length > 0 && searchOrString) {
-          // Filtres ET Recherche
-          query = query.and(`or(${categoryOrFilters.join(',')}),${searchOrString}`);
-        } else if (categoryOrFilters.length > 0) {
-          // Juste les filtres
-          query = query.or(categoryOrFilters.join(','));
-        } else if (searchOrString) {
-          // Juste la recherche
-          query = query.or(searchOrString);
-        } else {
-          // Aucun filtre (n'affiche rien)
-          container.innerHTML = '<p class="text-gray-600">Veuillez sélectionner une catégorie ou utiliser la recherche.</p>';
-          lucide.createIcons();
-          return;
-        }
-
-        // D. Exécuter la requête
-        const { data, error } = await query.order('categorie').order('nom');
-
-        if (error) {
-          container.innerHTML = `<p class="text-red-600">Erreur: ${error.message}</p>`;
-          lucide.createIcons();
-          return;
-        }
-
-        // --- 3. Rendu HTML (inchangé) ---
-        for (const item of data) {
-          if (!columns[item.groupe]) {
-            columns[item.groupe] = [];
-          }
-          columns[item.groupe].push(item);
-          hasContent = true;
-        }
+        const orFilters = [];
         
-        let outputHTML = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">';
-        const sortedCategories = Object.keys(columns).sort();
+        if (mainChecked.includes('MIA') && miaSubChecked.length > 0) {
+          if (miaSubChecked.includes('FMS')) orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FMS)`);
+          if (miaSubChecked.includes('FCR')) orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FCR)`);
+          if (miaSubChecked.includes('FTY')) {
+            orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FTY)`);
+            orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FMS,groupe.eq.TL/MPI)`);
+          }
+        }
+        if (mainChecked.includes('RCC-OCC')) orFilters.push('categorie_principale.eq.RCC-OCC');
+        if (mainChecked.includes('Autre')) orFilters.push('categorie_principale.eq.Autre');
 
-        for (const categorie of sortedCategories) {
+        if (orFilters.length > 0) {
+          query = query.or(orFilters.join(','));
+          const { data: contacts, error } = await query;
+
+          if (error) {
+            container.innerHTML = `<p class='text-red-600'>Erreur: ${error.message}</p>`;
+            return;
+          }
+
+          for (const contact of contacts) {
+            const col = contact.groupe;
+            if (!columns[col]) columns[col] = [];
+            columns[col].push(contact);
+            hasContent = true;
+          }
+        }
+      }
+
+      // --- DESIGN DE CARTE (INCHANGÉ) ---
+      let outputHTML = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">';
+      const sortedKeys = Object.keys(columns).sort();
+
+      for (const col of sortedKeys) {
           outputHTML += `<div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">`;
-          outputHTML += `<h3 class="text-xl font-semibold text-gray-900 p-4 border-b bg-gray-50">${categorie}</h3>`;
+          outputHTML += `<h3 class="text-xl font-semibold text-gray-900 p-4 border-b bg-gray-50">${col}</h3>`;
           outputHTML += `<div class="flex flex-col gap-3 p-4">`;
           
-          outputHTML += columns[categorie].map(p => {
-            const itemJson = JSON.stringify(p).replace(/"/g, "&quot;");
+          outputHTML += columns[col].map(p => {
+            const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
+
             const telHtml = (p.tel === '(manquant)' || !p.tel)
               ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500"><i data-lucide="phone-off" class="w-4 h-4"></i><span>(manquant)</span></span>`
               : `<a href="tel:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors"><i data-lucide="phone" class="w-4 h-4"></i><span>${p.tel}</span></a>`;
+
             const emailHtml = p.email
               ? `<a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800 transition-colors" title="${p.email}"><i data-lucide="mail" class="w-4 h-4"></i><span class="truncate" style="max-width: 200px;">${p.email}</span></a>`
               : '';
@@ -281,10 +241,10 @@
                      <span>${p.nom}</span>
                   </span>
                   <div class="flex items-center gap-2">
-                    <button onclick="showModal(${itemJson})" class="p-1 text-blue-600 rounded hover:bg-blue-100" title="Modifier">
+                    <button onclick="showContactModal(${contactJson})" class="p-1 text-blue-600 rounded hover:bg-blue-100" title="Modifier">
                       <i data-lucide="pencil" class="w-4 h-4"></i>
                     </button>
-                    <button onclick="deleteItem(${p.id}, '${p.nom}')" class="p-1 text-red-600 rounded hover:bg-red-100" title="Supprimer">
+                    <button onclick="deleteContact(${p.id}, '${p.nom}')" class="p-1 text-red-600 rounded hover:bg-red-100" title="Supprimer">
                       <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                   </div>
@@ -297,179 +257,137 @@
           }).join('');
           
           outputHTML += `</div></div>`;
-        }
-        outputHTML += '</div>';
+      }
+      outputHTML += '</div>';
 
-        if (!hasContent) {
-          container.innerHTML = '<p class="text-gray-600">Aucun résultat trouvé pour ces filtres.</p>';
-        } else {
-          container.innerHTML = outputHTML;
-        }
-        
-        lucide.createIcons();
+      if (!hasContent) {
+        container.innerHTML = '<p class="text-gray-600">Veuillez sélectionner une catégorie (et une sous-catégorie si MIA) pour afficher les contacts.</p>';
+      } else {
+        container.innerHTML = outputHTML;
       }
       
-      // --- Fonctions CRUD (inchangées) ---
+      lucide.createIcons();
+    }
+    
+    document.addEventListener('DOMContentLoaded', updateDisplay);
 
-      function showModal(item = null) {
-        const isEdit = item !== null;
-        crudForm.reset();
-        
-        if (isEdit) {
-          modalTitle.textContent = 'Modifier l''entrée';
-          itemIdInput.value = item.id;
-          document.getElementById('modal-categorie').value = item.categorie_principale;
-          document.getElementById('modal-nom').value = item.nom;
-          document.getElementById('modal-details').value = item.details || ''; // Erreur potentielle ici
-          document.getElementById('modal-tel').value = item.tel; // Ces champs n'existent pas dans ce modal !
-          document.getElementById('modal-email').value = item.email || '';
-          document.getElementById('modal-zone').value = item.zone || '';
-          document.getElementById('modal-groupe').value = item.groupe;
+    
+    // --- GESTION DE LA SUPPRESSION (INCHANGÉE) ---
 
-        } else {
-          modalTitle.textContent = 'Ajouter une entrée';
-          itemIdInput.value = '';
-        }
-        modal.style.display = 'flex';
-        lucide.createIcons();
+    async function deleteContact(id, nom) {
+      if (!confirm(`Êtes-vous sûr de vouloir supprimer le contact "${nom}" ?`)) {
+        return;
       }
-
-      function hideModal() {
-        modal.style.display = 'none';
+      const { error } = await supabaseClient.from('contacts_repertoire').delete().eq('id', id);
+      if (error) {
+        alert("Erreur lors de la suppression: " + error.message);
+      } else {
+        alert("Contact supprimé avec succès !");
+        updateDisplay();
       }
+    }
 
-      async function handleFormSubmit(event) {
-        event.preventDefault();
-        
-        const itemId = itemIdInput.value;
-        const isEdit = itemId !== '';
-        
-        // CORRECTION : S'assurer que le modal du répertoire a les bons champs
-        const itemData = {
-          categorie_principale: document.getElementById('modal-categorie').value,
-          nom: document.getElementById('modal-nom').value,
-          tel: document.getElementById('modal-tel').value, // Doit exister dans le modal
-          email: document.getElementById('modal-email').value || null, // Doit exister
-          zone: document.getElementById('modal-zone').value || null, // Doit exister
-          groupe: document.getElementById('modal-groupe').value, // Doit exister
-          page: null // Ce n'est pas la page pmr/op
-        };
+    
+    // --- NOUVELLES FONCTIONS POUR LE MODAL COMPLEXE ---
 
-        // Supprimer 'page' s'il n'est pas pertinent (c'est le cas ici)
-        delete itemData.page;
+    const modal = document.getElementById('contact-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const contactForm = document.getElementById('contact-form');
+    const contactIdInput = document.getElementById('modal-contact-id');
 
-        let error;
-        const submitButton = document.getElementById('modal-submit-button');
-        submitButton.disabled = true;
-        submitButton.textContent = 'Enregistrement...';
-
-        if (isEdit) {
-          const { error: updateError } = await supabaseClient
-            .from('contacts_repertoire')
-            .update(itemData)
-            .eq('id', itemId);
-          error = updateError;
-        } else {
-          const { error: insertError } = await supabaseClient
-            .from('contacts_repertoire')
-            .insert([itemData]);
-          error = insertError;
-        }
-
-        submitButton.disabled = false;
-        submitButton.textContent = 'Enregistrer';
-
-        if (error) {
-          alert("Erreur: " + error.message);
-        } else {
-          alert(isEdit ? "Entrée mise à jour !" : "Entrée ajoutée !");
-          hideModal();
-          updateDisplay();
-        }
+    /**
+     * Ouvre et pré-remplit le modal.
+     * Si 'contact' est null, c'est un ajout.
+     * Si 'contact' est fourni, c'est une modification.
+     */
+    function showContactModal(contact = null) {
+      const isEdit = contact !== null;
+      
+      // Réinitialiser le formulaire
+      contactForm.reset();
+      
+      if (isEdit) {
+        // Mode ÉDITION
+        modalTitle.textContent = 'Modifier le contact';
+        contactIdInput.value = contact.id;
+        document.getElementById('modal-nom').value = contact.nom;
+        document.getElementById('modal-tel').value = contact.tel;
+        document.getElementById('modal-email').value = contact.email || '';
+        document.getElementById('modal-categorie').value = contact.categorie_principale;
+        document.getElementById('modal-zone').value = contact.zone || '';
+        document.getElementById('modal-groupe').value = contact.groupe;
+      } else {
+        // Mode AJOUT
+        modalTitle.textContent = 'Ajouter un contact';
+        contactIdInput.value = ''; // Pas d'ID
       }
+      
+      // Afficher le modal
+      modal.style.display = 'flex';
+      lucide.createIcons(); // Redessiner l'icône 'x' si elle n'est pas encore là
+    }
 
-      async function deleteItem(id, nom) {
-        if (!confirm(`Êtes-vous sûr de vouloir supprimer "${nom}" ?`)) {
-          return;
-        }
-        const { error } = await supabaseClient
+    /**
+     * Cache le modal
+     */
+    function hideContactModal() {
+      modal.style.display = 'none';
+    }
+
+    /**
+     * Gère la soumission du formulaire (Ajout / Modification)
+     */
+    async function handleFormSubmit(event) {
+      event.preventDefault(); // Empêche le rechargement de la page
+      
+      const contactId = contactIdInput.value;
+      const isEdit = contactId !== '';
+      
+      // Récupérer les données du formulaire
+      const contactData = {
+        nom: document.getElementById('modal-nom').value,
+        tel: document.getElementById('modal-tel').value,
+        email: document.getElementById('modal-email').value || null,
+        categorie_principale: document.getElementById('modal-categorie').value,
+        zone: document.getElementById('modal-zone').value || null,
+        groupe: document.getElementById('modal-groupe').value
+      };
+
+      let error;
+      const submitButton = document.getElementById('modal-submit-button');
+      submitButton.disabled = true;
+      submitButton.textContent = 'Enregistrement...';
+
+      if (isEdit) {
+        // --- REQUÊTE UPDATE ---
+        const { error: updateError } = await supabaseClient
           .from('contacts_repertoire')
-          .delete()
-          .eq('id', id);
-        if (error) {
-          alert("Erreur: " + error.message);
-        } else {
-          alert("Entrée supprimée !");
-          updateDisplay();
-        }
+          .update(contactData)
+          .eq('id', contactId);
+        error = updateError;
+      } else {
+        // --- REQUÊTE INSERT ---
+        const { error: insertError } = await supabaseClient
+          .from('contacts_repertoire')
+          .insert([contactData]);
+        error = insertError;
       }
 
-      // Lancement initial
-      updateDisplay();
-      lucide.createIcons(); // Pour l'icône de recherche
-    });
+      // Réactiver le bouton
+      submitButton.disabled = false;
+      submitButton.textContent = 'Enregistrer';
+
+      // Gestion du résultat
+      if (error) {
+        alert("Erreur lors de l'opération: " + error.message);
+      } else {
+        alert(isEdit ? "Contact mis à jour !" : "Contact ajouté !");
+        hideContactModal();
+        updateDisplay(); // Rafraîchir la liste
+      }
+    }
   </script>
 
   <script src="js/layout.js" defer></script>
-
-  <div id="crud-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4" style="display: none;">
-  <div class="bg-white rounded-lg shadow-xl w-full max-w-lg">
-    <div class="flex justify-between items-center p-4 border-b">
-      <h3 id="modal-title" class="text-xl font-semibold text-gray-800">Ajouter un contact</h3>
-      <button onclick="hideModal()" class="p-1 rounded-full text-gray-500 hover:bg-gray-200">
-        <i data-lucide="x" class="w-5 h-5"></i>
-      </button>
-    </div>
-    <form id="crud-form" onsubmit="handleFormSubmit(event)">
-      <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <input type="hidden" id="modal-item-id">
-        
-        <div class="md:col-span-2">
-          <label for="modal-nom" class="block text-sm font-medium text-gray-700">Nom</label>
-          <input type="text" id="modal-nom" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-        </div>
-        
-        <div>
-          <label for="modal-tel" class="block text-sm font-medium text-gray-700">Téléphone</label>
-          <input type="text" id="modal-tel" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-        </div>
-        
-        <div>
-          <label for="modal-email" class="block text-sm font-medium text-gray-700">Email (optionnel)</label>
-          <input type="email" id="modal-email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-        </div>
-        
-        <div>
-          <label for="modal-categorie" class="block text-sm font-medium text-gray-700">Catégorie</label>
-          <select id="modal-categorie" required class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-            <option value="MIA">MIA</option>
-            <option value="RCC-OCC">RCC-OCC</option>
-            <option value="Autre">Autre</option>
-          </select>
-        </div>
-
-        <div>
-          <label for="modal-zone" class="block text-sm font-medium text-gray-700">Zone (optionnel)</label>
-          <input type="text" id="modal-zone" placeholder="FMS, FTY, FCR..." class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-        </div>
-        
-        <div class="md:col-span-2">
-          <label for="modal-groupe" class="block text-sm font-medium text-gray-700">Groupe</label>
-          <input type="text" id="modal-groupe" required placeholder="SPI, CPI, PACO..." class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-        </div>
-      </div>
-      
-      <div class="flex justify-end items-center p-4 bg-gray-50 border-t rounded-b-lg">
-        <button type="button" onclick="hideModal()" class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none">
-          Annuler
-        </button>
-        <button type="submit" id="modal-submit-button" class="ml-3 px-4 py-2 bg-blue-600 text-white border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none">
-          Enregistrer
-        </button>
-      </div>
-    </form>
-  </div>
-</div>
-
 </body>
 </html>
