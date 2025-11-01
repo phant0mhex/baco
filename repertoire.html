@@ -104,12 +104,12 @@
     <h1 class="text-3xl font-bold text-gray-800 mb-6">Répertoire téléphonique</h1>
 
 <div class="mb-4">
-      <label for="search-bar" class="block text-sm font-medium text-gray-700">Rechercher</label>
+      <label for="search-bar" class="block text-sm font-medium text-gray-700">Rechercher (par nom, tél, email ou groupe)</label>
       <div class="relative mt-1 rounded-md shadow-sm">
         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
           <i data-lucide="search" class="w-5 h-5 text-gray-400"></i>
         </div>
-        <input type="search" id="search-bar" oninput="updateDisplay()" placeholder="NIM, Mathieu,..." class="block w-full rounded-md border-gray-300 pl-10 px-4 py-2 focus:border-blue-500 focus:ring-blue-500">
+        <input type="search" id="search-bar" oninput="updateDisplay()" placeholder="David Lejeune, SPI, 0490/..." class="block w-full rounded-md border-gray-300 pl-10 px-4 py-2 focus:border-blue-500 focus:ring-blue-500">
       </div>
     </div>
 
@@ -186,7 +186,11 @@
 
     async function updateDisplay() {
       const container = document.getElementById('resultDisplay');
-      container.innerHTML = '<p class="text-gray-600">Chargement...</p>';
+      
+      // --- MODIFICATION : Remplacer le texte de chargement ---
+      container.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
+      lucide.createIcons(); // Render le spinner
+      // ---------------------------------------------------
 
       const mainChecked = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
       const miaSubChecked = Array.from(document.querySelectorAll('#miaSubCategories input:checked')).map(cb => cb.value);
@@ -314,7 +318,7 @@
         container.innerHTML = outputHTML;
       }
       
-      lucide.createIcons();
+      lucide.createIcons(); // Render les icônes dans les résultats
     }
     
     document.addEventListener('DOMContentLoaded', () => {
@@ -352,7 +356,9 @@
 
     
     // --- GESTION DE LA SUPPRESSION (INCHANGÉE) ---
-
+    // ...
+    // ... (votre code existant pour deleteContact, showContactModal, hideContactModal, handleFormSubmit)
+    // ...
     async function deleteContact(id, nom) {
       if (!confirm(`Êtes-vous sûr de vouloir supprimer le contact "${nom}" ?`)) {
         return;
@@ -367,18 +373,26 @@
     }
 
     
-    // --- GESTION DU MODAL (INCHANGÉE) ---
+    // --- NOUVELLES FONCTIONS POUR LE MODAL COMPLEXE ---
 
     const modal = document.getElementById('contact-modal');
     const modalTitle = document.getElementById('modal-title');
     const contactForm = document.getElementById('contact-form');
     const contactIdInput = document.getElementById('modal-contact-id');
 
+    /**
+     * Ouvre et pré-remplit le modal.
+     * Si 'contact' est null, c'est un ajout.
+     * Si 'contact' est fourni, c'est une modification.
+     */
     function showContactModal(contact = null) {
       const isEdit = contact !== null;
+      
+      // Réinitialiser le formulaire
       contactForm.reset();
       
       if (isEdit) {
+        // Mode ÉDITION
         modalTitle.textContent = 'Modifier le contact';
         contactIdInput.value = contact.id;
         document.getElementById('modal-nom').value = contact.nom;
@@ -388,24 +402,33 @@
         document.getElementById('modal-zone').value = contact.zone || '';
         document.getElementById('modal-groupe').value = contact.groupe;
       } else {
+        // Mode AJOUT
         modalTitle.textContent = 'Ajouter un contact';
-        contactIdInput.value = '';
+        contactIdInput.value = ''; // Pas d'ID
       }
       
+      // Afficher le modal
       modal.style.display = 'flex';
-      lucide.createIcons();
+      lucide.createIcons(); // Redessiner l'icône 'x' si elle n'est pas encore là
     }
 
+    /**
+     * Cache le modal
+     */
     function hideContactModal() {
       modal.style.display = 'none';
     }
 
+    /**
+     * Gère la soumission du formulaire (Ajout / Modification)
+     */
     async function handleFormSubmit(event) {
-      event.preventDefault(); 
+      event.preventDefault(); // Empêche le rechargement de la page
       
       const contactId = contactIdInput.value;
       const isEdit = contactId !== '';
       
+      // Récupérer les données du formulaire
       const contactData = {
         nom: document.getElementById('modal-nom').value,
         tel: document.getElementById('modal-tel').value,
@@ -421,27 +444,31 @@
       submitButton.textContent = 'Enregistrement...';
 
       if (isEdit) {
+        // --- REQUÊTE UPDATE ---
         const { error: updateError } = await supabaseClient
           .from('contacts_repertoire')
           .update(contactData)
           .eq('id', contactId);
         error = updateError;
       } else {
+        // --- REQUÊTE INSERT ---
         const { error: insertError } = await supabaseClient
           .from('contacts_repertoire')
           .insert([contactData]);
         error = insertError;
       }
 
+      // Réactiver le bouton
       submitButton.disabled = false;
       submitButton.textContent = 'Enregistrer';
 
+      // Gestion du résultat
       if (error) {
         alert("Erreur lors de l'opération: " + error.message);
       } else {
         alert(isEdit ? "Contact mis à jour !" : "Contact ajouté !");
         hideContactModal();
-        updateDisplay();
+        updateDisplay(); // Rafraîchir la liste
       }
     }
   </script>

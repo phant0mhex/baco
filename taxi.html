@@ -79,7 +79,10 @@
       
       // --- NOUVELLE FONCTION POUR CHARGER LES LIEUX ---
       async function populateLieuFilters() {
-        lieuCheckboxesContainer.innerHTML = '<p class="text-gray-600">Chargement des filtres...</p>';
+        // --- MODIFICATION : Remplacer le texte de chargement ---
+        lieuCheckboxesContainer.innerHTML = '<div class="flex justify-center items-center py-2"><i data-lucide="loader-2" class="w-6 h-6 text-blue-600 animate-spin"></i></div>';
+        lucide.createIcons(); // Render le spinner
+        // ---------------------------------------------------
         
         // 1. Récupérer tous les enregistrements de lieux
         const { data, error } = await supabaseClient
@@ -92,18 +95,13 @@
         }
 
         // 2. Traiter les données
-        // data = [ {lieux: ['Mons', 'Charleroi']}, {lieux: ['Mons', 'Ath']}, {lieux: ['nihil']} ]
-        
-        // Aplatir tous les arrays de lieux en un seul
         const allLieux = data.flatMap(taxi => taxi.lieux);
-        // data.flatMap(...) -> ['Mons', 'Charleroi', 'Mons', 'Ath', 'nihil']
         
         // Dé-dupliquer, filtrer 'nihil' et les valeurs vides, puis trier
         const uniqueLieux = [...new Set(allLieux)]
           .filter(lieu => lieu !== 'nihil' && lieu) // '&& lieu' filtre null, undefined, ""
           .sort();
-        // uniqueLieux -> ['Ath', 'Charleroi', 'Mons'] (par exemple)
-
+        
         if (uniqueLieux.length === 0) {
            lieuCheckboxesContainer.innerHTML = '<p class="text-gray-600">Aucun lieu trouvé.</p>';
            return;
@@ -135,7 +133,10 @@
           return;
         }
 
-        contentContainer.innerHTML = '<p class="text-gray-600">Chargement...</p>';
+        // --- MODIFICATION : Remplacer le texte de chargement ---
+        contentContainer.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
+        lucide.createIcons(); // Render le spinner
+        // ---------------------------------------------------
         
         const { data: taxisAffiches, error } = await supabaseClient
           .from('taxis')
@@ -222,11 +223,13 @@
           }).join('') +
           '</div>';
 
-        lucide.createIcons();
+        lucide.createIcons(); // Render les icônes dans les résultats
       }
       
       // --- FONCTIONS D'ÉDITION (Inchangées) ---
-
+      // ...
+      // ... (votre code existant pour showTaxiModal, hideTaxiModal, handleTaxiFormSubmit, deleteTaxi)
+      // ...
       function showTaxiModal(taxi = null) {
         const isEdit = taxi !== null;
         taxiForm.reset(); // Maintenant, taxiForm ne devrait plus être null

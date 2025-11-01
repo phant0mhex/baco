@@ -1,3 +1,5 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-gray-50">
 <head>
   <meta charset="UTF-8">
   <title>Portail BACO - Lignes</title> <script src="https://cdn.tailwindcss.com"></script>
@@ -152,7 +154,7 @@
   <script src="js/layout.js" defer></script>
   <script>
     // Fini le 'fetch' de lignes.json !
-    // Le client 'supabaseClient' est déjà disponible depuis 'js/auth.js'
+    // Le client 'supabaseClient' est déjà available depuis 'js/auth.js'
 
     // Fonction pour afficher/masquer les sous-catégories
     function updateSubCategories() {
@@ -184,7 +186,11 @@
           return;
       }
 
-      container.innerHTML = '<p class="text-gray-600">Chargement des données...</p>';
+      // --- MODIFICATION : Remplacer le texte de chargement ---
+      container.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
+      // On appelle lucide.createIcons() pour render le spinner
+      lucide.createIcons();
+      // ---------------------------------------------------
 
       // --- NOUVELLE LOGIQUE SUPABASE ---
 
@@ -333,6 +339,7 @@
           container.innerHTML = '<p class="text-gray-600">Aucun résultat pour les filtres sélectionnés.</p>';
       }
 
+      // Appel final pour render les icônes dans les résultats
       lucide.createIcons();
     }
   </script>
