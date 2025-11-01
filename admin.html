@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-gray-50">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin - Portail BACO</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/variable/geist-sans.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/geist-@1.0.0/dist/fonts/geist-mono/variable/geist-mono.css" rel="stylesheet">
+
+  <script src="https://unpkg.com/lucide@latest" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+  
+  <script src="js/auth.js" defer></script> 
+
+  <script>
+    // ===================================================================
+    // ==                      GARDE DE SÉCURITÉ                      ==
+    // ===================================================================
+    // S'exécute immédiatement pour bloquer l'accès AVANT le chargement du layout
+    
+    const userRole = sessionStorage.getItem('userRole');
+    if (userRole !== 'admin') {
+      alert("Accès refusé. Vous devez être administrateur pour voir cette page.");
+      // Redirection immédiate vers l'accueil
+      window.location.replace('accueil.html');
+    }
+  </script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Geist Sans', 'sans-serif'],
+            mono: ['Geist Mono', 'monospace'],
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="h-full">
+
+  <div id="nav-placeholder"></div>
+
+  <div class="container mx-auto p-8">
+    <h1 class="text-3xl font-bold text-gray-800 mb-8">Tableau de bord Administrateur</h1>
+
+    <div class="bg-white p-6 rounded-lg shadow border border-gray-200">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Gestion des Utilisateurs</h2>
+      
+      <div id="user-list-container">
+        </div>
+    </div>
+  </div>
+
+  <script src="js/layout.js" defer></script>
+  
+  <script>
+    // Ce script s'exécute après le 'DOMContentLoaded'
+    // et après le 'garde de sécurité' ci-dessus.
+    
+    document.addEventListener('DOMContentLoaded', () => {
+    
+      // Seuls les admins peuvent exécuter ce code grâce au garde
+      
+      const notyf = (typeof Notyf !== 'undefined') 
+        ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
+        : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
+
+      const userListContainer = document.getElementById('user-list-container');
+
+      /**
+       * Charge et affiche la liste de tous les utilisateurs via la fonction RPC.
+       */
+      async function loadUsers() {
+        userListContainer.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
+        lucide.createIcons();
+
+        try {
+          // 1. Appeler la fonction SQL 'get_all_users'
+          const { data, error } = await supabaseClient.rpc('get_all_users');
+          if (error) throw error;
+          
+          if (!data || data.length === 0) {
+            userListContainer.innerHTML = '<p class="text-gray-600">Aucun utilisateur trouvé.</p>';
+            return;
+          }
+          
+          // 2. Construire le tableau HTML
+          userListContainer.innerHTML = `
+            <div class="overflow-x-auto border rounded-lg">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilisateur</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rôle Actuel</th>
+                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  ${data.map(user => renderUserRow(user)).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+          
+          lucide.createIcons();
+          
+        } catch (error) {
+          userListContainer.innerHTML = `<p class="text-red-500">Erreur critique : ${error.message}</p>`;
+          notyf.error("Impossible de charger les utilisateurs. " + error.message);
+        }
+      }
+
+      /**
+       * Génère le HTML pour une seule ligne d'utilisateur.
+       */
+      function renderUserRow(user) {
+        const avatarSrc = user.avatar_url || 'https://via.placeholder.com/40';
+        const currentRole = user.role || 'user';
+        
+        // Empêcher un admin de se rétrograder lui-même accidentellement (sécurité)
+        const isSelf = (user.user_id === supabaseClient.auth.user()?.id);
+
+        return `
+          <tr>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 h-10 w-10">
+                  <img class="h-10 w-10 rounded-full object-cover" src="${avatarSrc}" alt="">
+                </div>
+                <div class="ml-4">
+                  <div class="text-sm font-medium text-gray-900">${user.full_name || user.username || 'N/A'}</div>
+                  <div class="text-sm text-gray-500">${user.user_id}</div>
+                </div>
+              </div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="text-sm text-gray-900">${user.email}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${currentRole === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">
+                ${currentRole}
+              </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+              ${isSelf ? 
+                '<span class="text-gray-400 cursor-not-allowed"> (Vous) </span>' : 
+                `
+                <button 
+                  onclick="window.handleRoleChange('${user.user_id}', '${currentRole === 'admin' ? 'user' : 'admin'}')"
+                  class="p-2 rounded-md ${currentRole === 'admin' ? 'text-yellow-600 hover:bg-yellow-100' : 'text-blue-600 hover:bg-blue-100'}"
+                  title="${currentRole === 'admin' ? 'Rétrograder en utilisateur' : 'Promouvoir en admin'}">
+                  <i data-lucide="${currentRole === 'admin' ? 'user-minus' : 'user-plus'}" class="w-4 h-4"></i>
+                </button>
+                `
+              }
+            </td>
+          </tr>
+        `;
+      }
+
+      /**
+       * Gère le changement de rôle (appelé par le 'onclick').
+       * Attaché à 'window' pour être accessible.
+       */
+      window.handleRoleChange = async (userId, newRole) => {
+        const action = newRole === 'admin' ? 'promouvoir' : 'rétrograder';
+        if (!confirm(`Êtes-vous sûr de vouloir ${action} cet utilisateur ?`)) {
+          return;
+        }
+
+        try {
+          // 1. Appeler la fonction SQL 'admin_update_user_role'
+          const { data, error } = await supabaseClient.rpc('admin_update_user_role', {
+            user_id_to_update: userId,
+            new_role: newRole
+          });
+
+          if (error) throw error;
+          
+          notyf.success(`Utilisateur ${action} avec succès !`);
+          loadUsers(); // Recharger la liste
+          
+        } catch (error) {
+          notyf.error(`Erreur : ${error.message}`);
+        }
+      }
+      
+      // Lancement initial
+      loadUsers();
+
+    }); // Fin de DOMContentLoaded
+  </script>
+
+</body>
+</html>

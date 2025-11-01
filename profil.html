@@ -8,34 +8,17 @@
   <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-mono/variable/geist-mono.css" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/auth.js" defer></script> 
+  
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
   <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+  
+  <script src="js/auth.js" defer></script> 
 
   <style>
     /* Style pour l'upload d'avatar */
-    .avatar-upload-label {
-      cursor: pointer;
-      position: relative;
-      display: inline-block;
-      width: 128px; /* 8rem */
-      height: 128px; /* 8rem */
-    }
-    .avatar-upload-label:hover .avatar-overlay {
-      opacity: 1;
-    }
-    .avatar-overlay {
-      position: absolute;
-      inset: 0;
-      background-color: rgba(0,0,0,0.4);
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      transition: opacity 0.2s;
-      border-radius: 9999px; /* full */
-    }
+    .avatar-upload-label { cursor: pointer; position: relative; display: inline-block; width: 128px; height: 128px; }
+    .avatar-upload-label:hover .avatar-overlay { opacity: 1; }
+    .avatar-overlay { position: absolute; inset: 0; background-color: rgba(0,0,0,0.4); color: white; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; border-radius: 9999px; }
   </style>
 
   <script>
@@ -58,10 +41,9 @@
   <div class="container mx-auto p-8 max-w-2xl">
     <h1 class="text-3xl font-bold text-gray-800 mb-6">Mon Profil</h1>
     
-    <div class="bg-white p-6 rounded-lg shadow border border-gray-200">
+    <div class="bg-white p-6 rounded-lg shadow border border-gray-200 mb-8">
       <form id="profile-form">
         <div class="flex flex-col items-center gap-4 mb-6">
-          
           <label for="avatar-file" class="avatar-upload-label">
             <img id="avatar-preview" src="https://via.placeholder.com/128" alt="Avatar" class="w-32 h-32 rounded-full object-cover border border-gray-300">
             <div class="avatar-overlay">
@@ -94,27 +76,38 @@
         </div>
       </form>
     </div>
+
+    <div class="bg-white p-6 rounded-lg shadow border border-gray-200">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Sécurité</h2>
+      <form id="password-form" class="space-y-4">
+        <div>
+          <label for="new-password" class="block text-sm font-medium text-gray-700">Nouveau mot de passe</label>
+          <input type="password" id="new-password" required minlength="6" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div>
+          <label for="confirm-password" class="block text-sm font-medium text-gray-700">Confirmer le mot de passe</label>
+          <input type="password" id="confirm-password" required minlength="6" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div class="flex justify-end pt-4">
+            <button type="submit" id="password-save-button" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
+              Changer le mot de passe
+            </button>
+          </div>
+      </form>
+    </div>
+
   </div>
 
   <script src="js/layout.js" defer></script>
   
   <script>
-    // Le script de layout.js est au-dessus
-    
-    // On attend que le DOM soit chargé
     document.addEventListener('DOMContentLoaded', () => {
     
-      // 1. INITIALISER NOTYF ICI (en haut)
-      // On s'assure que la classe Notyf a été chargée par le CDN dans le <head>
+      // 1. INITIALISER NOTYF
       if (typeof Notyf === 'undefined') {
-        console.error("Notyf n'est pas chargé ! Vérifiez le lien CDN dans le <head>.");
-        // Fallback sur les alertes si Notyf n'a pas chargé
-        window.notyf = {
-          success: (msg) => alert(msg),
-          error: (msg) => alert(msg)
-        };
+        console.error("Notyf n'est pas chargé !");
+        window.notyf = { success: (msg) => alert(msg), error: (msg) => alert(msg) };
       } else {
-        // Notyf est chargé, on l'initialise
         window.notyf = new Notyf({
           duration: 3000,
           position: { x: 'right', y: 'top' },
@@ -123,6 +116,8 @@
       }
 
       // 2. RÉCUPÉRER LES ÉLÉMENTS DU DOM
+      
+      // Formulaire de profil
       const profileForm = document.getElementById('profile-form');
       const saveButton = document.getElementById('save-button');
       const emailInput = document.getElementById('email');
@@ -132,111 +127,76 @@
       const avatarFileInput = document.getElementById('avatar-file');
       const avatarStatus = document.getElementById('avatar-upload-status');
       
+      // NOUVEAU: Formulaire de mot de passe
+      const passwordForm = document.getElementById('password-form');
+      const newPasswordInput = document.getElementById('new-password');
+      const confirmPasswordInput = document.getElementById('confirm-password');
+      const passwordSaveButton = document.getElementById('password-save-button');
+      
       let currentUserId = null;
       let uploading = false;
 
-      // 3. DÉFINIR LES FONCTIONS (elles auront accès à 'notyf' via window.notyf)
-
-      // Charger le profil existant
+      // 3. DÉFINIR LES FONCTIONS
+      
+      // --- Fonctions de profil (inchangées) ---
+      
       async function getProfile() {
         try {
           const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
           if (authError || !user) throw authError || new Error('Utilisateur non trouvé');
-          
           currentUserId = user.id;
           emailInput.value = user.email;
-
-          const { data, error, status } = await supabaseClient
-            .from('profiles')
-            .select(`username, full_name, avatar_url`)
-            .eq('id', user.id)
-            .single();
-
+          const { data, error, status } = await supabaseClient.from('profiles').select(`username, full_name, avatar_url`).eq('id', user.id).single();
           if (error && status !== 406) throw error;
-
           if (data) {
             usernameInput.value = data.username || '';
             fullNameInput.value = data.full_name || '';
-            if (data.avatar_url) {
-              avatarPreview.src = data.avatar_url + `?t=${new Date().getTime()}`;
-            }
+            if (data.avatar_url) avatarPreview.src = data.avatar_url + `?t=${new Date().getTime()}`;
           }
         } catch (error) {
-          console.error("Erreur lors du chargement du profil:", error.message);
+          console.error("Erreur chargement profil:", error.message);
           window.notyf.error("Impossible de charger le profil : " + error.message);
         }
       }
 
-      // Mettre à jour le profil (textes)
       async function updateProfile() {
         try {
           saveButton.disabled = true;
           saveButton.textContent = 'Enregistrement...';
-
-          const updates = {
-            id: currentUserId,
-            username: usernameInput.value,
-            full_name: fullNameInput.value,
-            updated_at: new Date(),
-          };
-
+          const updates = { id: currentUserId, username: usernameInput.value, full_name: fullNameInput.value, updated_at: new Date() };
           const { error } = await supabaseClient.from('profiles').upsert(updates);
           if (error) throw error;
-
           window.notyf.success('Profil mis à jour !');
-          
         } catch (error) {
-          window.notyf.error('Erreur lors de la mise à jour : ' + error.message);
+          window.notyf.error('Erreur mise à jour profil : ' + error.message);
         } finally {
           saveButton.disabled = false;
           saveButton.textContent = 'Enregistrer les modifications';
         }
       }
       
-      // Gérer l'upload d'avatar
       async function handleAvatarUpload(event) {
         if (uploading || !currentUserId) return;
-        
         const file = event.target.files[0];
         if (!file) return;
-
         uploading = true;
         avatarStatus.textContent = 'Téléchargement...';
-        
         try {
           const fileExt = file.name.split('.').pop();
           const fileName = `${Math.random()}.${fileExt}`;
           const filePath = `${currentUserId}/${fileName}`;
-
-          const { error: uploadError } = await supabaseClient
-            .storage
-            .from('avatars')
-            .upload(filePath, file, { upsert: true });
-
+          const { error: uploadError } = await supabaseClient.storage.from('avatars').upload(filePath, file, { upsert: true });
           if (uploadError) throw uploadError;
-
-          const { data: urlData } = supabaseClient
-            .storage
-            .from('avatars')
-            .getPublicUrl(filePath);
-            
+          const { data: urlData } = supabaseClient.storage.from('avatars').getPublicUrl(filePath);
           if (!urlData) throw new Error("Impossible d'obtenir l'URL publique.");
-
           const publicURL = urlData.publicUrl;
-
-          const { error: updateError } = await supabaseClient
-            .from('profiles')
-            .update({ avatar_url: publicURL, updated_at: new Date() })
-            .eq('id', currentUserId);
-            
+          const { error: updateError } = await supabaseClient.from('profiles').update({ avatar_url: publicURL, updated_at: new Date() }).eq('id', currentUserId);
           if (updateError) throw updateError;
-          
           avatarPreview.src = publicURL + `?t=${new Date().getTime()}`;
-          avatarStatus.textContent = ''; // On vide le statut
+          avatarStatus.textContent = '';
           window.notyf.success('Avatar mis à jour !');
-
         } catch (error) {
-          console.error("Erreur d'upload d'avatar:", error.message);
+          console.error("Erreur upload avatar:", error.message);
           avatarStatus.textContent = '';
           window.notyf.error("Échec de l'upload.");
         } finally {
@@ -244,9 +204,47 @@
         }
       }
 
+      // --- NOUVELLE FONCTION: Changer le mot de passe ---
+      async function updatePassword(event) {
+        event.preventDefault();
+        const newPassword = newPasswordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+
+        // Vérification simple côté client
+        if (newPassword.length < 6) {
+          window.notyf.error('Le mot de passe doit faire au moins 6 caractères.');
+          return;
+        }
+        if (newPassword !== confirmPassword) {
+          window.notyf.error('Les mots de passe ne correspondent pas.');
+          return;
+        }
+
+        passwordSaveButton.disabled = true;
+        passwordSaveButton.textContent = 'Enregistrement...';
+
+        try {
+          // Appel à Supabase Auth pour mettre à jour l'utilisateur
+          const { error } = await supabaseClient.auth.updateUser({
+            password: newPassword
+          });
+          
+          if (error) throw error;
+          
+          window.notyf.success('Mot de passe mis à jour avec succès !');
+          passwordForm.reset(); // Vider les champs
+
+        } catch (error) {
+          console.error("Erreur mise à jour MDP:", error.message);
+          window.notyf.error('Erreur: ' + error.message);
+        } finally {
+          passwordSaveButton.disabled = false;
+          passwordSaveButton.textContent = 'Changer le mot de passe';
+        }
+      }
+
       // 4. LANCER LE CODE
       
-      // Lancer le chargement initial
       getProfile();
       
       // Attacher les écouteurs d'événements
@@ -254,8 +252,10 @@
         e.preventDefault();
         updateProfile();
       });
-      
       avatarFileInput.addEventListener('change', handleAvatarUpload);
+      
+      // NOUVEAU: Écouteur pour le formulaire de mot de passe
+      passwordForm.addEventListener('submit', updatePassword);
 
     });
   </script>
