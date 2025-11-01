@@ -17,15 +17,10 @@
   <script src="js/auth.js" defer></script> 
 
   <script>
-    // ===================================================================
-    // ==                      GARDE DE SÉCURITÉ                      ==
-    // ===================================================================
-    // S'exécute immédiatement pour bloquer l'accès AVANT le chargement du layout
-    
+    // GARDE DE SÉCURITÉ
     const userRole = sessionStorage.getItem('userRole');
     if (userRole !== 'admin') {
       alert("Accès refusé. Vous devez être administrateur pour voir cette page.");
-      // Redirection immédiate vers l'accueil
       window.location.replace('accueil.html');
     }
   </script>
@@ -61,13 +56,8 @@
   <script src="js/layout.js" defer></script>
   
   <script>
-    // Ce script s'exécute après le 'DOMContentLoaded'
-    // et après le 'garde de sécurité' ci-dessus.
-    
     document.addEventListener('DOMContentLoaded', () => {
     
-      // Seuls les admins peuvent exécuter ce code grâce au garde
-      
       const notyf = (typeof Notyf !== 'undefined') 
         ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
         : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
@@ -82,16 +72,13 @@
         lucide.createIcons();
 
         try {
-          // --- CORRECTION (PARTIE 1) ---
-          // 1. Obtenir l'ID de l'admin *avant* de lister les utilisateurs
           const { data: { user: adminUser }, error: adminError } = await supabaseClient.auth.getUser();
           if (adminError || !adminUser) {
             throw adminError || new Error("Impossible d'identifier l'administrateur.");
           }
           const currentAdminId = adminUser.id;
-          // -----------------------------
 
-          // 2. Appeler la fonction SQL 'get_all_users'
+          // Appeler la fonction SQL 'get_all_users' (qui renvoie maintenant 'banned_until_status')
           const { data, error } = await supabaseClient.rpc('get_all_users');
           if (error) throw error;
           
@@ -100,15 +87,15 @@
             return;
           }
           
-          // 3. Construire le tableau HTML
+          // Construire le tableau HTML (ajout d'une colonne "Statut")
           userListContainer.innerHTML = `
             <div class="overflow-x-auto border rounded-lg">
               <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                   <tr>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilisateur</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rôle Actuel</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rôle</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
                     <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
@@ -129,14 +116,14 @@
 
       /**
        * Génère le HTML pour une seule ligne d'utilisateur.
-       * --- CORRECTION (PARTIE 3) : Accepter 'currentAdminId' en argument ---
        */
       function renderUserRow(user, currentAdminId) {
         const avatarSrc = user.avatar_url || 'https://via.placeholder.com/40';
         const currentRole = user.role || 'user';
-        
-        // --- CORRECTION (PARTIE 4) : Utiliser l'argument au lieu de la fonction qui n'existe pas ---
         const isSelf = (user.user_id === currentAdminId);
+        
+        // NOUVEAU: Vérifier le statut de bannissement
+        const isBanned = user.banned_until_status !== null;
 
         return `
           <tr>
@@ -147,19 +134,24 @@
                 </div>
                 <div class="ml-4">
                   <div class="text-sm font-medium text-gray-900">${user.full_name || user.username || 'N/A'}</div>
-                  <div class="text-sm text-gray-500" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis;">${user.user_id}</div>
+                  <div class="text-sm text-gray-500">${user.email}</div>
                 </div>
               </div>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div class="text-sm text-gray-900">${user.email}</div>
-            </td>
+            
             <td class="px-6 py-4 whitespace-nowrap">
               <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${currentRole === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">
                 ${currentRole}
               </span>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+            
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${isBanned ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
+                ${isBanned ? 'Banni' : 'Actif'}
+              </span>
+            </td>
+            
+            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-2">
               ${isSelf ? 
                 '<span class="text-gray-400 cursor-not-allowed"> (Vous) </span>' : 
                 `
@@ -168,6 +160,13 @@
                   class="p-2 rounded-md ${currentRole === 'admin' ? 'text-yellow-600 hover:bg-yellow-100' : 'text-blue-600 hover:bg-blue-100'}"
                   title="${currentRole === 'admin' ? 'Rétrograder en utilisateur' : 'Promouvoir en admin'}">
                   <i data-lucide="${currentRole === 'admin' ? 'user-minus' : 'user-plus'}" class="w-4 h-4"></i>
+                </button>
+                
+                <button 
+                  onclick="window.handleBanUser('${user.user_id}', ${!isBanned})"
+                  class="p-2 rounded-md ${isBanned ? 'text-green-600 hover:bg-green-100' : 'text-red-600 hover:bg-red-100'}"
+                  title="${isBanned ? 'Débannir cet utilisateur' : 'Bannir cet utilisateur'}">
+                  <i data-lucide="${isBanned ? 'user-check' : 'user-x'}" class="w-4 h-4"></i>
                 </button>
                 `
               }
@@ -178,28 +177,47 @@
 
       /**
        * Gère le changement de rôle (appelé par le 'onclick').
-       * Attaché à 'window' pour être accessible.
        */
       window.handleRoleChange = async (userId, newRole) => {
         const action = newRole === 'admin' ? 'promouvoir' : 'rétrograder';
         if (!confirm(`Êtes-vous sûr de vouloir ${action} cet utilisateur ?`)) {
           return;
         }
-
         try {
-          // 1. Appeler la fonction SQL 'admin_update_user_role'
           const { data, error } = await supabaseClient.rpc('admin_update_user_role', {
             user_id_to_update: userId,
             new_role: newRole
           });
-
+          if (error) throw error;
+          notyf.success(`Utilisateur ${action} avec succès !`);
+          loadUsers(); // Recharger la liste
+        } catch (error) {
+          notyf.error(`Erreur : ${error.message}`);
+        }
+      }
+      
+      /**
+       * NOUVEAU: Gère le bannissement (appelé par le 'onclick').
+       */
+      window.handleBanUser = async (userId, shouldBan) => {
+        const action = shouldBan ? 'bannir' : 'débannir';
+        if (!confirm(`Êtes-vous sûr de vouloir ${action} cet utilisateur ?\n\n${shouldBan ? 'Il ne pourra plus se connecter.' : 'Il pourra à nouveau se connecter.'}`)) {
+          return;
+        }
+        
+        try {
+          const { data, error } = await supabaseClient.rpc('admin_set_ban_status', {
+            user_id_to_modify: userId,
+            should_ban: shouldBan
+          });
+          
           if (error) throw error;
           
           notyf.success(`Utilisateur ${action} avec succès !`);
           loadUsers(); // Recharger la liste
           
         } catch (error) {
-          notyf.error(`Erreur : ${error.message}`);
+           notyf.error(`Erreur : ${error.message}`);
         }
       }
       
