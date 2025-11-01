@@ -82,7 +82,16 @@
         lucide.createIcons();
 
         try {
-          // 1. Appeler la fonction SQL 'get_all_users'
+          // --- CORRECTION (PARTIE 1) ---
+          // 1. Obtenir l'ID de l'admin *avant* de lister les utilisateurs
+          const { data: { user: adminUser }, error: adminError } = await supabaseClient.auth.getUser();
+          if (adminError || !adminUser) {
+            throw adminError || new Error("Impossible d'identifier l'administrateur.");
+          }
+          const currentAdminId = adminUser.id;
+          // -----------------------------
+
+          // 2. Appeler la fonction SQL 'get_all_users'
           const { data, error } = await supabaseClient.rpc('get_all_users');
           if (error) throw error;
           
@@ -91,7 +100,7 @@
             return;
           }
           
-          // 2. Construire le tableau HTML
+          // 3. Construire le tableau HTML
           userListContainer.innerHTML = `
             <div class="overflow-x-auto border rounded-lg">
               <table class="min-w-full divide-y divide-gray-200">
@@ -104,7 +113,7 @@
                   </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                  ${data.map(user => renderUserRow(user)).join('')}
+                  ${data.map(user => renderUserRow(user, currentAdminId)).join('')}
                 </tbody>
               </table>
             </div>
@@ -120,13 +129,14 @@
 
       /**
        * Génère le HTML pour une seule ligne d'utilisateur.
+       * --- CORRECTION (PARTIE 3) : Accepter 'currentAdminId' en argument ---
        */
-      function renderUserRow(user) {
+      function renderUserRow(user, currentAdminId) {
         const avatarSrc = user.avatar_url || 'https://via.placeholder.com/40';
         const currentRole = user.role || 'user';
         
-        // Empêcher un admin de se rétrograder lui-même accidentellement (sécurité)
-        const isSelf = (user.user_id === supabaseClient.auth.user()?.id);
+        // --- CORRECTION (PARTIE 4) : Utiliser l'argument au lieu de la fonction qui n'existe pas ---
+        const isSelf = (user.user_id === currentAdminId);
 
         return `
           <tr>
@@ -137,7 +147,7 @@
                 </div>
                 <div class="ml-4">
                   <div class="text-sm font-medium text-gray-900">${user.full_name || user.username || 'N/A'}</div>
-                  <div class="text-sm text-gray-500">${user.user_id}</div>
+                  <div class="text-sm text-gray-500" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis;">${user.user_id}</div>
                 </div>
               </div>
             </td>
