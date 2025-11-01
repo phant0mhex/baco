@@ -99,7 +99,30 @@
   <script src="js/layout.js" defer></script>
   
   <script>
+    // Le script de layout.js est au-dessus
+    
+    // On attend que le DOM soit chargé
     document.addEventListener('DOMContentLoaded', () => {
+    
+      // 1. INITIALISER NOTYF ICI (en haut)
+      // On s'assure que la classe Notyf a été chargée par le CDN dans le <head>
+      if (typeof Notyf === 'undefined') {
+        console.error("Notyf n'est pas chargé ! Vérifiez le lien CDN dans le <head>.");
+        // Fallback sur les alertes si Notyf n'a pas chargé
+        window.notyf = {
+          success: (msg) => alert(msg),
+          error: (msg) => alert(msg)
+        };
+      } else {
+        // Notyf est chargé, on l'initialise
+        window.notyf = new Notyf({
+          duration: 3000,
+          position: { x: 'right', y: 'top' },
+          dismissible: true
+        });
+      }
+
+      // 2. RÉCUPÉRER LES ÉLÉMENTS DU DOM
       const profileForm = document.getElementById('profile-form');
       const saveButton = document.getElementById('save-button');
       const emailInput = document.getElementById('email');
@@ -110,19 +133,19 @@
       const avatarStatus = document.getElementById('avatar-upload-status');
       
       let currentUserId = null;
-      let uploading = false; // Pour éviter les double-clics
+      let uploading = false;
 
-      // 1. Charger le profil existant
+      // 3. DÉFINIR LES FONCTIONS (elles auront accès à 'notyf' via window.notyf)
+
+      // Charger le profil existant
       async function getProfile() {
         try {
-          // D'abord, récupérer l'utilisateur connecté
           const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
           if (authError || !user) throw authError || new Error('Utilisateur non trouvé');
           
           currentUserId = user.id;
           emailInput.value = user.email;
 
-          // Ensuite, récupérer son profil public
           const { data, error, status } = await supabaseClient
             .from('profiles')
             .select(`username, full_name, avatar_url`)
@@ -135,15 +158,16 @@
             usernameInput.value = data.username || '';
             fullNameInput.value = data.full_name || '';
             if (data.avatar_url) {
-              avatarPreview.src = data.avatar_url + `?t=${new Date().getTime()}`; // Ajout d'un cache-buster
+              avatarPreview.src = data.avatar_url + `?t=${new Date().getTime()}`;
             }
           }
         } catch (error) {
           console.error("Erreur lors du chargement du profil:", error.message);
-notyf.error("Impossible de charger le profil : " + error.message);        }
+          window.notyf.error("Impossible de charger le profil : " + error.message);
+        }
       }
 
-      // 2. Mettre à jour le profil (textes)
+      // Mettre à jour le profil (textes)
       async function updateProfile() {
         try {
           saveButton.disabled = true;
@@ -159,16 +183,17 @@ notyf.error("Impossible de charger le profil : " + error.message);        }
           const { error } = await supabaseClient.from('profiles').upsert(updates);
           if (error) throw error;
 
-         notyf.success('Profil mis à jour !');
+          window.notyf.success('Profil mis à jour !');
+          
         } catch (error) {
-          notyf.error('Erreur lors de la mise à jour : ' + error.message);
+          window.notyf.error('Erreur lors de la mise à jour : ' + error.message);
         } finally {
           saveButton.disabled = false;
           saveButton.textContent = 'Enregistrer les modifications';
         }
       }
       
-      // 3. Gérer l'upload d'avatar
+      // Gérer l'upload d'avatar
       async function handleAvatarUpload(event) {
         if (uploading || !currentUserId) return;
         
@@ -181,18 +206,15 @@ notyf.error("Impossible de charger le profil : " + error.message);        }
         try {
           const fileExt = file.name.split('.').pop();
           const fileName = `${Math.random()}.${fileExt}`;
-          // Le chemin est l'ID de l'utilisateur + nom de fichier
           const filePath = `${currentUserId}/${fileName}`;
 
-          // A. Uploader sur Supabase Storage
           const { error: uploadError } = await supabaseClient
             .storage
             .from('avatars')
-            .upload(filePath, file, { upsert: true }); // 'upsert: true' écrase l'ancien si besoin
+            .upload(filePath, file, { upsert: true });
 
           if (uploadError) throw uploadError;
 
-          // B. Obtenir l'URL publique
           const { data: urlData } = supabaseClient
             .storage
             .from('avatars')
@@ -202,7 +224,6 @@ notyf.error("Impossible de charger le profil : " + error.message);        }
 
           const publicURL = urlData.publicUrl;
 
-          // C. Mettre à jour la table 'profiles' avec la nouvelle URL
           const { error: updateError } = await supabaseClient
             .from('profiles')
             .update({ avatar_url: publicURL, updated_at: new Date() })
@@ -210,19 +231,21 @@ notyf.error("Impossible de charger le profil : " + error.message);        }
             
           if (updateError) throw updateError;
           
-          // D. Mettre à jour l'aperçu
-          avatarPreview.src = publicURL + `?t=${new Date().getTime()}`; // Cache-buster
-          avatarStatus.textContent = 'Avatar mis à jour !';
-          setTimeout(() => { avatarStatus.textContent = ''; }, 3000);
+          avatarPreview.src = publicURL + `?t=${new Date().getTime()}`;
+          avatarStatus.textContent = ''; // On vide le statut
+          window.notyf.success('Avatar mis à jour !');
 
         } catch (error) {
           console.error("Erreur d'upload d'avatar:", error.message);
-          avatarStatus.textContent = "Échec de l'upload.";
+          avatarStatus.textContent = '';
+          window.notyf.error("Échec de l'upload.");
         } finally {
           uploading = false;
         }
       }
 
+      // 4. LANCER LE CODE
+      
       // Lancer le chargement initial
       getProfile();
       
