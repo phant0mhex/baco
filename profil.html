@@ -9,6 +9,8 @@
   <script src="https://unpkg.com/lucide@latest" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/auth.js" defer></script> 
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
 
   <style>
     /* Style pour l'upload d'avatar */
@@ -138,8 +140,7 @@
           }
         } catch (error) {
           console.error("Erreur lors du chargement du profil:", error.message);
-          alert("Impossible de charger le profil : " + error.message);
-        }
+notyf.error("Impossible de charger le profil : " + error.message);        }
       }
 
       // 2. Mettre à jour le profil (textes)
@@ -158,9 +159,9 @@
           const { error } = await supabaseClient.from('profiles').upsert(updates);
           if (error) throw error;
 
-          alert('Profil mis à jour !');
+         notyf.success('Profil mis à jour !');
         } catch (error) {
-          alert('Erreur lors de la mise à jour : ' + error.message);
+          notyf.error('Erreur lors de la mise à jour : ' + error.message);
         } finally {
           saveButton.disabled = false;
           saveButton.textContent = 'Enregistrer les modifications';
