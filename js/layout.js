@@ -19,7 +19,7 @@ async function loadComponent(placeholderId, htmlFilePath) {
       throw new Error(`Fichier non trouvé: ${htmlFilePath} (Statut: ${response.status})`);
     }
     const html = await response.text();
-    placeholder.outerHTML = html;
+    placeholder.outerHTML = html; // Remplace le placeholder lui-même
     return true;
   } catch (error) {
     console.error(`Erreur lors du chargement de ${placeholderId}:`, error);
@@ -28,7 +28,7 @@ async function loadComponent(placeholderId, htmlFilePath) {
   }
 }
 
-// --- Fonctions utilitaires (déplacées au niveau global pour être accessibles) ---
+// --- Fonctions utilitaires (au niveau global) ---
 
 function highlightActiveLink() {
   const currentPage = window.location.pathname.split('/').pop();
@@ -37,6 +37,7 @@ function highlightActiveLink() {
     if (navLinksContainer) {
       const activeLink = navLinksContainer.querySelector(`a[href="${currentPage}"]`);
       if (activeLink) {
+        // Style pour la nav sombre
         activeLink.classList.add('bg-gray-700', 'font-bold');
       }
     }
@@ -44,6 +45,7 @@ function highlightActiveLink() {
 }
 
 function hideAdminElements() {
+  // Lit le rôle stocké par js/auth.js
   const userRole = sessionStorage.getItem('userRole');
   if (userRole !== 'admin') {
     const style = document.createElement('style');
