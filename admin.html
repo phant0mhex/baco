@@ -81,8 +81,14 @@
        * Défini sur window pour être accessible globalement.
        */
       window.handleRoleChange = async (userId, newRole) => {
-        const action = newRole === 'admin' ? 'promouvoir' : 'rétrograder';
-        if (!confirm(`Êtes-vous sûr de vouloir ${action} cet utilisateur ?`)) {
+        
+        // --- MODIFICATION ICI ---
+        // On définit les deux formes du verbe
+        const actionVerb = newRole === 'admin' ? 'promouvoir' : 'rétrograder';
+        const actionPast = newRole ==='admin' ? 'promu' : 'rétrogradé';
+        // --- FIN MODIFICATION ---
+
+        if (!confirm(`Êtes-vous sûr de vouloir ${actionVerb} cet utilisateur ?`)) {
           return;
         }
         try {
@@ -91,7 +97,12 @@
             new_role: newRole
           });
           if (error) throw error;
-          notyf.success(`Utilisateur ${action} avec succès !`);
+          
+          // --- MODIFICATION ICI ---
+          // On utilise le participe passé pour le message de succès
+          notyf.success(`Utilisateur ${actionPast} avec succès !`);
+          // --- FIN MODIFICATION ---
+          
           loadUsers(); // Recharger la liste
         } catch (error) {
           notyf.error(`Erreur : ${error.message}`);
@@ -100,7 +111,6 @@
       
       /**
        * Gère le bannissement (appelé par le 'onclick').
-       * Défini sur window pour être accessible globalement.
        */
       window.handleBanUser = async (userId, shouldBan) => {
         const action = shouldBan ? 'bannir' : 'débannir';
@@ -123,7 +133,6 @@
            notyf.error(`Erreur : ${error.message}`);
         }
       }
-      
       /**
        * Génère le HTML pour une seule ligne d'utilisateur.
        */
