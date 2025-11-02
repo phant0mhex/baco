@@ -58,7 +58,8 @@
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="dark">
+<body class="flex flex-col min-h-screen dark">
+  <div class="flex-grow">
   <div class="login-box">
     <img src="logobaco.png" alt="Logo BACO">
     <input type="text" id="email" placeholder="Email">
@@ -92,5 +93,7 @@
     document.getElementById('email').addEventListener('keydown', function(e) { if (e.key === 'Enter') validerConnexion(); });
   </script>
   <div id="footer-placeholder"></div>
+</div>
+</div>
 </body>
 </html>
