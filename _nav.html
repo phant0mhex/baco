@@ -49,13 +49,20 @@
 
       <div class="flex items-center gap-4 mt-4 md:mt-0 border-t border-gray-700 pt-4 md:border-none md:pt-0">
         
-        <!-- <button id="theme-toggle" class="p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700">
-          <i data-lucide="moon" class="w-5 h-5" id="theme-icon-moon"></i>
-          <i data-lucide="sun" class="w-5 h-5 hidden" id="theme-icon-sun"></i>
-        </button> -->
-
-        <div id="online-users" class="hidden md:flex -space-x-2 pr-2">
+        <div class="relative hidden md:block" id="presence-container">
+          <button id="presence-toggle-button" class="p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 relative">
+              <i data-lucide="users" class="w-5 h-5"></i>
+              <span id="presence-counter" class="hidden absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">0</span>
+          </button>
+          
+          <div id="presence-dropdown" class="hidden absolute top-full right-0 mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50">
+              <div class="p-3 border-b dark:border-gray-700">
+                  <h4 class="font-semibold text-sm text-gray-900 dark:text-gray-100">En ligne</h4>
+              </div>
+              <div id="presence-list" class="p-2 space-y-1 max-h-60 overflow-y-auto">
+                  </div>
           </div>
+        </div>
 
         <img id="nav-avatar" src="https://via.placeholder.com/40" alt="Avatar" class="w-10 h-10 rounded-full border-2 border-gray-500 object-cover cursor-pointer" onclick="window.location.href='profil.html'">
         
