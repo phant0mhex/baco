@@ -14,9 +14,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
   <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
   
-  <script src="js/auth.js"></script> 
-  
-  <script src="js/layout.js" defer></script> 
+  <script src="js/auth.js"></script> <script src="js/layout.js" defer></script> 
 
   <script>
     tailwind.config = {
@@ -39,9 +37,37 @@
     <div class="container mx-auto p-8">
       <h1 class="text-3xl font-bold text-gray-800 mb-8">Tableau de bord Administrateur</h1>
 
+      <div class="bg-white p-6 rounded-lg shadow border border-gray-200 mb-8">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Créer un nouvel utilisateur</h2>
+        <form id="create-user-form" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label for="new-user-email" class="block text-sm font-medium text-gray-700">Email</label>
+            <input type="email" id="new-user-email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          </div>
+          
+          <div>
+            <label for="new-user-password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
+            <input type="text" id="new-user-password" required minlength="6" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          </div>
+          
+          <div>
+            <label for="new-user-role" class="block text-sm font-medium text-gray-700">Rôle</label>
+            <select id="new-user-role" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+              <option value="user">Utilisateur</option>
+              <option value="admin">Administrateur</option>
+            </select>
+          </div>
+          <div class="flex items-end">
+            <button type="submit" id="create-user-button" class="flex items-center justify-center gap-2 w-full px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
+              <i data-lucide="user-plus" class="w-4 h-4"></i>
+              <span>Créer</span>
+            </button>
+          </div>
+        </form>
+        <p class="mt-3 text-xs text-gray-500">Note : L'utilisateur est créé instantanément avec le mot de passe fourni et son email est auto-validé.</p>
+      </div>
       <div class="bg-white p-6 rounded-lg shadow border border-gray-200">
         <h2 class="text-xl font-semibold text-gray-900 mb-4">Gestion des Utilisateurs</h2>
-        
         <div id="user-list-container">
           </div>
       </div>
@@ -51,171 +77,135 @@
   <div id="footer-placeholder"></div>
 
   <script>
-    // Ce script s'exécute après le 'DOMContentLoaded'
-    
     document.addEventListener('DOMContentLoaded', () => {
     
-      // ===================================================================
-      // ==                NOUVEL EMPLACEMENT DU GARDE DE SÉCURITÉ        ==
-      // ===================================================================
-      // (js/auth.js a déjà défini le sessionStorage à ce stade)
+      // --- GARDE DE SÉCURITÉ ---
       const userRole = sessionStorage.getItem('userRole');
       if (userRole !== 'admin') {
         alert("Accès refusé. Vous devez être administrateur pour voir cette page.");
         window.location.replace('accueil.html');
-        // Stop l'exécution du reste du script
         return; 
       }
-      // ===================================================================
+      // --------------------------
 
-      // Si on arrive ici, c'est qu'on est admin.
-      
       const notyf = (typeof Notyf !== 'undefined') 
         ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
         : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
 
       const userListContainer = document.getElementById('user-list-container');
-
-      /**
-       * Gère le changement de rôle (appelé par le 'onclick').
-       * Défini sur window pour être accessible globalement.
-       */
-      window.handleRoleChange = async (userId, newRole) => {
+      
+      // --- Logique du formulaire de création (MIS À JOUR) ---
+      const createUserForm = document.getElementById('create-user-form');
+      const createUserButton = document.getElementById('create-user-button');
+      const newUserEmailInput = document.getElementById('new-user-email');
+      const newUserPasswordInput = document.getElementById('new-user-password'); // NOUVEAU
+      const newUserRoleInput = document.getElementById('new-user-role');
+      
+      createUserForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
         
-        // --- MODIFICATION ICI ---
-        // On définit les deux formes du verbe
-        const actionVerb = newRole === 'admin' ? 'promouvoir' : 'rétrograder';
-        const actionPast = newRole ==='admin' ? 'promu' : 'rétrogradé';
-        // --- FIN MODIFICATION ---
-
-        if (!confirm(`Êtes-vous sûr de vouloir ${actionVerb} cet utilisateur ?`)) {
+        const email = newUserEmailInput.value;
+        const password = newUserPasswordInput.value; // NOUVEAU
+        const role = newUserRoleInput.value;
+        
+        if (password.length < 6) {
+          notyf.error("Le mot de passe doit faire au moins 6 caractères.");
           return;
         }
+        
+        if (!confirm(`Créer un nouvel utilisateur ?\n\nEmail: ${email}\nRôle: ${role}`)) {
+          return;
+        }
+        
+        const originalButtonHtml = createUserButton.innerHTML;
+        createUserButton.disabled = true;
+        createUserButton.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> <span>Création...</span>';
+        lucide.createIcons();
+        
         try {
-          const { data, error } = await supabaseClient.rpc('admin_update_user_role', {
-            user_id_to_update: userId,
-            new_role: newRole
+          // Appel de la fonction SQL (MIS À JOUR)
+          const { data, error } = await supabaseClient.rpc('admin_create_user', {
+            new_email: email,
+            new_role: role,
+            new_password: password // NOUVEAU
           });
+          
           if (error) throw error;
           
-          // --- MODIFICATION ICI ---
-          // On utilise le participe passé pour le message de succès
-          notyf.success(`Utilisateur ${actionPast} avec succès !`);
-          // --- FIN MODIFICATION ---
-          
+          notyf.success(`Utilisateur ${email} créé avec succès !`);
+          createUserForm.reset(); // Vider le formulaire
           loadUsers(); // Recharger la liste
+          
+        } catch (error) {
+          notyf.error(`Erreur : ${error.message}`);
+        } finally {
+          createUserButton.disabled = false;
+          createUserButton.innerHTML = originalButtonHtml;
+          lucide.createIcons();
+        }
+      });
+      // --- FIN DE LA LOGIQUE MISE À JOUR ---
+
+
+      // --- Fonctions de gestion de liste (inchangées) ---
+      window.handleRoleChange = async (userId, newRole) => {
+        const action = newRole === 'admin' ? 'promouvoir' : 'rétrograder';
+        const actionPast = newRole === 'admin' ? 'promu' : 'rétrogradé';
+        if (!confirm(`Êtes-vous sûr de vouloir ${action} cet utilisateur ?`)) return;
+        try {
+          const { data, error } = await supabaseClient.rpc('admin_update_user_role', { user_id_to_update: userId, new_role: newRole });
+          if (error) throw error;
+          notyf.success(`Utilisateur ${actionPast} avec succès !`);
+          loadUsers(); 
         } catch (error) {
           notyf.error(`Erreur : ${error.message}`);
         }
       }
       
-      /**
-       * Gère le bannissement (appelé par le 'onclick').
-       */
       window.handleBanUser = async (userId, shouldBan) => {
         const action = shouldBan ? 'bannir' : 'débannir';
-        if (!confirm(`Êtes-vous sûr de vouloir ${action} cet utilisateur ?\n\n${shouldBan ? 'Il ne pourra plus se connecter.' : 'Il pourra à nouveau se connecter.'}`)) {
-          return;
-        }
-        
+        if (!confirm(`Êtes-vous sûr de vouloir ${action} cet utilisateur ?\n\n${shouldBan ? 'Il ne pourra plus se connecter.' : 'Il pourra à nouveau se connecter.'}`)) return;
         try {
-          const { data, error } = await supabaseClient.rpc('admin_set_ban_status', {
-            user_id_to_modify: userId,
-            should_ban: shouldBan
-          });
-          
+          const { data, error } = await supabaseClient.rpc('admin_set_ban_status', { user_id_to_modify: userId, should_ban: shouldBan });
           if (error) throw error;
-          
           notyf.success(`Utilisateur ${action} avec succès !`);
-          loadUsers(); // Recharger la liste
-          
+          loadUsers();
         } catch (error) {
            notyf.error(`Erreur : ${error.message}`);
         }
       }
-      /**
-       * Génère le HTML pour une seule ligne d'utilisateur.
-       */
+      
       function renderUserRow(user, currentAdminId) {
+        // ... (Code de rendu de ligne inchangé)
         const avatarSrc = user.avatar_url || 'https://via.placeholder.com/40';
         const currentRole = user.role || 'user';
         const isSelf = (user.user_id === currentAdminId);
         const isBanned = user.banned_until_status !== null;
-
         return `
           <tr>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div class="flex items-center">
-                <div class="flex-shrink-0 h-10 w-10">
-                  <img class="h-10 w-10 rounded-full object-cover" src="${avatarSrc}" alt="">
-                </div>
-                <div class="ml-4">
-                  <div class="text-sm font-medium text-gray-900">${user.full_name || user.username || 'N/A'}</div>
-                  <div class="text-sm text-gray-500">${user.email}</div>
-                </div>
-              </div>
-            </td>
-            
-            <td class="px-6 py-4 whitespace-nowrap">
-              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${currentRole === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">
-                ${currentRole}
-              </span>
-            </td>
-            
-            <td class="px-6 py-4 whitespace-nowrap">
-              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${isBanned ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
-                ${isBanned ? 'Banni' : 'Actif'}
-              </span>
-            </td>
-            
+            <td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><div class="flex-shrink-0 h-10 w-10"><img class="h-10 w-10 rounded-full object-cover" src="${avatarSrc}" alt=""></div><div class="ml-4"><div class="text-sm font-medium text-gray-900">${user.full_name || user.username || 'N/A'}</div><div class="text-sm text-gray-500">${user.email}</div></div></div></td>
+            <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${currentRole === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">${currentRole}</span></td>
+            <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${isBanned ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">${isBanned ? 'Banni' : 'Actif'}</span></td>
             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-2">
-              ${isSelf ? 
-                '<span class="text-gray-400 cursor-not-allowed"> (Vous) </span>' : 
-                `
-                <button 
-                  onclick="window.handleRoleChange('${user.user_id}', '${currentRole === 'admin' ? 'user' : 'admin'}')"
-                  class="p-2 rounded-md ${currentRole === 'admin' ? 'text-yellow-600 hover:bg-yellow-100' : 'text-blue-600 hover:bg-blue-100'}"
-                  title="${currentRole === 'admin' ? 'Rétrograder en utilisateur' : 'Promouvoir en admin'}">
-                  <i data-lucide="${currentRole === 'admin' ? 'user-minus' : 'user-plus'}" class="w-4 h-4"></i>
-                </button>
-                
-                <button 
-                  onclick="window.handleBanUser('${user.user_id}', ${!isBanned})"
-                  class="p-2 rounded-md ${isBanned ? 'text-green-600 hover:bg-green-100' : 'text-red-600 hover:bg-red-100'}"
-                  title="${isBanned ? 'Débannir cet utilisateur' : 'Bannir cet utilisateur'}">
-                  <i data-lucide="${isBanned ? 'user-check' : 'user-x'}" class="w-4 h-4"></i>
-                </button>
-                `
-              }
+              ${isSelf ? '<span class="text-gray-400 cursor-not-allowed"> (Vous) </span>' : `
+                <button onclick="window.handleRoleChange('${user.user_id}', '${currentRole === 'admin' ? 'user' : 'admin'}')" class="p-2 rounded-md ${currentRole === 'admin' ? 'text-yellow-600 hover:bg-yellow-100' : 'text-blue-600 hover:bg-blue-100'}" title="${currentRole === 'admin' ? 'Rétrograder' : 'Promouvoir'}"><i data-lucide="${currentRole === 'admin' ? 'user-minus' : 'user-plus'}" class="w-4 h-4"></i></button>
+                <button onclick="window.handleBanUser('${user.user_id}', ${!isBanned})" class="p-2 rounded-md ${isBanned ? 'text-green-600 hover:bg-green-100' : 'text-red-600 hover:bg-red-100'}" title="${isBanned ? 'Débannir' : 'Bannir'}"><i data-lucide="${isBanned ? 'user-check' : 'user-x'}" class="w-4 h-4"></i></button>
+              `}
             </td>
-          </tr>
-        `;
+          </tr>`;
       }
       
-      /**
-       * Charge et affiche la liste de tous les utilisateurs via la fonction RPC.
-       */
       async function loadUsers() {
+        // ... (Code de chargement inchangé)
         userListContainer.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
         lucide.createIcons();
-
         try {
           const { data: { user: adminUser }, error: adminError } = await supabaseClient.auth.getUser();
-          if (adminError || !adminUser) {
-            throw adminError || new Error("Impossible d'identifier l'administrateur.");
-          }
+          if (adminError || !adminUser) throw adminError || new Error("Impossible d'identifier l'administrateur.");
           const currentAdminId = adminUser.id;
-
-          // Appeler la fonction SQL 'get_all_users'
           const { data, error } = await supabaseClient.rpc('get_all_users');
           if (error) throw error;
-          
-          if (!data || data.length === 0) {
-            userListContainer.innerHTML = '<p class="text-gray-600">Aucun utilisateur trouvé.</p>';
-            return;
-          }
-          
-          // Construire le tableau HTML
+          if (!data || data.length === 0) { userListContainer.innerHTML = '<p class="text-gray-600">Aucun utilisateur trouvé.</p>'; return; }
           userListContainer.innerHTML = `
             <div class="overflow-x-auto border rounded-lg">
               <table class="min-w-full divide-y divide-gray-200">
@@ -233,9 +223,7 @@
               </table>
             </div>
           `;
-          
           lucide.createIcons();
-          
         } catch (error) {
           userListContainer.innerHTML = `<p class="text-red-500">Erreur critique : ${error.message}</p>`;
           notyf.error("Impossible de charger les utilisateurs. " + error.message);
