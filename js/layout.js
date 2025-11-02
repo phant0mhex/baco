@@ -83,18 +83,14 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function highlightActiveLink() {
+  // (Fonction inchangée)
   const currentPage = window.location.pathname.split('/').pop();
   if (currentPage) {
     const navLinksContainer = document.getElementById('nav-links');
     if (navLinksContainer) {
       const activeLink = navLinksContainer.querySelector(`a[href="${currentPage}"]`);
       if (activeLink) {
-        // ANCIEN STYLE:
-        // activeLink.classList.add('bg-gray-700', 'font-bold');
-        
-        // NOUVEAU STYLE (sobre, pour fond blanc):
-        activeLink.classList.remove('text-gray-500'); // Enlève la couleur par défaut
-        activeLink.classList.add('text-gray-900', 'font-semibold'); // Ajoute la couleur active
+        activeLink.classList.add('bg-gray-700', 'font-bold');
       }
     }
   }
