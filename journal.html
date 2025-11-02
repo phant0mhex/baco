@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-gray-100">
+<head>
+  <meta charset="UTF-8">
+  <title>Journal- Portail BACO</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/variable/geist-sans.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-mono/variable/geist-mono.css" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest" defer></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/auth.js"></script> <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+
+  <script src="js/layout.js" defer></script> 
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Geist Sans', 'sans-serif'],
+            mono: ['Geist Mono', 'monospace'],
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="flex flex-col min-h-screen bg-gray-100">
+
+  <div id="nav-placeholder"></div>
+
+  <div class="flex-grow">
+    <div class="container mx-auto p-8 max-w-3xl">
+      
+      <h1 class="text-3xl font-bold text-gray-800 mb-6">Main Courante</h1>
+
+      <form id="log-form" class="bg-white p-4 rounded-lg shadow border border-gray-200 mb-8">
+        <label for="log-message" class="block text-sm font-medium text-gray-700">Nouvelle entrée :</label>
+        <textarea id="log-message" rows="3" class="mt-2 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Signaler un incident, une action, une information..."></textarea>
+        <div class="flex justify-end mt-3">
+          <button type="submit" id="log-submit-button" class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
+            <i data-lucide="send" class="w-4 h-4"></i>
+            <span>Publier</span>
+          </button>
+        </div>
+      </form>
+
+      <div id="log-feed" class="space-y-6">
+        </div>
+
+    </div>
+  </div>
+
+  <div id="footer-placeholder"></div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+    
+      const notyf = (typeof Notyf !== 'undefined') 
+        ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
+        : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
+
+      const logForm = document.getElementById('log-form');
+      const logMessageInput = document.getElementById('log-message');
+      const logSubmitButton = document.getElementById('log-submit-button');
+      const logFeed = document.getElementById('log-feed');
+      
+      let currentUserId = null;
+      const adminRole = sessionStorage.getItem('userRole') === 'admin';
+      
+      // --- Initialiser le canal Realtime (Broadcast) ---
+      const logChannel = supabaseClient.channel('baco-main-courante');
+
+      /**
+       * Formate la date (ex: "03 Nov. à 14:05")
+       */
+      function formatLogDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('fr-FR', {
+          day: '2-digit',
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit'
+        }).replace('.', ''); // Enlève le point après le mois
+      }
+
+      /**
+       * Charge le fil des messages
+       */
+      async function loadLogFeed() {
+        logFeed.innerHTML = '<div class="flex justify-center items-center py-20"><i data-lucide="loader-2" class="w-10 h-10 text-blue-600 animate-spin"></i></div>';
+        lucide.createIcons();
+        
+        try {
+          // On récupère les messages ET le profil de l'auteur (full_name, avatar_url)
+          // grâce à la jointure automatique de Supabase
+          const { data, error } = await supabaseClient
+            .from('main_courante')
+            .select(`
+              *,
+              profiles ( full_name, avatar_url )
+            `)
+            .order('created_at', { ascending: false }) // Le plus récent en haut
+            .limit(50); // On limite aux 50 derniers
+
+          if (error) throw error;
+          
+          if (!currentUserId) {
+             const { data: { user } } = await supabaseClient.auth.getUser();
+             if (user) currentUserId = user.id;
+          }
+
+          if (data.length === 0) {
+            logFeed.innerHTML = '<p class="text-gray-600 text-center">Aucune entrée pour le moment.</p>';
+            return;
+          }
+
+          logFeed.innerHTML = data.map(entry => {
+            const author = entry.profiles; // Les données de l'auteur
+            const timestamp = formatLogDate(entry.created_at);
+            
+            // L'auteur peut être 'null' si le profil a été supprimé
+            const authorName = author ? author.full_name : 'Utilisateur supprimé';
+            const authorAvatar = author ? author.avatar_url : 'https://api.dicebear.com/9.x/micah/svg?seed=deleted';
+            
+            // L'admin OU l'auteur peut supprimer
+            const canDelete = adminRole || (currentUserId && currentUserId === entry.user_id);
+            
+            return `
+              <div class="bg-white shadow border border-gray-200 rounded-lg flex gap-4 p-4">
+                <img src="${authorAvatar}" alt="avatar" class="w-10 h-10 rounded-full object-cover hidden sm:block">
+                
+                <div class="flex-1">
+                  <div class="flex justify-between items-center mb-2">
+                    <div class="flex items-center gap-2">
+                      <img src="${authorAvatar}" alt="avatar" class="w-8 h-8 rounded-full object-cover sm:hidden"> <span class="font-semibold text-gray-900">${authorName}</span>
+                      <span class="text-xs text-gray-500">${timestamp}</span>
+                    </div>
+                    ${canDelete ? `
+                    <button onclick="window.deleteLogEntry(${entry.id})" class="admin-only p-1 text-red-500 rounded-full hover:bg-red-100" title="Supprimer">
+                      <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                    ` : ''}
+                  </div>
+                  
+                  <p class="text-gray-700 whitespace-pre-wrap">${entry.message_content}</p>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+          lucide.createIcons();
+          
+        } catch (error) {
+          logFeed.innerHTML = `<p class="text-red-600 text-center">Erreur: ${error.message}</p>`;
+          notyf.error('Erreur lors du chargement des messages.');
+        }
+      }
+      
+      /**
+       * Gère la soumission d'un nouveau message
+       */
+      async function handlePostSubmit(event) {
+        event.preventDefault();
+        const message = logMessageInput.value;
+        if (!message.trim()) return; // Ne pas envoyer de message vide
+        
+        if (!currentUserId) {
+           notyf.error("Erreur: utilisateur non identifié.");
+           return;
+        }
+        
+        logSubmitButton.disabled = true;
+        logSubmitButton.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> <span>Publication...</span>';
+        lucide.createIcons();
+        
+        try {
+          const { error } = await supabaseClient
+            .from('main_courante')
+            .insert({
+              user_id: currentUserId,
+              message_content: message
+            });
+            
+          if (error) throw error;
+          
+          logMessageInput.value = ''; // Vider le champ
+          notyf.success('Message publié !');
+          
+          // Envoyer un signal aux autres utilisateurs
+          logChannel.send({ type: 'broadcast', event: 'new-post' });
+          
+          // Recharger le fil (pour voir son propre message)
+          loadLogFeed();
+          
+        } catch (error) {
+          notyf.error("Erreur: " + error.message);
+        } finally {
+          logSubmitButton.disabled = false;
+          logSubmitButton.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> <span>Publier</span>';
+          lucide.createIcons();
+        }
+      }
+      
+      /**
+       * Gère la suppression d'un message
+       */
+      window.deleteLogEntry = async (id) => {
+        if (!confirm("Êtes-vous sûr de vouloir supprimer cette entrée ?")) return;
+        
+        try {
+          const { error } = await supabaseClient
+            .from('main_courante')
+            .delete()
+            .eq('id', id);
+            
+          if (error) throw error;
+          
+          notyf.success('Message supprimé.');
+          // Envoyer un signal aux autres
+          logChannel.send({ type: 'broadcast', event: 'new-post' });
+          loadLogFeed(); // Recharger
+          
+        } catch (error) {
+          notyf.error("Erreur: " + error.message);
+        }
+      }
+
+      // --- Lancement et Abonnements ---
+      
+      // 1. Charger le fil au démarrage
+      loadLogFeed();
+      
+      // 2. Attacher l'événement au formulaire
+      logForm.addEventListener('submit', handlePostSubmit);
+      
+      // 3. Écouter les signaux des autres
+      logChannel
+        .on(
+          'broadcast', 
+          { event: 'new-post' },
+          (payload) => {
+            console.log('Nouveau message reçu, rechargement...');
+            loadLogFeed(); // Recharger quand qqn d'autre poste
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('Connecté au canal temps réel de la main courante.');
+          }
+        });
+
+    }); // Fin de DOMContentLoaded
+  </script>
+
+</body>
+</html>
