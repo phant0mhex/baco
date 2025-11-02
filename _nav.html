@@ -1,53 +1,60 @@
 <nav class="bg-gray-900 text-white shadow-lg">
-  <div class="container mx-auto px-6 py-3 flex justify-between items-center">
+  <div class="container mx-auto px-6 py-3">
     
-    <a href="accueil.html" class="block transition-opacity duration-300 hover:opacity-80">
-      <img src="logobaco.png" alt="Logo BACO" class="h-20 w-auto">
-    </a>
-
-    <div class="flex space-x-4" id="nav-links">
-      <a href="operationnel.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
-        <i data-lucide="shield" class="w-4 h-4"></i>
-        <span>Opérationnel</span>
+    <div class="flex justify-between items-center">
+      <a href="accueil.html" class="block transition-opacity duration-300 hover:opacity-80">
+        <img src="logobaco.png" alt="Logo BACO" class="h-20 w-auto">
       </a>
-      <a href="pmr.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
-        <i data-lucide="accessibility" class="w-4 h-4"></i>
-        <span>PMR</span>
-      </a>
-      <a href="bus.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
-        <i data-lucide="bus" class="w-4 h-4"></i>
-        <span>Bus</span>
-      </a>
-      <a href="taxi.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
-        <i data-lucide="car" class="w-4 h-4"></i>
-        <span>Taxi</span>
-      </a>
-      <a href="repertoire.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
-        <i data-lucide="book-user" class="w-4 h-4"></i>
-        <span>Répertoire</span>
-      </a>
-      <a href="lignes.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
-        <i data-lucide="train" class="w-4 h-4"></i>
-        <span>Lignes</span>
-      </a>
-      <a href="documents.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
-        <i data-lucide="folder" class="w-4 h-4"></i>
-        <span>Documents</span>
-      </a>
-      <a href="admin.html" class="admin-only flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 text-yellow-400">
-        <i data-lucide="shield-check" class="w-4 h-4"></i>
-        <span>Admin</span>
-      </a>
+      
+      <button id="mobile-menu-button" class="md:hidden p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700">
+        <i id="mobile-menu-icon" data-lucide="menu" class="w-6 h-6"></i>
+      </button>
     </div>
 
-   <div class="flex items-center gap-4">
-  <img id="nav-avatar" src="https://via.placeholder.com/40" alt="Avatar" class="w-10 h-10 rounded-full border-2 border-gray-500 object-cover cursor-pointer" onclick="window.location.href='profil.html'">
+    <div id="nav-content" class="hidden md:flex flex-col md:flex-row md:items-center md:justify-between w-full">
+      
+      <div class="flex flex-col md:flex-row md:space-x-4 mt-4 md:mt-0" id="nav-links">
+        <a href="operationnel.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
+          <i data-lucide="shield" class="w-4 h-4"></i>
+          <span>Opérationnel</span>
+        </a>
+        <a href="pmr.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
+          <i data-lucide="accessibility" class="w-4 h-4"></i>
+          <span>PMR</span>
+        </a>
+        <a href="bus.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
+          <i data-lucide="bus" class="w-4 h-4"></i>
+          <span>Bus</span>
+        </a>
+        <a href="taxi.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
+          <i data-lucide="car" class="w-4 h-4"></i>
+          <span>Taxi</span>
+        </a>
+        <a href="repertoire.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
+          <i data-lucide="book-user" class="w-4 h-4"></i>
+          <span>Répertoire</span>
+        </a>
+        <a href="lignes.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
+          <i data-lucide="train" class="w-4 h-4"></i>
+          <span>Lignes</span>
+        </a>
+        <a href="documents.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
+          <i data-lucide="folder" class="w-4 h-4"></i>
+          <span>Documents</span>
+        </a>
+        <a href="admin.html" class="admin-only flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 text-yellow-400">
+          <i data-lucide="shield-check" class="w-4 h-4"></i>
+          <span>Admin</span>
+        </a>
+      </div>
 
-  <button id="logout-button" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-red-400 hover:bg-red-700 hover:text-white">
-    <i data-lucide="log-out" class="w-4 h-4"></i>
-    <span>Déconnexion</span>
-  </button>
-</div>
-
+      <div class="flex items-center gap-4 mt-4 md:mt-0 border-t border-gray-700 pt-4 md:border-none md:pt-0">
+        <img id="nav-avatar" src="https://via.placeholder.com/40" alt="Avatar" class="w-10 h-10 rounded-full border-2 border-gray-500 object-cover cursor-pointer" onclick="window.location.href='profil.html'">
+        <button id="logout-button" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-red-400 hover:bg-red-700 hover:text-white">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+          <span>Déconnexion</span>
+        </button>
+      </div>
+    </div>
   </div>
 </nav>

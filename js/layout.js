@@ -1,13 +1,10 @@
 // js/layout.js
 
-// (Ce code est celui que vous aviez déjà)
 document.addEventListener('DOMContentLoaded', () => {
   const navPlaceholder = document.getElementById('nav-placeholder');
-
-  // --- NOUVELLE FONCTION ---
-  // À appeler APRÈS que le HTML principal est chargé
-  hideAdminElements();
-
+  
+  hideAdminElements(); // (Fonction de gestion des rôles)
+  
   if (navPlaceholder) {
     fetch('_nav.html')
       .then(response => {
@@ -18,18 +15,45 @@ document.addEventListener('DOMContentLoaded', () => {
         navPlaceholder.innerHTML = html;
         highlightActiveLink();
         lucide.createIcons();
+        
+        // --- NOUVEAU: LOGIQUE DU MENU BURGER ---
+        const menuButton = document.getElementById('mobile-menu-button');
+        const menuContent = document.getElementById('nav-content');
+        const menuIcon = document.getElementById('mobile-menu-icon');
 
-        loadNavAvatar();
+        if (menuButton && menuContent && menuIcon) {
+          menuButton.onclick = () => {
+            // Bascule la visibilité du conteneur de navigation
+            menuContent.classList.toggle('hidden');
 
+            // Met à jour l'icône (menu ou X)
+            if (menuContent.classList.contains('hidden')) {
+              // Le menu est fermé, afficher 'menu'
+              menuIcon.removeAttribute('data-lucide');
+              menuIcon.setAttribute('data-lucide', 'menu');
+            } else {
+              // Le menu est ouvert, afficher 'x'
+              menuIcon.removeAttribute('data-lucide');
+              menuIcon.setAttribute('data-lucide', 'x');
+            }
+            lucide.createIcons(); // Re-dessiner la nouvelle icône
+          };
+        }
+        // --- FIN DE LA LOGIQUE DU MENU BURGER ---
+
+        // --- CHARGEMENT DE L'AVATAR (Existant) ---
+        loadNavAvatar(); 
+        
+        // --- LOGIQUE DE DÉCONNEXION (Existante) ---
         const logoutButton = document.getElementById('logout-button');
         if (logoutButton) {
           logoutButton.onclick = async () => {
-            sessionStorage.removeItem('userRole'); // Nettoyer le rôle
+            sessionStorage.removeItem('userRole');
             const { error } = await supabaseClient.auth.signOut();
             if (error) {
               console.error('Erreur de déconnexion:', error);
             } else {
-              window.location.href = 'index.html';
+              window.location.href = 'index.html'; // Retour à la connexion
             }
           };
         }
@@ -42,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function highlightActiveLink() {
-  // ... (votre fonction highlightActiveLink reste inchangée)
+  // Met en surbrillance le lien de la page active
   const currentPage = window.location.pathname.split('/').pop();
   if (currentPage) {
     const navLinksContainer = document.getElementById('nav-links');
@@ -55,14 +79,20 @@ function highlightActiveLink() {
   }
 }
 
+function hideAdminElements() {
+  // Masque les éléments réservés aux admins si l'utilisateur n'a pas le rôle
+  const userRole = sessionStorage.getItem('userRole');
+  if (userRole !== 'admin') {
+    const style = document.createElement('style');
+    style.innerHTML = '.admin-only { display: none !important; }';
+    document.head.appendChild(style);
+  }
+}
 
-// --- NOUVELLE FONCTION ---
-/**
- * Récupère l'avatar de l'utilisateur connecté et l'affiche dans la nav.
- */
 async function loadNavAvatar() {
+  // Récupère l'avatar de l'utilisateur connecté et l'affiche dans la nav
   const navAvatar = document.getElementById('nav-avatar');
-  if (!navAvatar) return; // Si la nav n'est pas chargée, abandonner
+  if (!navAvatar) return; 
 
   try {
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
@@ -78,35 +108,8 @@ async function loadNavAvatar() {
 
     if (data && data.avatar_url) {
       navAvatar.src = data.avatar_url;
-    } else {
-      // Optionnel : générer un avatar par défaut basé sur l'email
-      // Pour l'instant, on garde le placeholder
     }
   } catch (error) {
     console.error("Impossible de charger l'avatar de la nav:", error.message);
-  }
-}
-
-// --- NOUVELLE FONCTION ---
-/**
- * Cache tous les éléments avec la classe 'admin-only' si l'utilisateur
- * n'est pas un admin (rôle récupéré depuis sessionStorage).
- */
-function hideAdminElements() {
-  const userRole = sessionStorage.getItem('userRole');
-
-  if (userRole !== 'admin') {
-    const adminElements = document.querySelectorAll('.admin-only');
-    console.log(`Utilisateur 'user', masquage de ${adminElements.length} élément(s) admin.`);
-
-    // On crée une règle CSS pour les cacher, c'est plus performant
-    const style = document.createElement('style');
-    style.innerHTML = '.admin-only { display: none !important; }';
-    document.head.appendChild(style);
-
-    // Note : pour les éléments générés dynamiquement (comme les cartes taxi),
-    // il faut appeler cette fonction *après* leur génération.
-  } else {
-    console.log("Utilisateur 'admin', affichage de tous les éléments.");
   }
 }
