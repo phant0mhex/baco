@@ -19,7 +19,7 @@ async function loadComponent(placeholderId, htmlFilePath) {
       throw new Error(`Fichier non trouvé: ${htmlFilePath} (Statut: ${response.status})`);
     }
     const html = await response.text();
-    placeholder.innerHTML = html;
+    placeholder.outerHTML = html;
     return true;
   } catch (error) {
     console.error(`Erreur lors du chargement de ${placeholderId}:`, error);
