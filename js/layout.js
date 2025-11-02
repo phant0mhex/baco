@@ -2,19 +2,21 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   const navPlaceholder = document.getElementById('nav-placeholder');
+  const footerPlaceholder = document.getElementById('footer-placeholder'); // <-- NOUVEAU
   
   hideAdminElements();
   
-  if (navPlaceholder) {
-    fetch('_nav.html')
-      .then(response => {
-        if (!response.ok) throw new Error('Erreur de chargement du layout');
-        return response.text();
-      })
-      .then(html => {
-        navPlaceholder.innerHTML = html;
+  // --- NOUVELLE STRATÉGIE: Charger nav et footer en parallèle ---
+  const navPromise = navPlaceholder ? fetch('_nav.html').then(res => res.text()) : Promise.resolve(null);
+  const footerPromise = footerPlaceholder ? fetch('_footer.html').then(res => res.text()) : Promise.resolve(null);
+
+  Promise.all([navPromise, footerPromise])
+    .then(([navHtml, footerHtml]) => {
+    
+      // 1. Injecter la Navigation (si elle existe)
+      if (navHtml && navPlaceholder) {
+        navPlaceholder.innerHTML = navHtml;
         highlightActiveLink();
-        lucide.createIcons(); // Appel initial pour toutes les icônes
         
         // --- LOGIQUE DU MENU BURGER ---
         const menuButton = document.getElementById('mobile-menu-button');
@@ -33,7 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loadNavAvatar(); 
         
         // --- LOGIQUE DE DÉCONNEXION ---
-        // (Elle est maintenant attachée AU BOUTON DANS LE DROPDOWN)
         const logoutButton = document.getElementById('logout-button');
         if (logoutButton) {
           logoutButton.onclick = async () => {
@@ -52,14 +53,11 @@ document.addEventListener('DOMContentLoaded', () => {
             presenceButton.onclick = (e) => {
                 e.stopPropagation(); 
                 presenceDropdown.classList.toggle('hidden');
-                // Fermer l'autre dropdown s'il est ouvert
                 document.getElementById('profile-dropdown')?.classList.add('hidden');
             };
         }
         
-        // ==========================================================
-        // ==  NOUVELLE LOGIQUE: GESTION DU DROPDOWN DE PROFIL  ==
-        // ==========================================================
+        // --- GESTION DU DROPDOWN DE PROFIL ---
         const profileContainer = document.getElementById('profile-dropdown-container');
         const profileButton = document.getElementById('profile-toggle-button');
         const profileDropdown = document.getElementById('profile-dropdown');
@@ -67,33 +65,42 @@ document.addEventListener('DOMContentLoaded', () => {
             profileButton.onclick = (e) => {
                 e.stopPropagation();
                 profileDropdown.classList.toggle('hidden');
-                // Fermer l'autre dropdown s'il est ouvert
                 document.getElementById('presence-dropdown')?.classList.add('hidden');
             };
         }
         
-        // --- GESTION DU "CLICK-AWAY" (pour les deux dropdowns) ---
+        // --- GESTION DU "CLICK-AWAY" ---
         window.addEventListener('click', (e) => {
-            // Fermer le dropdown de présence si on clique en dehors
             if (presenceContainer && !presenceContainer.contains(e.target)) {
                 presenceDropdown?.classList.add('hidden');
             }
-            // Fermer le dropdown de profil si on clique en dehors
             if (profileContainer && !profileContainer.contains(e.target)) {
                 profileDropdown?.classList.add('hidden');
             }
         });
 
-
         // --- LOGIQUE DE PRÉSENCE TEMPS RÉEL ---
         setupRealtimePresence();
-        
-      })
-      .catch(error => {
-        console.error('Impossible de charger la navigation:', error);
-        navPlaceholder.innerHTML = '<p class="text-center text-red-500">Erreur de chargement du menu.</p>';
-      });
-  }
+      }
+      
+      // 2. Injecter le Footer (s'il existe)
+      if (footerHtml && footerPlaceholder) {
+        footerPlaceholder.innerHTML = footerHtml;
+        // Mettre à jour l'année dynamiquement
+        const yearSpan = document.getElementById('current-year');
+        if (yearSpan) {
+          yearSpan.textContent = new Date().getFullYear();
+        }
+      }
+
+      // 3. Appeler Lucide UNE SEULE FOIS (pour la nav ET le footer)
+      lucide.createIcons();
+
+    })
+    .catch(error => {
+      console.error('Impossible de charger le layout (nav/footer):', error);
+      if (navPlaceholder) navPlaceholder.innerHTML = '<p class="text-center text-red-500">Erreur chargement menu.</p>';
+    });
 });
 
 // --- Fonctions inchangées ci-dessous ---
