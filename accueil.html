@@ -1,21 +1,19 @@
 <!DOCTYPE html>
-<html lang="fr" class="h-full bg-gray-100">
+<html lang="fr" class="h-full bg-gray-100 dark:bg-gray-800">
 <head>
   <meta charset="UTF-8">
   <title>Accueil - Portail BACO</title>
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/auth.js" defer></script>
-  
   <script src="https://cdn.tailwindcss.com"></script>
-  
   <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/variable/geist-sans.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-mono/variable/geist-mono.css" rel="stylesheet">
-
   <script src="https://unpkg.com/lucide@latest" defer></script>
 
   <script>
     tailwind.config = {
+      darkMode: 'class', // <-- AJOUTÉ
       theme: {
         extend: {
           fontFamily: {
@@ -33,62 +31,68 @@
 
   <div class="container mx-auto p-8">
     <header class="mb-10 text-center">
-      
-      <h2 id="user-greeting" class="text-2xl font-light text-blue-600 mb-4" style="min-height: 2rem;">
+      <h2 id="user-greeting" class="text-2xl font-light text-blue-600 dark:text-blue-400 mb-4" style="min-height: 2rem;">
         </h2>
-      
-      <h1 class="text-4xl font-bold text-gray-800 mb-2">Bienvenue sur le portail de données</h1>
-      <p class="text-lg text-gray-600">Choisissez votre domaine :</p>
+      <h1 class="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2">Bienvenue sur le portail de données</h1>
+      <p class="text-lg text-gray-600 dark:text-gray-400">Choisissez votre domaine :</p>
     </header>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-      <a href="operationnel.html" class="block h-full p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
-        <h3 class="flex items-center gap-3 text-xl font-semibold text-gray-900 mb-2">
+      <a href="operationnel.html" class="block h-full p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
+        <h3 class="flex items-center gap-3 text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
           <i data-lucide="shield" class="w-5 h-5 text-blue-600"></i>
           <span>Opérationnel</span>
         </h3>
-        <p class="text-sm text-gray-600 pl-8">Informations sur les sites et numéros d'urgence.</p>
+        <p class="text-sm text-gray-600 dark:text-gray-400 pl-8">Informations sur les sites et numéros d'urgence.</p>
       </a>
 
-      <a href="pmr.html" class="block h-full p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
-        <h3 class="flex items-center gap-3 text-xl font-semibold text-gray-900 mb-2">
-          <i data-lucide="wheelchair" class="w-5 h-5 text-blue-600"></i>
-          <span>PMR</span>
-        </h3>
-        <p class="text-sm text-gray-600 pl-8">Données relatives aux Personnes à Mobilité Réduite.</p>
+      <a href="pmr.html" class="block h-full p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
+         <h3 class="flex items-center gap-3 text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+           <i data-lucide="wheelchair" class="w-5 h-5 text-blue-600"></i>
+           <span>PMR</span>
+         </h3>
+         <p class="text-sm text-gray-600 dark:text-gray-400 pl-8">Données relatives aux Personnes à Mobilité Réduite.</p>
       </a>
       
-      <a href="bus.html" class="block h-full p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
-        <h3 class="flex items-center gap-3 text-xl font-semibold text-gray-900 mb-2">
-          <i data-lucide="bus" class="w-5 h-5 text-blue-600"></i>
-          <span>Bus</span>
-        </h3>
-        <p class="text-sm text-gray-600 pl-8">Filtrage des chauffeurs par société et par ligne.</p>
+      <a href="bus.html" class="block h-full p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
+         <h3 class="flex items-center gap-3 text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+           <i data-lucide="bus" class="w-5 h-5 text-blue-600"></i>
+           <span>Bus</span>
+         </h3>
+         <p class="text-sm text-gray-600 dark:text-gray-400 pl-8">Filtrage des chauffeurs par société et par ligne.</p>
       </a>
 
-      <a href="taxi.html" class="block h-full p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
-        <h3 class="flex items-center gap-3 text-xl font-semibold text-gray-900 mb-2">
-          <i data-lucide="car" class="w-5 h-5 text-blue-600"></i>
-          <span>Taxi</span>
-        </h3>
-        <p class="text-sm text-gray-600 pl-8">Filtrage des sociétés de taxi par lieu d'intervention.</p>
+      <a href="taxi.html" class="block h-full p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
+         <h3 class="flex items-center gap-3 text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+           <i data-lucide="car" class="w-5 h-5 text-blue-600"></i>
+           <span>Taxi</span>
+         </h3>
+         <p class="text-sm text-gray-600 dark:text-gray-400 pl-8">Filtrage des sociétés de taxi par lieu d'intervention.</p>
+      </a>
+      
+      <a href="repertoire.html" class="block h-full p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
+         <h3 class="flex items-center gap-3 text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+           <i data-lucide="book-user" class="w-5 h-5 text-blue-600"></i>
+           <span>Répertoire</span>
+         </h3>
+         <p class="text-sm text-gray-600 dark:text-gray-400 pl-8">Répertoire téléphonique interne (MIA, RCC, OCC).</p>
       </a>
 
-      <a href="repertoire.html" class="block h-full p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
-        <h3 class="flex items-center gap-3 text-xl font-semibold text-gray-900 mb-2">
-          <i data-lucide="book-user" class="w-5 h-5 text-blue-600"></i>
-          <span>Répertoire</span>
-        </h3>
-        <p class="text-sm text-gray-600 pl-8">Répertoire téléphonique interne (MIA, RCC, OCC).</p>
+      <a href="lignes.html" class="block h-full p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
+         <h3 class="flex items-center gap-3 text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+           <i data-lucide="train" class="w-5 h-5 text-blue-600"></i>
+           <span>Lignes</span>
+         </h3>
+         <p class="text-sm text-gray-600 dark:text-gray-400 pl-8">Détails des lignes, adresses PN et zones SPI.</p>
       </a>
-
-      <a href="lignes.html" class="block h-full p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
-        <h3 class="flex items-center gap-3 text-xl font-semibold text-gray-900 mb-2">
-          <i data-lucide="train" class="w-5 h-5 text-blue-600"></i>
-          <span>Lignes</span>
-        </h3>
-        <p class="text-sm text-gray-600 pl-8">Détails des lignes, adresses PN et zones SPI.</p>
+      
+      <a href="documents.html" class="block h-full p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
+         <h3 class="flex items-center gap-3 text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+           <i data-lucide="folder" class="w-5 h-5 text-blue-600"></i>
+           <span>Documents</span>
+         </h3>
+         <p class="text-sm text-gray-600 dark:text-gray-400 pl-8">Procédures d'urgence, schémas, etc.</p>
       </a>
 
     </div>
@@ -98,48 +102,26 @@
   
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // Activer les icônes qui sont dans le HTML de cette page
+      // (Script de salut inchangé)
       lucide.createIcons();
-      
-      // --- NOUVEAU SCRIPT POUR LE SALUT ---
-      
-      /**
-       * Récupère le nom complet de l'utilisateur connecté et l'affiche.
-       */
       async function loadUserGreeting() {
         const greetingElement = document.getElementById('user-greeting');
-        if (!greetingElement) return; // Sécurité
-        
+        if (!greetingElement) return;
         try {
-          // 1. Récupérer l'utilisateur (Auth)
           const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
           if (authError || !user) throw authError || new Error('Utilisateur non connecté');
-
-          // 2. Récupérer le profil (DB)
-          const { data, error } = await supabaseClient
-            .from('profiles')
-            .select('full_name') // On ne prend que le nom complet
-            .eq('id', user.id)
-            .single();
-
+          const { data, error } = await supabaseClient.from('profiles').select('full_name').eq('id', user.id).single();
           if (error) throw error;
-
-          // 3. Afficher le message
           if (data && data.full_name) {
             greetingElement.textContent = `Bonjour, ${data.full_name}`;
           } else {
-            // Fallback si le nom complet n'est pas rempli
             greetingElement.textContent = `Bonjour !`;
           }
-          
         } catch (error) {
-          console.error("Erreur lors du chargement du salut :", error.message);
-          // En cas d'erreur, on affiche un message générique
+          console.error("Erreur chargement salut :", error.message);
           greetingElement.textContent = 'Bonjour !';
         }
       }
-      
-      // Appeler la nouvelle fonction
       loadUserGreeting();
     });
   </script>

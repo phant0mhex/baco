@@ -1,8 +1,13 @@
 <!DOCTYPE html>
-<html lang="fr">
-<head>
+<html lang="fr" class="dark"> <head>
   <meta charset="UTF-8">
   <title>Connexion - Portail de données</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class', // <-- AJOUTÉ
+    }
+  </script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -12,6 +17,9 @@
       align-items: center;
       justify-content: center;
       height: 100vh;
+    }
+    body.dark {
+      background: #111827; /* gray-900 */
     }
     .login-box {
       background: #1a2a3a;
@@ -27,12 +35,15 @@
       margin-left: auto;
       margin-right: auto;
     }
-    input[type="text"], input[type="password"] { /* Changé le type pour l'email */
+    input[type="text"], input[type="password"] {
       padding: 10px;
       width: 200px;
       margin-bottom: 15px;
-      border: 1px solid #aaa;
       border-radius: 5px;
+      /* AJOUT: Fond sombre pour les inputs */
+      background-color: #374151; /* gray-700 */
+      color: white;
+      border: 1px solid #4b5563; /* gray-600 */
     }
     button {
       padding: 10px 20px;
@@ -42,20 +53,12 @@
       border-radius: 5px;
       cursor: pointer;
     }
-    button:hover {
-      background: #005fa3;
-    }
-    #error-message {
-      color: red;
-      font-size: 0.9em;
-      margin-top: 10px;
-      height: 15px; /* Pour éviter que la boîte ne saute */
-    }
+    button:hover { background: #005fa3; }
+    #error-message { color: red; font-size: 0.9em; margin-top: 10px; height: 15px; }
   </style>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body>
+<body class="dark">
   <div class="login-box">
     <img src="logobaco.png" alt="Logo BACO">
     <input type="text" id="email" placeholder="Email">
@@ -65,46 +68,28 @@
     <button onclick="validerConnexion()">Connexion</button>
     <div id="error-message"></div>
   </div>
-
   <script>
-    // 2. INITIALISER SUPABASE
-    const SUPABASE_URL = 'https://mgljaheyimizrydazrxh.supabase.co';       // Collez votre URL ici
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1nbGphaGV5aW1penJ5ZGF6cnhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4NTc1MDIsImV4cCI6MjA3NzQzMzUwMn0.nwMgm-ehAppq0WP-MK8459ZIvsWKjbJmsq6qL_t5sQo';   // Collez votre clé ici
-
+    // (Script de connexion inchangé)
+    const SUPABASE_URL = 'https://mgljaheyimizrydazrxh.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1nbGphaGV5aW1penJ5ZGF6cnhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4NTc1MDIsImV4cCI6MjA3NzQzMzUwMn0.nwMgm-ehAppq0WP-MK8459ZIvsWKjbJmsq6qL_t5sQo';
     const { createClient } = supabase;
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
     const errorDiv = document.getElementById('error-message');
-
-    // 3. NOUVELLE FONCTION DE CONNEXION
     async function validerConnexion() {
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
-      errorDiv.textContent = ''; // Vider l'erreur
-
-      // On se connecte avec Supabase Auth
-      const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email: email,
-        password: password,
-      });
-
+      errorDiv.textContent = '';
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email: email, password: password });
       if (error) {
-        // Gérer l'erreur
         console.error("Erreur de connexion:", error.message);
         errorDiv.textContent = "Email ou mot de passe incorrect.";
       } else {
-        // Connexion réussie !
         console.log("Connecté !", data.user);
-        window.location.href = "accueil.html"; // On redirige
+        window.location.href = "accueil.html";
       }
     }
-
-    // Garder la validation avec "Entrée"
-    document.getElementById('password').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') validerConnexion();
-    });
-    document.getElementById('email').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') validerConnexion();
-    });
+    document.getElementById('password').addEventListener('keydown', function(e) { if (e.key === 'Enter') validerConnexion(); });
+    document.getElementById('email').addEventListener('keydown', function(e) { if (e.key === 'Enter') validerConnexion(); });
   </script>
 </body>
 </html>

@@ -1,5 +1,20 @@
 // js/layout.js
 
+// --- LOGIQUE DU THÈME SOMBRE (Partie 1) ---
+// S'exécute immédiatement pour appliquer le thème avant le chargement complet
+// et éviter le "flash" de contenu.
+(function() {
+  const theme = localStorage.getItem('theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  
+  if (theme === 'dark' || (!theme && prefersDark)) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+})();
+// -----------------------------------------
+
 document.addEventListener('DOMContentLoaded', () => {
   const navPlaceholder = document.getElementById('nav-placeholder');
   
@@ -16,31 +31,19 @@ document.addEventListener('DOMContentLoaded', () => {
         highlightActiveLink();
         lucide.createIcons();
         
-        // --- NOUVEAU: LOGIQUE DU MENU BURGER ---
+        // --- LOGIQUE DU MENU BURGER (Existante) ---
         const menuButton = document.getElementById('mobile-menu-button');
         const menuContent = document.getElementById('nav-content');
         const menuIcon = document.getElementById('mobile-menu-icon');
-
         if (menuButton && menuContent && menuIcon) {
           menuButton.onclick = () => {
-            // Bascule la visibilité du conteneur de navigation
             menuContent.classList.toggle('hidden');
-
-            // Met à jour l'icône (menu ou X)
-            if (menuContent.classList.contains('hidden')) {
-              // Le menu est fermé, afficher 'menu'
-              menuIcon.removeAttribute('data-lucide');
-              menuIcon.setAttribute('data-lucide', 'menu');
-            } else {
-              // Le menu est ouvert, afficher 'x'
-              menuIcon.removeAttribute('data-lucide');
-              menuIcon.setAttribute('data-lucide', 'x');
-            }
-            lucide.createIcons(); // Re-dessiner la nouvelle icône
+            const isHidden = menuContent.classList.contains('hidden');
+            menuIcon.setAttribute('data-lucide', isHidden ? 'menu' : 'x');
+            lucide.createIcons();
           };
         }
-        // --- FIN DE LA LOGIQUE DU MENU BURGER ---
-
+        
         // --- CHARGEMENT DE L'AVATAR (Existant) ---
         loadNavAvatar(); 
         
@@ -50,13 +53,45 @@ document.addEventListener('DOMContentLoaded', () => {
           logoutButton.onclick = async () => {
             sessionStorage.removeItem('userRole');
             const { error } = await supabaseClient.auth.signOut();
-            if (error) {
-              console.error('Erreur de déconnexion:', error);
+            if (error) console.error('Erreur de déconnexion:', error);
+            else window.location.href = 'index.html';
+          };
+        }
+        
+        // --- LOGIQUE DU THÈME SOMBRE (Partie 2) ---
+        // Attache l'événement au bouton chargé depuis _nav.html
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIconMoon = document.getElementById('theme-icon-moon');
+        const themeIconSun = document.getElementById('theme-icon-sun');
+        
+        if (themeToggle && themeIconMoon && themeIconSun) {
+          // Mettre à jour l'icône au chargement
+          if (document.documentElement.classList.contains('dark')) {
+            themeIconMoon.classList.add('hidden');
+            themeIconSun.classList.remove('hidden');
+          }
+          
+          // Gérer le clic
+          themeToggle.onclick = () => {
+            if (document.documentElement.classList.contains('dark')) {
+              // Passer en clair
+              document.documentElement.classList.remove('dark');
+              localStorage.setItem('theme', 'light');
+              themeIconMoon.classList.remove('hidden');
+              themeIconSun.classList.add('hidden');
             } else {
-              window.location.href = 'index.html'; // Retour à la connexion
+              // Passer en sombre
+              document.documentElement.classList.add('dark');
+              localStorage.setItem('theme', 'dark');
+              themeIconMoon.classList.add('hidden');
+              themeIconSun.classList.remove('hidden');
             }
           };
         }
+        
+        // --- LOGIQUE DE PRÉSENCE (Existante) ---
+        setupRealtimePresence();
+        
       })
       .catch(error => {
         console.error('Impossible de charger la navigation:', error);
@@ -66,7 +101,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function highlightActiveLink() {
-  // Met en surbrillance le lien de la page active
   const currentPage = window.location.pathname.split('/').pop();
   if (currentPage) {
     const navLinksContainer = document.getElementById('nav-links');
@@ -80,7 +114,6 @@ function highlightActiveLink() {
 }
 
 function hideAdminElements() {
-  // Masque les éléments réservés aux admins si l'utilisateur n'a pas le rôle
   const userRole = sessionStorage.getItem('userRole');
   if (userRole !== 'admin') {
     const style = document.createElement('style');
@@ -90,22 +123,13 @@ function hideAdminElements() {
 }
 
 async function loadNavAvatar() {
-  // Récupère l'avatar de l'utilisateur connecté et l'affiche dans la nav
   const navAvatar = document.getElementById('nav-avatar');
   if (!navAvatar) return; 
-
   try {
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) return; // Pas connecté
-
-    const { data, error } = await supabaseClient
-      .from('profiles')
-      .select('avatar_url')
-      .eq('id', user.id)
-      .single();
-
+    if (authError || !user) return;
+    const { data, error } = await supabaseClient.from('profiles').select('avatar_url').eq('id', user.id).single();
     if (error) throw error;
-
     if (data && data.avatar_url) {
       navAvatar.src = data.avatar_url;
     }
@@ -114,70 +138,43 @@ async function loadNavAvatar() {
   }
 }
 
-
-/**
- * NOUVELLE FONCTION: Gère la présence en temps réel
- */
 async function setupRealtimePresence() {
-  // On a besoin des infos de l'utilisateur (nom, avatar)
   let userProfile = { id: 'visiteur', full_name: 'Visiteur', avatar_url: 'https://via.placeholder.com/40' };
   try {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (user) {
       const { data: profile } = await supabaseClient.from('profiles').select('full_name, avatar_url').eq('id', user.id).single();
-      if (profile) {
-        userProfile = { id: user.id, ...profile };
-      }
+      if (profile) userProfile = { id: user.id, ...profile };
     }
-  } catch (e) {
-    console.error("Erreur de profil pour la présence:", e);
-  }
+  } catch (e) { console.error("Erreur de profil pour la présence:", e); }
 
   const channel = supabaseClient.channel('baco-online-users', {
-    config: {
-      presence: {
-        key: userProfile.id, // Clé unique pour cet utilisateur
-      },
-    },
+    config: { presence: { key: userProfile.id } },
   });
 
-  // Gérer les événements
   channel
     .on('presence', { event: 'sync' }, () => {
-      // 'sync' est appelé quand on rejoint et à chaque changement
       const presenceState = channel.presenceState();
-      console.log('Utilisateurs en ligne:', presenceState);
       updateOnlineAvatars(presenceState);
     })
     .subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
-        // L'utilisateur est maintenant connecté au canal, on "annonce" sa présence
         await channel.track(userProfile);
       }
     });
 }
 
-/**
- * Met à jour les avatars dans la barre de navigation
- */
 function updateOnlineAvatars(state) {
-  // D'abord, on crée un conteneur dans _nav.html
-  // (par exemple, à côté de votre propre avatar)
-  
-  // <div id="online-users" class="flex -space-x-2"></div>
-  
   const container = document.getElementById('online-users');
   if (!container) return;
-  
   container.innerHTML = ''; // Vider la liste
-  
   for (const key in state) {
-    const user = state[key][0]; // [0] car c'est le premier état tracké
+    const user = state[key][0]; 
     if (user) {
       const img = document.createElement('img');
       img.src = user.avatar_url;
       img.title = user.full_name;
-      img.className = 'w-10 h-10 rounded-full border-2 border-gray-900 object-cover';
+      img.className = 'w-10 h-10 rounded-full border-2 border-gray-900 dark:border-gray-700 object-cover'; // Ajout dark:border
       container.appendChild(img);
     }
   }
