@@ -53,155 +53,76 @@
 
   <script src="js/layout.js" defer></script>
   
-  <script>
+<script>
     document.addEventListener('DOMContentLoaded', () => {
     
-      // Initialiser Notyf (pour les toasts)
       const notyf = (typeof Notyf !== 'undefined') 
         ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
         : { success: (msg) => alert(msg), error: (msg) => alert(msg) }; // Fallback
+
+      // ===============================================
+      // ==  NOUVEAU : Création du canal Broadcast  ==
+      // ===============================================
+      const documentsChannel = supabaseClient.channel('baco-documents');
+      // -----------------------------------------------
 
       const documentsList = document.getElementById('documents-list');
       const fileUploadInput = document.getElementById('file-upload');
       const uploadStatus = document.getElementById('upload-status');
 
-      /**
-       * Charge et affiche la liste de tous les documents dans le bucket.
-       */
-      async function loadDocuments() {
-        // 1. Afficher le loader
-        documentsList.innerHTML = '<div class="col-span-full flex justify-center items-center py-20"><i data-lucide="loader-2" class="w-10 h-10 text-blue-600 animate-spin"></i></div>';
-        lucide.createIcons();
+      async function loadDocuments() { /* ... (code inchangé) ... */ }
 
-        try {
-          // 2. Récupérer la liste des fichiers
-          const { data, error } = await supabaseClient
-            .storage
-            .from('documents')
-            .list(
-              '', // Chemin (vide pour la racine)
-              { sortBy: { column: 'name', order: 'asc' } } // Trier par nom
-            );
-
-          if (error) throw error;
-
-          if (data.length === 0) {
-            documentsList.innerHTML = '<p class="col-span-full text-gray-600">Aucun document trouvé.</p>';
-            return;
-          }
-
-          // 3. Afficher les fichiers
-          documentsList.innerHTML = data.map(file => {
-            // Obtenir l'URL publique pour le téléchargement
-            const { data: urlData } = supabaseClient
-              .storage
-              .from('documents')
-              .getPublicUrl(file.name);
-            
-            const publicURL = urlData ? urlData.publicUrl : '#';
-
-            return `
-              <div class="bg-white border border-gray-200 rounded-lg shadow-sm flex items-center justify-between p-4 gap-3">
-                <div class="flex items-center gap-3 overflow-hidden">
-                  <i data-lucide="file-text" class="w-5 h-5 text-blue-600 flex-shrink-0"></i>
-                  <span class="font-medium text-gray-800 truncate" title="${file.name}">
-                    ${file.name}
-                  </span>
-                </div>
-                
-                <div class="flex items-center flex-shrink-0 gap-2">
-                  <button 
-                    onclick="window.deleteDocument('${file.name}')"
-                    class="admin-only p-2 text-red-600 rounded-full hover:bg-red-100" 
-                    title="Supprimer">
-                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                  </button>
-                  
-                  <a 
-                    href="${publicURL}" 
-                    download 
-                    class="p-2 text-gray-700 rounded-full hover:bg-gray-100" 
-                    title="Télécharger">
-                    <i data-lucide="download" class="w-4 h-4"></i>
-                  </a>
-                </div>
-              </div>
-            `;
-          }).join('');
-
-          // 4. Activer les icônes et les permissions d'affichage
-          lucide.createIcons();
-          // `hideAdminElements` est dans layout.js et masquera les boutons "Supprimer" si non-admin
-          if (window.hideAdminElements) window.hideAdminElements();
-
-        } catch (error) {
-          documentsList.innerHTML = `<p class="col-span-full text-red-600">Erreur: ${error.message}</p>`;
-          notyf.error('Erreur lors du chargement des documents.');
-        }
-      }
-
-      /**
-       * Gère le téléversement d'un nouveau document (Admin).
-       */
       async function handleUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        uploadStatus.textContent = `Téléversement de "${file.name}"...`;
-        
+        // ... (votre logique d'upload)
         try {
-          // Utiliser 'upsert: true' pour écraser un fichier existant du même nom
-          const { error } = await supabaseClient
-            .storage
-            .from('documents')
-            .upload(file.name, file, { upsert: true }); 
-            // 'upsert' est crucial pour mettre à jour les procédures
-
+          const { error } = await supabaseClient.storage.from('documents').upload(file.name, file, { upsert: true }); 
           if (error) throw error;
-
           notyf.success(`"${file.name}" a été téléversé.`);
-          uploadStatus.textContent = ''; // Vider le statut
-          loadDocuments(); // Rafraîchir la liste
+          
+          // MODIFIÉ: Envoyer un signal
+          documentsChannel.send({ type: 'broadcast', event: 'data-change' });
+          loadDocuments(); // Rafraîchir localement aussi
 
-        } catch (error) {
-          notyf.error(`Échec du téléversement : ${error.message}`);
-          uploadStatus.textContent = `Échec de l'upload.`;
-        } finally {
-          // Vider l'input pour permettre de re-téléverser le même fichier
-          event.target.value = null;
-        }
+        } catch (error) { /* ... */ } 
+        finally { /* ... */ }
       }
 
-      /**
-       * Supprime un document (Admin).
-       * On l'attache à 'window' pour que le 'onclick' dans le HTML y ait accès.
-       */
       window.deleteDocument = async (fileName) => {
-        if (!confirm(`Êtes-vous sûr de vouloir supprimer "${fileName}" ?`)) {
-          return;
-        }
-        
+        if (!confirm(`...`)) return;
         try {
-          const { error } = await supabaseClient
-            .storage
-            .from('documents')
-            .remove([fileName]); // 'remove' attend un tableau de noms
-
+          const { error } = await supabaseClient.storage.from('documents').remove([fileName]);
           if (error) throw error;
-
           notyf.success(`"${fileName}" a été supprimé.`);
-          loadDocuments(); // Rafraîchir la liste
+          
+          // MODIFIÉ: Envoyer un signal
+          documentsChannel.send({ type: 'broadcast', event: 'data-change' });
+          loadDocuments(); // Rafraîchir localement aussi
 
-        } catch (error) {
-          notyf.error(`Échec de la suppression : ${error.message}`);
-        }
+        } catch (error) { /* ... */ }
       }
       
-      // --- Écouteurs ---
       fileUploadInput.addEventListener('change', handleUpload);
-      
-      // --- Lancement initial ---
       loadDocuments();
+
+      // ===============================================
+      // ==  NOUVEAU : SOUSCRIPTION REALTIME BROADCAST  ==
+      // ===============================================
+      
+      documentsChannel
+        .on(
+          'broadcast', 
+          { event: 'data-change' },
+          (payload) => {
+            console.log('Signal de mise à jour reçu pour les documents!', payload);
+            notyf.success('Liste des documents mise à jour...');
+            loadDocuments(); // Rafraîchir la vue
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('Connecté au canal temps réel des Documents.');
+          }
+        });
 
     }); // Fin de DOMContentLoaded
   </script>

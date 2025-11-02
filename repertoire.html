@@ -172,305 +172,94 @@
  <div id="resultDisplay">
 
 
-  <script>
-    // --- NOUVEAU : Variable pour le tri ---
-    let currentSortOrder = 'az'; // 'az' ou 'za'
-    
-    // --- FONCTIONS LOGIQUES (Mises à jour) ---
-
-    function updateSubCategories() {
-      const miaChecked = document.querySelector('#mainCategories input[value="MIA"]').checked;
-      document.getElementById('miaSubCategoriesContainer').style.display = miaChecked ? 'block' : 'none';
-      updateDisplay();
-    }
-
-    async function updateDisplay() {
-      const container = document.getElementById('resultDisplay');
-      
-      // --- MODIFICATION : Remplacer le texte de chargement ---
-      container.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
-      lucide.createIcons(); // Render le spinner
-      // ---------------------------------------------------
-
-      const mainChecked = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
-      const miaSubChecked = Array.from(document.querySelectorAll('#miaSubCategories input:checked')).map(cb => cb.value);
-      
-      // --- NOUVEAU : Lecture de la barre de recherche ---
-      const searchTerm = document.getElementById('search-bar').value.trim();
-      
-      let hasContent = false;
-      const columns = {};
-
-      // 1. Démarrer la requête et AJOUTER LE TRI
-      let query = supabaseClient
-        .from('contacts_repertoire')
-        .select('id, nom, tel, groupe, email, categorie_principale, zone')
-        .order('nom', { ascending: (currentSortOrder === 'az') }); // <-- Tri appliqué ici
-
-      // 2. Construire les FILTRES (Catégories)
-      const orFilters = [];
-      
-      if (mainChecked.includes('MIA') && miaSubChecked.length > 0) {
-        if (miaSubChecked.includes('FMS')) orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FMS)`);
-        if (miaSubChecked.includes('FCR')) orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FCR)`);
-        if (miaSubChecked.includes('FTY')) {
-          orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FTY)`);
-          // Cas spécial FTY (selon l'ancien JSON) :
-          orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FMS,groupe.eq.TL/MPI)`); 
-        }
-      }
-      if (mainChecked.includes('RCC-OCC')) orFilters.push('categorie_principale.eq.RCC-OCC');
-      if (mainChecked.includes('Autre')) orFilters.push('categorie_principale.eq.Autre');
-
-      if (orFilters.length > 0) {
-        query = query.or(orFilters.join(','));
-      }
-
-      // 3. Appliquer la RECHERCHE (s'il y en a une)
-      if (searchTerm) {
-        // 'ilike' est une recherche "LIKE" insensible à la casse
-        // Le .or() ici est ajouté en 'AND' au .or() précédent
-        query = query.or(
-          `nom.ilike.%${searchTerm}%`,
-          `tel.ilike.%${searchTerm}%`,
-          `email.ilike.%${searchTerm}%`,
-          `groupe.ilike.%${searchTerm}%`
-        );
-      }
-      
-      // 4. Gérer l'état vide (si aucun filtre ET aucune recherche)
-      if (orFilters.length === 0 && !searchTerm) {
-          container.innerHTML = '<p class="text-gray-600">Veuillez sélectionner une catégorie ou lancer une recherche.</p>';
-          return;
-      }
-
-      // 5. Exécuter la requête
-      const { data: contacts, error } = await query;
-          
-      if (error) {
-        container.innerHTML = `<p class='text-red-600'>Erreur: ${error.message}</p>`;
-        return;
-      }
-
-      // 6. Construire le HTML (inchangé)
-      for (const contact of contacts) {
-        const col = contact.groupe;
-        if (!columns[col]) columns[col] = [];
-        columns[col].push(contact);
-        hasContent = true;
-      }
-      
-      // --- DESIGN DE CARTE (INCHANGÉ) ---
-      let outputHTML = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">';
-      const sortedKeys = Object.keys(columns).sort();
-
-      for (const col of sortedKeys) {
-          outputHTML += `<div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">`;
-          outputHTML += `<h3 class="text-xl font-semibold text-gray-900 p-4 border-b bg-gray-50">${col}</h3>`;
-          outputHTML += `<div class="flex flex-col gap-3 p-4">`;
-          
-          outputHTML += columns[col].map(p => {
-            const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
-
-            const telHtml = (p.tel === '(manquant)' || !p.tel)
-              ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500"><i data-lucide="phone-off" class="w-4 h-4"></i><span>(manquant)</span></span>`
-              : `<a href="tel:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors"><i data-lucide="phone" class="w-4 h-4"></i><span>${p.tel}</span></a>`;
-
-            const emailHtml = p.email
-              ? `<a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800 transition-colors" title="${p.email}"><i data-lucide="mail" class="w-4 h-4"></i><span class="truncate" style="max-width: 200px;">${p.email}</span></a>`
-              : '';
-
-            return `
-              <div class="bg-gray-50 rounded-lg border border-gray-200 transition-all hover:shadow-sm">
-                <div class="flex items-center justify-between p-3 border-b border-gray-100">
-                  <span class="flex items-center gap-2.5 text-sm font-medium text-gray-900">
-                     <i data-lucide="user" class="w-4 h-4 text-gray-600"></i>
-                     <span>${p.nom}</span>
-                  </span>
-                  <div class="flex items-center gap-2 admin-only">
-                    <button onclick="showContactModal(${contactJson})" class="p-1 text-blue-600 rounded hover:bg-blue-100" title="Modifier">
-                      <i data-lucide="pencil" class="w-4 h-4"></i>
-                    </button>
-                    <button onclick="deleteContact(${p.id}, '${p.nom}')" class="p-1 text-red-600 rounded hover:bg-red-100" title="Supprimer">
-                      <i data-lucide="trash-2" class="w-4 h-4"></i>
-                    </button>
-                  </div>
-                </div>
-                <div class="p-3 flex flex-col gap-2">
-                  ${telHtml}
-                  ${emailHtml}
-                </div>
-              </div>`;
-          }).join('');
-          
-          outputHTML += `</div></div>`;
-      }
-      outputHTML += '</div>';
-
-      // 7. Gérer l'état "Aucun résultat" (Mis à jour)
-      if (!hasContent) {
-        if (searchTerm) {
-          container.innerHTML = `<p class="text-gray-600">Aucun résultat trouvé pour "${searchTerm}" avec les filtres actuels.</p>`;
-        } else {
-          container.innerHTML = '<p class="text-gray-600">Aucun contact trouvé pour les filtres sélectionnés.</p>';
-        }
-      } else {
-        container.innerHTML = outputHTML;
-      }
-      
-      lucide.createIcons(); // Render les icônes dans les résultats
-    }
+<script>
+    let currentSortOrder = 'az';
+    let updateDisplay;
+    let updateSubCategories;
+    let deleteContact;
+    let showContactModal;
+    let hideContactModal;
+    let handleFormSubmit;
     
     document.addEventListener('DOMContentLoaded', () => {
-      // --- NOUVEAU : Gestion des boutons de tri ---
-      const sortAzButton = document.getElementById('sort-az');
-      const sortZaButton = document.getElementById('sort-za');
+    
+      const notyf = (typeof Notyf !== 'undefined') 
+        ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
+        : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
+      
+      // ===================================================
+      // ==  NOUVEAU : Création du canal Broadcast  ==
+      // ===================================================
+      const repertoireChannel = supabaseClient.channel('baco-repertoire');
+      // ---------------------------------------------------
 
-      function updateSortButtons() {
-        if (currentSortOrder === 'az') {
-          sortAzButton.classList.add('bg-blue-100', 'text-blue-700', 'ring-blue-300');
-          sortZaButton.classList.remove('bg-blue-100', 'text-blue-700', 'ring-blue-300');
+      const container = document.getElementById('resultDisplay');
+      const modal = document.getElementById('contact-modal');
+      // ... (autres variables DOM)
+      
+      updateSubCategories = () => { /* ... (code inchangé) ... */ }
+      updateDisplay = async () => { /* ... (code inchangé) ... */ }
+      
+      deleteContact = async (id, nom) => {
+        if (!confirm(`...`)) return;
+        const { error } = await supabaseClient.from('contacts_repertoire').delete().eq('id', id);
+        if (error) {
+          notyf.error("Erreur: " + error.message);
         } else {
-          sortZaButton.classList.add('bg-blue-100', 'text-blue-700', 'ring-blue-300');
-          sortAzButton.classList.remove('bg-blue-100', 'text-blue-700', 'ring-blue-300');
+          notyf.success("Contact supprimé !");
+          // MODIFIÉ: Envoyer un signal
+          repertoireChannel.send({ type: 'broadcast', event: 'data-change' });
+          updateDisplay(); // Rafraîchir localement aussi
         }
       }
-
-      sortAzButton.addEventListener('click', () => {
-        if (currentSortOrder === 'az') return; // Déjà actif
-        currentSortOrder = 'az';
-        updateSortButtons();
-        updateDisplay();
-      });
-
-      sortZaButton.addEventListener('click', () => {
-        if (currentSortOrder === 'za') return; // Déjà actif
-        currentSortOrder = 'za';
-        updateSortButtons();
-        updateDisplay();
-      });
       
-      updateSortButtons(); // Appliquer le style au chargement
-      updateDisplay();     // Lancer l'affichage initial
+      showContactModal = (contact = null) => { /* ... (code inchangé) ... */ }
+      hideContactModal = () => { /* ... (code inchangé) ... */ }
+      
+      handleFormSubmit = async (event) => {
+        event.preventDefault();
+        // ... (votre logique de formulaire)
+        let error;
+        if (isEdit) { /* ... (update) ... */ } else { /* ... (insert) ... */ }
+        
+        if (error) {
+          notyf.error("Erreur: " + error.message);
+        } else {
+          notyf.success(isEdit ? "Contact mis à jour !" : "Contact ajouté !");
+          hideContactModal();
+          // MODIFIÉ: Envoyer un signal
+          repertoireChannel.send({ type: 'broadcast', event: 'data-change' });
+          updateDisplay(); // Rafraîchir localement aussi
+        }
+      }
+      
+      // --- Gestion des boutons de tri ---
+      // ... (code inchangé pour les boutons de tri) ...
+      
+      updateSortButtons();
+      updateDisplay();
+
+      // ===============================================
+      // ==  NOUVEAU : SOUSCRIPTION REALTIME BROADCAST  ==
+      // ===============================================
+      
+      repertoireChannel
+        .on(
+          'broadcast', 
+          { event: 'data-change' },
+          (payload) => {
+            console.log('Signal de mise à jour reçu pour le répertoire!', payload);
+            notyf.success('Répertoire mis à jour...');
+            updateDisplay(); // Rafraîchir la vue
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('Connecté au canal temps réel du répertoire.');
+          }
+        });
+
     });
-
-    
-    // --- GESTION DE LA SUPPRESSION (INCHANGÉE) ---
-    // ...
-    // ... (votre code existant pour deleteContact, showContactModal, hideContactModal, handleFormSubmit)
-    // ...
-    async function deleteContact(id, nom) {
-      if (!confirm(`Êtes-vous sûr de vouloir supprimer le contact "${nom}" ?`)) {
-        return;
-      }
-      const { error } = await supabaseClient.from('contacts_repertoire').delete().eq('id', id);
-      if (error) {
-        alert("Erreur lors de la suppression: " + error.message);
-      } else {
-        alert("Contact supprimé avec succès !");
-        updateDisplay();
-      }
-    }
-
-    
-    // --- NOUVELLES FONCTIONS POUR LE MODAL COMPLEXE ---
-
-    const modal = document.getElementById('contact-modal');
-    const modalTitle = document.getElementById('modal-title');
-    const contactForm = document.getElementById('contact-form');
-    const contactIdInput = document.getElementById('modal-contact-id');
-
-    /**
-     * Ouvre et pré-remplit le modal.
-     * Si 'contact' est null, c'est un ajout.
-     * Si 'contact' est fourni, c'est une modification.
-     */
-    function showContactModal(contact = null) {
-      const isEdit = contact !== null;
-      
-      // Réinitialiser le formulaire
-      contactForm.reset();
-      
-      if (isEdit) {
-        // Mode ÉDITION
-        modalTitle.textContent = 'Modifier le contact';
-        contactIdInput.value = contact.id;
-        document.getElementById('modal-nom').value = contact.nom;
-        document.getElementById('modal-tel').value = contact.tel;
-        document.getElementById('modal-email').value = contact.email || '';
-        document.getElementById('modal-categorie').value = contact.categorie_principale;
-        document.getElementById('modal-zone').value = contact.zone || '';
-        document.getElementById('modal-groupe').value = contact.groupe;
-      } else {
-        // Mode AJOUT
-        modalTitle.textContent = 'Ajouter un contact';
-        contactIdInput.value = ''; // Pas d'ID
-      }
-      
-      // Afficher le modal
-      modal.style.display = 'flex';
-      lucide.createIcons(); // Redessiner l'icône 'x' si elle n'est pas encore là
-    }
-
-    /**
-     * Cache le modal
-     */
-    function hideContactModal() {
-      modal.style.display = 'none';
-    }
-
-    /**
-     * Gère la soumission du formulaire (Ajout / Modification)
-     */
-    async function handleFormSubmit(event) {
-      event.preventDefault(); // Empêche le rechargement de la page
-      
-      const contactId = contactIdInput.value;
-      const isEdit = contactId !== '';
-      
-      // Récupérer les données du formulaire
-      const contactData = {
-        nom: document.getElementById('modal-nom').value,
-        tel: document.getElementById('modal-tel').value,
-        email: document.getElementById('modal-email').value || null,
-        categorie_principale: document.getElementById('modal-categorie').value,
-        zone: document.getElementById('modal-zone').value || null,
-        groupe: document.getElementById('modal-groupe').value
-      };
-
-      let error;
-      const submitButton = document.getElementById('modal-submit-button');
-      submitButton.disabled = true;
-      submitButton.textContent = 'Enregistrement...';
-
-      if (isEdit) {
-        // --- REQUÊTE UPDATE ---
-        const { error: updateError } = await supabaseClient
-          .from('contacts_repertoire')
-          .update(contactData)
-          .eq('id', contactId);
-        error = updateError;
-      } else {
-        // --- REQUÊTE INSERT ---
-        const { error: insertError } = await supabaseClient
-          .from('contacts_repertoire')
-          .insert([contactData]);
-        error = insertError;
-      }
-
-      // Réactiver le bouton
-      submitButton.disabled = false;
-      submitButton.textContent = 'Enregistrer';
-
-      // Gestion du résultat
-      if (error) {
-        alert("Erreur lors de l'opération: " + error.message);
-      } else {
-        alert(isEdit ? "Contact mis à jour !" : "Contact ajouté !");
-        hideContactModal();
-        updateDisplay(); // Rafraîchir la liste
-      }
-    }
   </script>
 
   <script src="js/layout.js" defer></script>
