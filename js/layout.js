@@ -1,109 +1,34 @@
 // js/layout.js
 
-document.addEventListener('DOMContentLoaded', () => {
-  const navPlaceholder = document.getElementById('nav-placeholder');
-  const footerPlaceholder = document.getElementById('footer-placeholder'); // <-- NOUVEAU
+/**
+ * Charge un composant HTML (comme _nav.html ou _footer.html) dans un placeholder
+ * @param {string} placeholderId L'ID du div où injecter le HTML
+ * @param {string} htmlFilePath Le chemin vers le fichier HTML à charger
+ * @returns {Promise<boolean>} Vrai si le chargement a réussi, faux sinon
+ */
+async function loadComponent(placeholderId, htmlFilePath) {
+  const placeholder = document.getElementById(placeholderId);
+  if (!placeholder) {
+    // Si la page n'a pas ce placeholder, ce n'est pas une erreur
+    return false;
+  }
   
-  hideAdminElements();
-  
-  // --- NOUVELLE STRATÉGIE: Charger nav et footer en parallèle ---
-  const navPromise = navPlaceholder ? fetch('_nav.html').then(res => res.text()) : Promise.resolve(null);
-  const footerPromise = footerPlaceholder ? fetch('_footer.html').then(res => res.text()) : Promise.resolve(null);
+  try {
+    const response = await fetch(htmlFilePath);
+    if (!response.ok) {
+      throw new Error(`Fichier non trouvé: ${htmlFilePath} (Statut: ${response.status})`);
+    }
+    const html = await response.text();
+    placeholder.innerHTML = html;
+    return true;
+  } catch (error) {
+    console.error(`Erreur lors du chargement de ${placeholderId}:`, error);
+    placeholder.innerHTML = `<p class="text-center text-red-500">Erreur chargement ${placeholderId}</p>`;
+    return false;
+  }
+}
 
-  Promise.all([navPromise, footerPromise])
-    .then(([navHtml, footerHtml]) => {
-    
-      // 1. Injecter la Navigation (si elle existe)
-      if (navHtml && navPlaceholder) {
-        navPlaceholder.innerHTML = navHtml;
-        highlightActiveLink();
-        
-        // --- LOGIQUE DU MENU BURGER ---
-        const menuButton = document.getElementById('mobile-menu-button');
-        const menuContent = document.getElementById('nav-content');
-        const menuIcon = document.getElementById('mobile-menu-icon');
-        if (menuButton && menuContent && menuIcon) {
-          menuButton.onclick = () => {
-            menuContent.classList.toggle('hidden');
-            const isHidden = menuContent.classList.contains('hidden');
-            menuIcon.setAttribute('data-lucide', isHidden ? 'menu' : 'x');
-            lucide.createIcons(); // Redessiner l'icône changée
-          };
-        }
-        
-        // --- CHARGEMENT DE L'AVATAR ---
-        loadNavAvatar(); 
-        
-        // --- LOGIQUE DE DÉCONNEXION ---
-        const logoutButton = document.getElementById('logout-button');
-        if (logoutButton) {
-          logoutButton.onclick = async () => {
-            sessionStorage.removeItem('userRole');
-            const { error } = await supabaseClient.auth.signOut();
-            if (error) console.error('Erreur de déconnexion:', error);
-            else window.location.href = 'index.html';
-          };
-        }
-        
-        // --- GESTION DU DROPDOWN DE PRÉSENCE ---
-        const presenceContainer = document.getElementById('presence-container');
-        const presenceButton = document.getElementById('presence-toggle-button');
-        const presenceDropdown = document.getElementById('presence-dropdown');
-        if (presenceContainer && presenceButton && presenceDropdown) {
-            presenceButton.onclick = (e) => {
-                e.stopPropagation(); 
-                presenceDropdown.classList.toggle('hidden');
-                document.getElementById('profile-dropdown')?.classList.add('hidden');
-            };
-        }
-        
-        // --- GESTION DU DROPDOWN DE PROFIL ---
-        const profileContainer = document.getElementById('profile-dropdown-container');
-        const profileButton = document.getElementById('profile-toggle-button');
-        const profileDropdown = document.getElementById('profile-dropdown');
-        if (profileContainer && profileButton && profileDropdown) {
-            profileButton.onclick = (e) => {
-                e.stopPropagation();
-                profileDropdown.classList.toggle('hidden');
-                document.getElementById('presence-dropdown')?.classList.add('hidden');
-            };
-        }
-        
-        // --- GESTION DU "CLICK-AWAY" ---
-        window.addEventListener('click', (e) => {
-            if (presenceContainer && !presenceContainer.contains(e.target)) {
-                presenceDropdown?.classList.add('hidden');
-            }
-            if (profileContainer && !profileContainer.contains(e.target)) {
-                profileDropdown?.classList.add('hidden');
-            }
-        });
-
-        // --- LOGIQUE DE PRÉSENCE TEMPS RÉEL ---
-        setupRealtimePresence();
-      }
-      
-      // 2. Injecter le Footer (s'il existe)
-      if (footerHtml && footerPlaceholder) {
-        footerPlaceholder.innerHTML = footerHtml;
-        // Mettre à jour l'année dynamiquement
-        const yearSpan = document.getElementById('current-year');
-        if (yearSpan) {
-          yearSpan.textContent = new Date().getFullYear();
-        }
-      }
-
-      // 3. Appeler Lucide UNE SEULE FOIS (pour la nav ET le footer)
-      lucide.createIcons();
-
-    })
-    .catch(error => {
-      console.error('Impossible de charger le layout (nav/footer):', error);
-      if (navPlaceholder) navPlaceholder.innerHTML = '<p class="text-center text-red-500">Erreur chargement menu.</p>';
-    });
-});
-
-// --- Fonctions inchangées ci-dessous ---
+// --- Fonctions utilitaires (déplacées au niveau global pour être accessibles) ---
 
 function highlightActiveLink() {
   const currentPage = window.location.pathname.split('/').pop();
@@ -199,3 +124,91 @@ function updateOnlineAvatars(state, localUserId) {
     list.innerHTML = html;
   }
 }
+
+// --- Exécution principale au chargement du DOM ---
+
+document.addEventListener('DOMContentLoaded', async () => {
+  
+  // Appliquer la sécurité admin immédiatement
+  hideAdminElements();
+  
+  // Charger la navigation
+  const navLoaded = await loadComponent('nav-placeholder', '_nav.html');
+  if (navLoaded) {
+    // Si la nav a chargé, exécuter tous les scripts qui en dépendent
+    highlightActiveLink();
+    loadNavAvatar();
+    setupRealtimePresence();
+
+    // Logique du menu burger
+    const menuButton = document.getElementById('mobile-menu-button');
+    const menuContent = document.getElementById('nav-content');
+    const menuIcon = document.getElementById('mobile-menu-icon');
+    if (menuButton && menuContent && menuIcon) {
+      menuButton.onclick = () => {
+        menuContent.classList.toggle('hidden');
+        const isHidden = menuContent.classList.contains('hidden');
+        menuIcon.setAttribute('data-lucide', isHidden ? 'menu' : 'x');
+        lucide.createIcons();
+      };
+    }
+
+    // Logique de déconnexion
+    const logoutButton = document.getElementById('logout-button');
+    if (logoutButton) {
+      logoutButton.onclick = async () => {
+        sessionStorage.removeItem('userRole');
+        const { error } = await supabaseClient.auth.signOut();
+        if (error) console.error('Erreur de déconnexion:', error);
+        else window.location.href = 'index.html';
+      };
+    }
+
+    // Logique du dropdown de présence
+    const presenceContainer = document.getElementById('presence-container');
+    const presenceButton = document.getElementById('presence-toggle-button');
+    const presenceDropdown = document.getElementById('presence-dropdown');
+    if (presenceContainer && presenceButton && presenceDropdown) {
+        presenceButton.onclick = (e) => {
+            e.stopPropagation(); 
+            presenceDropdown.classList.toggle('hidden');
+            document.getElementById('profile-dropdown')?.classList.add('hidden');
+        };
+    }
+
+    // Logique du dropdown de profil
+    const profileContainer = document.getElementById('profile-dropdown-container');
+    const profileButton = document.getElementById('profile-toggle-button');
+    const profileDropdown = document.getElementById('profile-dropdown');
+    if (profileContainer && profileButton && profileDropdown) {
+        profileButton.onclick = (e) => {
+            e.stopPropagation();
+            profileDropdown.classList.toggle('hidden');
+            document.getElementById('presence-dropdown')?.classList.add('hidden');
+        };
+    }
+
+    // Logique de fermeture "Click-away"
+    window.addEventListener('click', (e) => {
+        if (presenceContainer && !presenceContainer.contains(e.target)) {
+            presenceDropdown?.classList.add('hidden');
+        }
+        if (profileContainer && !profileContainer.contains(e.target)) {
+            profileDropdown?.classList.add('hidden');
+        }
+    });
+  }
+
+  // Charger le footer
+  const footerLoaded = await loadComponent('footer-placeholder', '_footer.html');
+  if (footerLoaded) {
+    // Si le footer a chargé, exécuter les scripts qui en dépendent
+    const yearSpan = document.getElementById('current-year');
+    if (yearSpan) {
+      yearSpan.textContent = new Date().getFullYear();
+    }
+  }
+  
+  // Appeler Lucide une fois que tout est chargé (nav, footer, et contenu de la page)
+  lucide.createIcons();
+});
