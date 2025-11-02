@@ -113,3 +113,72 @@ async function loadNavAvatar() {
     console.error("Impossible de charger l'avatar de la nav:", error.message);
   }
 }
+
+
+/**
+ * NOUVELLE FONCTION: Gère la présence en temps réel
+ */
+async function setupRealtimePresence() {
+  // On a besoin des infos de l'utilisateur (nom, avatar)
+  let userProfile = { id: 'visiteur', full_name: 'Visiteur', avatar_url: 'https://via.placeholder.com/40' };
+  try {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabaseClient.from('profiles').select('full_name, avatar_url').eq('id', user.id).single();
+      if (profile) {
+        userProfile = { id: user.id, ...profile };
+      }
+    }
+  } catch (e) {
+    console.error("Erreur de profil pour la présence:", e);
+  }
+
+  const channel = supabaseClient.channel('baco-online-users', {
+    config: {
+      presence: {
+        key: userProfile.id, // Clé unique pour cet utilisateur
+      },
+    },
+  });
+
+  // Gérer les événements
+  channel
+    .on('presence', { event: 'sync' }, () => {
+      // 'sync' est appelé quand on rejoint et à chaque changement
+      const presenceState = channel.presenceState();
+      console.log('Utilisateurs en ligne:', presenceState);
+      updateOnlineAvatars(presenceState);
+    })
+    .subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        // L'utilisateur est maintenant connecté au canal, on "annonce" sa présence
+        await channel.track(userProfile);
+      }
+    });
+}
+
+/**
+ * Met à jour les avatars dans la barre de navigation
+ */
+function updateOnlineAvatars(state) {
+  // D'abord, on crée un conteneur dans _nav.html
+  // (par exemple, à côté de votre propre avatar)
+  
+  // <div id="online-users" class="flex -space-x-2"></div>
+  
+  const container = document.getElementById('online-users');
+  if (!container) return;
+  
+  container.innerHTML = ''; // Vider la liste
+  
+  for (const key in state) {
+    const user = state[key][0]; // [0] car c'est le premier état tracké
+    if (user) {
+      const img = document.createElement('img');
+      img.src = user.avatar_url;
+      img.title = user.full_name;
+      img.className = 'w-10 h-10 rounded-full border-2 border-gray-900 object-cover';
+      container.appendChild(img);
+    }
+  }
+}
