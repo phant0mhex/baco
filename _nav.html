@@ -1,75 +1,64 @@
-<nav class="bg-gray-900 text-white shadow-lg">
-  <div class="container mx-auto px-6 py-3">
-    
-    <div class="flex justify-between items-center">
+<nav class="bg-white text-gray-700 shadow-sm border-b border-gray-200 sticky top-0 z-50">
+  <div class="container mx-auto px-6 py-2"> <div class="flex justify-between items-center">
       <a href="accueil.html" class="block transition-opacity duration-300 hover:opacity-80">
-        <img src="logobaco.png" alt="Logo BACO" class="h-20 w-auto">
+        <img src="logobaco.png" alt="Logo BACO" class="h-14 w-auto">
       </a>
-      <button id="mobile-menu-button" class="md:hidden p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700">
+      <button id="mobile-menu-button" class="md:hidden p-2 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100">
         <i id="mobile-menu-icon" data-lucide="menu" class="w-6 h-6"></i>
       </button>
     </div>
 
     <div id="nav-content" class="hidden md:flex flex-col md:flex-row md:items-center md:justify-between w-full">
       
-      <div class="flex flex-col md:flex-row md:space-x-4 mt-4 md:mt-0" id="nav-links">
-        <a href="operationnel.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
-          <i data-lucide="shield" class="w-4 h-4"></i>
-          <span>Opérationnel</span>
+      <div class="flex flex-col md:flex-row md:space-x-1 mt-4 md:mt-0" id="nav-links">
+        <a href="operationnel.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-50">
+          Opérationnel
         </a>
-        <a href="pmr.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
-          <i data-lucide="accessibility" class="w-4 h-4"></i>
-          <span>PMR</span>
+        <a href="pmr.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-50">
+          PMR
         </a>
-        <a href="bus.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
-          <i data-lucide="bus" class="w-4 h-4"></i>
-          <span>Bus</span>
+        <a href="bus.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-50">
+          Bus
         </a>
-        <a href="taxi.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
-          <i data-lucide="car" class="w-4 h-4"></i>
-          <span>Taxi</span>
+        <a href="taxi.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-50">
+          Taxi
         </a>
-        <a href="repertoire.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
-          <i data-lucide="book-user" class="w-4 h-4"></i>
-          <span>Répertoire</span>
+        <a href="repertoire.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-50">
+          Répertoire
         </a>
-        <a href="lignes.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
-          <i data-lucide="train" class="w-4 h-4"></i>
-          <span>Lignes</span>
+        <a href="lignes.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-50">
+          Lignes
         </a>
-        <a href="documents.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
-          <i data-lucide="folder" class="w-4 h-4"></i>
-          <span>Documents</span>
+        <a href="documents.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-50">
+          Documents
         </a>
-        <a href="admin.html" class="admin-only flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 text-yellow-400">
-          <i data-lucide="shield-check" class="w-4 h-4"></i>
-          <span>Admin</span>
+        <a href="admin.html" class="admin-only px-3 py-2 rounded-md text-sm font-medium text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50">
+          Admin
         </a>
       </div>
 
-      <div class="flex items-center gap-4 mt-4 md:mt-0 border-t border-gray-700 pt-4 md:border-none md:pt-0">
+      <div class="flex items-center gap-4 mt-4 md:mt-0 border-t border-gray-200 pt-4 md:border-none md:pt-0">
         
         <div class="relative hidden md:block" id="presence-container">
-          <button id="presence-toggle-button" class="p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 relative">
+          <button id="presence-toggle-button" class="p-2 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 relative">
               <i data-lucide="users" class="w-5 h-5"></i>
               <span id="presence-counter" class="hidden absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">0</span>
           </button>
           
-          <div id="presence-dropdown" class="hidden absolute top-full right-0 mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50">
-              <div class="p-3 border-b dark:border-gray-700">
-                  <h4 class="font-semibold text-sm text-gray-900 dark:text-gray-100">En ligne</h4>
+          <div id="presence-dropdown" class="hidden absolute top-full right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-xl z-50">
+              <div class="p-3 border-b border-gray-200">
+                  <h4 class="font-semibold text-sm text-gray-900">En ligne</h4>
               </div>
               <div id="presence-list" class="p-2 space-y-1 max-h-60 overflow-y-auto">
                   </div>
           </div>
         </div>
 
-        <img id="nav-avatar" src="https://via.placeholder.com/40" alt="Avatar" class="w-10 h-10 rounded-full border-2 border-gray-500 object-cover cursor-pointer" onclick="window.location.href='profil.html'">
+        <img id="nav-avatar" src="https://via.placeholder.com/40" alt="Avatar" class="w-10 h-10 rounded-full border-2 border-white object-cover cursor-pointer" onclick="window.location.href='profil.html'">
         
-        <button id="logout-button" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-red-400 hover:bg-red-700 hover:text-white">
+        <button id="logout-button" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-red-50">
           <i data-lucide="log-out" class="w-4 h-4"></i>
-          <span>Déconnexion</span>
-        </button>
+          <span class="hidden md:inline">Déconnexion</span> </button>
       </div>
     </div>
   </div>
