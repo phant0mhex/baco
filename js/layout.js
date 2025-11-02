@@ -9,7 +9,6 @@
 async function loadComponent(placeholderId, htmlFilePath) {
   const placeholder = document.getElementById(placeholderId);
   if (!placeholder) {
-    // Si la page n'a pas ce placeholder, ce n'est pas une erreur
     return false;
   }
   
@@ -45,7 +44,6 @@ function highlightActiveLink() {
 }
 
 function hideAdminElements() {
-  // Lit le rôle stocké par js/auth.js
   const userRole = sessionStorage.getItem('userRole');
   if (userRole !== 'admin') {
     const style = document.createElement('style');
@@ -70,31 +68,84 @@ async function loadNavAvatar() {
   }
 }
 
+/**
+ * =================================================================
+ * ==                FONCTION 'setupRealtimePresence' CORRIGÉE                ==
+ * =================================================================
+ */
 async function setupRealtimePresence() {
-  let userProfile = { id: 'visiteur', full_name: 'Visiteur', avatar_url: 'https://via.placeholder.com/40' };
-  try {
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    if (user) {
-      const { data: profile } = await supabaseClient.from('profiles').select('full_name, avatar_url').eq('id', user.id).single();
-      if (profile) userProfile = { id: user.id, ...profile };
-    }
-  } catch (e) { console.error("Erreur de profil pour la présence:", e); }
+  let userProfile; // Sera défini ci-dessous
+  let localUserId; // L'ID unique de l'utilisateur actuel
 
+  try {
+    // 1. Obtenir l'utilisateur authentifié
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      console.warn("Présence non activée: utilisateur non connecté.");
+      return; // Ne pas continuer si personne n'est connecté
+    }
+    
+    localUserId = user.id; // <-- C'est la clé unique OBLIGATOIRE
+    
+    // 2. Créer un profil par défaut (fallback)
+    //    Il utilise le VRAI ID de l'utilisateur, garantissant l'unicité.
+    userProfile = {
+      id: user.id,
+      full_name: user.email.split('@')[0], // Nom par défaut
+      avatar_url: 'https://via.placeholder.com/40' // Avatar par défaut
+    };
+
+    // 3. Tenter de récupérer le vrai profil depuis la DB
+    const { data: profileData, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('full_name, avatar_url')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError && profileError.code !== 'PGRST116') {
+      // PGRST116 = "La ligne n'a pas été trouvée", ce qui est normal si le profil n'est pas encore créé.
+      // On logue les *autres* erreurs (ex: RLS)
+      console.error("Erreur de chargement du profil pour la présence:", profileError.message);
+    }
+
+    if (profileData) {
+      // Si on trouve un profil, on fusionne les données
+      userProfile = { ...userProfile, ...profileData };
+    }
+    
+  } catch (e) { 
+    console.error("Erreur critique setupRealtimePresence:", e);
+    return; // Ne peut pas continuer
+  }
+
+  // 4. Créer le canal en utilisant la clé unique garantie
   const channel = supabaseClient.channel('baco-online-users', {
-    config: { presence: { key: userProfile.id } },
+    config: {
+      presence: {
+        key: userProfile.id, // <-- Utilise maintenant l'ID réel (ex: 'xxxx-xxxx-xxxx')
+      },
+    },
   });
 
+  // 5. S'abonner aux événements
   channel
     .on('presence', { event: 'sync' }, () => {
       const presenceState = channel.presenceState();
-      updateOnlineAvatars(presenceState, userProfile.id);
+      // On passe l'ID réel pour que la fonction sache qui "filtrer"
+      updateOnlineAvatars(presenceState, localUserId); 
     })
     .subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
+        // Annoncer sa présence avec le profil complet
         await channel.track(userProfile);
       }
     });
 }
+/**
+ * =================================================================
+ * ==          FIN DE LA SECTION CORRIGÉE          ==
+ * =================================================================
+ */
 
 function updateOnlineAvatars(state, localUserId) {
   const counter = document.getElementById('presence-counter');
@@ -105,12 +156,14 @@ function updateOnlineAvatars(state, localUserId) {
   let html = '';
   
   for (const key in state) {
-    const user = state[key][0];
+    const user = state[key][0]; // [0] car c'est le premier état tracké
+    
+    // La vérification (inchangée) fonctionnera maintenant car localUserId est correct
     if (user && user.id && user.id !== localUserId) { 
       count++;
       html += `
         <div class="flex items-center gap-3 p-2 rounded-md">
-          <img src="${user.avatar_url}" alt="${user.full_name}" class="w-8 h-8 rounded-full object-cover">
+          <img src="${user.avatar_url || 'https://via.placeholder.com/40'}" alt="${user.full_name}" class="w-8 h-8 rounded-full object-cover">
           <span class="text-sm font-medium text-gray-300">${user.full_name}</span>
         </div>
       `;
@@ -118,7 +171,7 @@ function updateOnlineAvatars(state, localUserId) {
   }
   
   counter.textContent = count;
-  counter.classList.toggle('hidden', count === 0);
+  counter.classList.toggle('hidden', count === 0); // Cache le compteur s'il n'y a personne
 
   if (count === 0) {
     list.innerHTML = '<p class="p-3 text-sm text-center text-gray-400">Vous êtes seul en ligne.</p>';
@@ -140,7 +193,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Si la nav a chargé, exécuter tous les scripts qui en dépendent
     highlightActiveLink();
     loadNavAvatar();
-    setupRealtimePresence();
+    setupRealtimePresence(); // <- Appel de la fonction corrigée
 
     // Logique du menu burger
     const menuButton = document.getElementById('mobile-menu-button');
