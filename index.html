@@ -1,90 +1,130 @@
 <!DOCTYPE html>
-<html lang="fr"> <head>
+<html lang="fr" class="h-full">
+<head>
   <meta charset="UTF-8">
-  <title>Connexion - Portail de données</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Connexion - Portail BACO</title>
   
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f0f0f0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-    }
-    
-    .login-box {
-      background: #1a2a3a;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
-      text-align: center;
-    }
-    .login-box img {
-      width: 360px;
-      margin-bottom: 20px;
-      display: block;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    input[type="text"], input[type="password"] {
-      padding: 10px;
-      width: 200px;
-      margin-bottom: 15px;
-      border-radius: 5px;
-      /* AJOUT: Fond sombre pour les inputs */
-      background-color: #374151; /* gray-700 */
-      color: white;
-      border: 1px solid #4b5563; /* gray-600 */
-    }
-    button {
-      padding: 10px 20px;
-      background: #0078D7;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button:hover { background: #005fa3; }
-    #error-message { color: red; font-size: 0.9em; margin-top: 10px; height: 15px; }
-  </style>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/variable/geist-sans.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-mono/variable/geist-mono.css" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body>
-  <div class="login-box">
-    <img src="logobaco.png" alt="Logo BACO">
-    <input type="text" id="email" placeholder="Email">
-    <br>
-    <input type="password" id="password" placeholder="Mot de passe">
-    <br>
-    <button onclick="validerConnexion()">Connexion</button>
-    <div id="error-message"></div>
-  </div>
+
   <script>
-    // (Script de connexion inchangé)
+    // Configuration Tailwind (identique à vos autres pages)
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Geist Sans', 'sans-serif'],
+            mono: ['Geist Mono', 'monospace'],
+          },
+        },
+      },
+    }
+  </script>
+
+  </head>
+<body class="h-full flex flex-col items-center justify-center bg-gray-900 font-sans p-4">
+
+  <div class="bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-sm">
+    
+    <img src="logobaco.png" alt="Logo BACO" class="w-4/5 mx-auto mb-8">
+    
+    <form id="login-form" class="space-y-4">
+      
+      <div>
+        <label for="email" class="sr-only">Email</label> <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <i data-lucide="mail" class="w-5 h-5 text-gray-400"></i>
+          </div>
+          <input type="text" id="email" 
+                 class="w-full bg-gray-700 text-white border border-gray-600 rounded-md py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                 placeholder="Email">
+        </div>
+      </div>
+      
+      <div>
+        <label for="password" class="sr-only">Mot de passe</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <i data-lucide="lock" class="w-5 h-5 text-gray-400"></i>
+          </div>
+          <input type="password" id="password" 
+                 class="w-full bg-gray-700 text-white border border-gray-600 rounded-md py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                 placeholder="Mot de passe">
+        </div>
+      </div>
+      
+      <div id="error-message" class="text-red-400 text-sm h-5">
+        </div>
+      
+      <button type="submit" id="login-button" 
+              class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md flex items-center justify-center gap-2
+                     hover:bg-blue-700 transition-colors duration-200
+                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800
+                     disabled:bg-blue-400 disabled:cursor-wait">
+        <i data-lucide="log-in" class="w-5 h-5"></i>
+        <span>Connexion</span>
+      </button>
+      
+    </form>
+  </div>
+
+  <script>
+    // Initialiser Supabase
     const SUPABASE_URL = 'https://mgljaheyimizrydazrxh.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1nbGphaGV5aW1penJ5ZGF6cnhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4NTc1MDIsImV4cCI6MjA3NzQzMzUwMn0.nwMgm-ehAppq0WP-MK8459ZIvsWKjbJmsq6qL_t5sQo';
     const { createClient } = supabase;
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Récupérer les éléments
     const errorDiv = document.getElementById('error-message');
+    const loginForm = document.getElementById('login-form');
+    const loginButton = document.getElementById('login-button');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+
+    // Fonction de connexion (mise à jour pour gérer le bouton)
     async function validerConnexion() {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
+      const email = emailInput.value;
+      const password = passwordInput.value;
       errorDiv.textContent = '';
-      const { data, error } = await supabaseClient.auth.signInWithPassword({ email: email, password: password });
+      
+      // Désactiver le bouton et montrer le spinner
+      loginButton.disabled = true;
+      loginButton.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> <span>Connexion...</span>';
+      lucide.createIcons(); // Redessiner l'icône
+
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
       if (error) {
         console.error("Erreur de connexion:", error.message);
         errorDiv.textContent = "Email ou mot de passe incorrect.";
+        
+        // Réactiver le bouton
+        loginButton.disabled = false;
+        loginButton.innerHTML = '<i data-lucide="log-in" class="w-5 h-5"></i> <span>Connexion</span>';
+        lucide.createIcons(); // Redessiner l'icône
       } else {
         console.log("Connecté !", data.user);
         window.location.href = "accueil.html";
       }
     }
-    document.getElementById('password').addEventListener('keydown', function(e) { if (e.key === 'Enter') validerConnexion(); });
-    document.getElementById('email').addEventListener('keydown', function(e) { if (e.key === 'Enter') validerConnexion(); });
+
+    // Gérer la soumission du formulaire
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault(); // Empêche la page de se recharger
+      validerConnexion();
+    });
+    
+    // Activer Lucide au chargement initial
+    document.addEventListener('DOMContentLoaded', () => {
+        lucide.createIcons();
+    });
   </script>
-  
 </body>
 </html>
