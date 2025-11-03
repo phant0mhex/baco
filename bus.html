@@ -280,7 +280,7 @@
 
       // --- FONCTIONS DU MODAL (INCHANGÉES) ---
 
-      async function showBusModal(societe = null) {
+      showBusModal = async (societe = null) => {
         const isEdit = societe !== null;
         busForm.reset();
         
@@ -316,8 +316,12 @@
         lucide.createIcons();
       }
 
-      function hideBusModal() {
-        modal.style.display = 'none';
+  hideBusModal = () => {
+        modal.classList.add('opacity-0');
+        modalPanel.classList.add('scale-95');
+        setTimeout(() => {
+          modal.classList.add('invisible');
+        }, 300);
       }
 
       function parseContactList(text) {

@@ -361,9 +361,9 @@
       /**
        * Ouvre et pré-remplit le modal
        */
-      showPmrModal = (entry = null) => {
-        pmrForm.reset();
-        const isEdit = entry !== null;
+    showPmrModal = (entry = null) => {
+          pmrForm.reset();
+          const isEdit = entry !== null;
         
         modalTitle.textContent = isEdit ? `Modifier: ${entry.gare} (Quai ${entry.quai})` : 'Ajouter une entrée PMR';
         pmrIdInput.value = isEdit ? entry.id : '';
@@ -389,10 +389,13 @@
       /**
        * Cache le modal
        */
-      hidePmrModal = () => {
-        modal.style.display = 'none';
-      }
-      
+   hidePmrModal = () => {
+          modal.classList.add('opacity-0');
+          modalPanel.classList.add('scale-95');
+          setTimeout(() => {
+            modal.classList.add('invisible');
+          }, 300);
+        }
       /**
        * Gère la soumission du formulaire (Ajout/Modification)
        */

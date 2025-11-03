@@ -260,8 +260,12 @@
         lucide.createIcons();
       }
 
-      function hideTaxiModal() {
-        modal.style.display = 'none';
+  hideTaxiModal = () => {
+        modal.classList.add('opacity-0');
+        modalPanel.classList.add('scale-95');
+        setTimeout(() => {
+          modal.classList.add('invisible');
+        }, 300); // Durée de la transition
       }
 
       async function handleTaxiFormSubmit(event) {
