@@ -309,15 +309,20 @@
 
       // 7. Gérer l'état "Aucun résultat" (Mis à jour)
       if (!hasContent) {
-        if (searchTerm) {
-          container.innerHTML = `<p class="text-gray-600">Aucun résultat trouvé pour "${searchTerm}" avec les filtres actuels.</p>`;
+          let message = searchTerm 
+            ? `Aucun contact ne correspond à "${searchTerm}".` 
+            : "Aucun contact trouvé pour les filtres sélectionnés.";
+            
+          container.innerHTML = `
+            <div class="col-span-full flex flex-col items-center justify-center text-center py-16 px-6 bg-white rounded-lg border border-dashed border-gray-300">
+              <i data-lucide="user-x" class="w-16 h-16 text-gray-300"></i>
+              <h3 class="mt-4 text-xl font-semibold text-gray-800">Aucun contact trouvé</h3>
+              <p class="mt-2 text-sm text-gray-500">${message}</p>
+            </div>
+          `;
         } else {
-          container.innerHTML = '<p class="text-gray-600">Aucun contact trouvé pour les filtres sélectionnés.</p>';
+          container.innerHTML = outputHTML;
         }
-      } else {
-        container.innerHTML = outputHTML;
-      }
-      
       lucide.createIcons(); // Render les icônes dans les résultats
     }
     

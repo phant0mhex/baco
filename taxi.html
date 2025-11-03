@@ -148,8 +148,15 @@
           return;
         }
         
-        if (taxisAffiches.length === 0) {
-          contentContainer.innerHTML = '<p class="text-gray-600">Aucune société trouvée pour les lieux sélectionnés.</p>';
+      if (taxisAffiches.length === 0) {
+          contentContainer.innerHTML = `
+            <div class="col-span-full flex flex-col items-center justify-center text-center py-16 px-6 bg-white rounded-lg border border-dashed border-gray-300">
+              <i data-lucide="car" class="w-16 h-16 text-gray-300"></i>
+              <h3 class="mt-4 text-xl font-semibold text-gray-800">Aucun taxi trouvé</h3>
+              <p class="mt-2 text-sm text-gray-500">Aucune société de taxi ne correspond aux lieux sélectionnés.</p>
+            </div>
+          `;
+          lucide.createIcons(); // Appel pour l'icône
           return;
         }
 
