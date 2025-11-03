@@ -14,9 +14,7 @@
       justify-content: center;
       height: 100vh;
     }
-    body.dark {
-      background: #111827; /* gray-900 */
-    }
+    
     .login-box {
       background: #1a2a3a;
       padding: 30px;
@@ -54,8 +52,7 @@
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="flex flex-col min-h-screen">
-  <div class="flex-grow">
+<body>
   <div class="login-box">
     <img src="logobaco.png" alt="Logo BACO">
     <input type="text" id="email" placeholder="Email">
@@ -88,8 +85,6 @@
     document.getElementById('password').addEventListener('keydown', function(e) { if (e.key === 'Enter') validerConnexion(); });
     document.getElementById('email').addEventListener('keydown', function(e) { if (e.key === 'Enter') validerConnexion(); });
   </script>
-  <div id="footer-placeholder"></div>
-</div>
-</div>
+  
 </body>
 </html>
