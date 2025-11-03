@@ -390,9 +390,11 @@
      * Si 'contact' est null, c'est un ajout.
      * Si 'contact' est fourni, c'est une modification.
      */
- showContactModal = (contact = null) => {
-        const isEdit = contact !== null;
-        contactForm.reset();
+    function showContactModal(contact = null) {
+      const isEdit = contact !== null;
+      
+      // Réinitialiser le formulaire
+      contactForm.reset();
       
       if (isEdit) {
         // Mode ÉDITION
@@ -418,13 +420,9 @@
     /**
      * Cache le modal
      */
-   hideContactModal = () => {
-        modal.classList.add('opacity-0');
-        modalPanel.classList.add('scale-95');
-        setTimeout(() => {
-          modal.classList.add('invisible');
-        }, 300);
-      }
+    function hideContactModal() {
+      modal.style.display = 'none';
+    }
 
     /**
      * Gère la soumission du formulaire (Ajout / Modification)
