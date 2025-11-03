@@ -1,15 +1,24 @@
 <!DOCTYPE html>
-<html lang="fr" class="h-full bg-gray-50">
+<html lang="fr" class="h-full bg-gray-100">
 <head>
   <meta charset="UTF-8">
   <title>Opérationnel - Portail BACO</title>
+  
   <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+
   <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/variable/geist-sans.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-mono/variable/geist-mono.css" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest" defer></script>
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/auth.js" defer></script> 
+  <script src="js/auth.js"></script> <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <script src="js/layout.js" defer></script> 
 
   <script>
     tailwind.config = {
@@ -19,36 +28,399 @@
             sans: ['Geist Sans', 'sans-serif'],
             mono: ['Geist Mono', 'monospace'],
           },
+          // Permet au plugin 'prose' de bien s'afficher
+          typography: (theme) => ({
+            DEFAULT: {
+              css: {
+                color: theme('colors.gray.700'),
+                h1: { color: theme('colors.gray.900') },
+                h2: { color: theme('colors.gray.900') },
+                h3: { color: theme('colors.gray.800') },
+                strong: { color: theme('colors.gray.900') },
+                a: { color: theme('colors.blue.600') },
+                // ... autres styles si nécessaire
+              },
+            },
+          }),
         },
       },
+      // Activer le plugin typography
+      plugins: [
+        tailwind.plugins.typography,
+      ],
     }
   </script>
 </head>
-<body class="flex flex-col min-h-screen">
+<body class="flex flex-col min-h-screen bg-gray-100">
 
   <div id="nav-placeholder"></div>
-<div class="flex-grow">
-  <div class="container mx-auto p-8">
-    
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-3xl font-bold text-gray-800">Section Opérationnel</h1>
-      <button onclick="showModal()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
-        <i data-lucide="plus" class="w-5 h-5"></i>
-        <span>Ajouter une entrée</span>
-      </button>
-    </div>
 
-    <hr class="my-8">
-    <div id="resultDisplay">
+  <div class="flex-grow">
     
-    </div>
+    <header class="bg-white shadow-sm border-b border-gray-200">
+      <div class="container mx-auto p-6 md:flex md:justify-between md:items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-800">Base de Connaissances</h1>
+          <p class="mt-1 text-sm text-gray-500">Procédures, fiches réflexes et informations opérationnelles.</p>
+        </div>
+        <div class="mt-4 md:mt-0 admin-only">
+          <button onclick="showProcedureModal()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
+            <i data-lucide="plus" class="w-5 h-5"></i>
+            <span>Ajouter une procédure</span>
+          </button>
+        </div>
+      </div>
+    </header>
 
+    <div class="container mx-auto p-8">
+      <div class="flex flex-col md:flex-row gap-8">
+        
+        <aside class="w-full md:w-1/4">
+          <div class="mb-6">
+            <label for="search-bar" class="block text-sm font-medium text-gray-700">Rechercher</label>
+            <div class="relative mt-1">
+              <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <i data-lucide="search" class="w-5 h-5 text-gray-400"></i>
+              </div>
+              <input type="search" id="search-bar" oninput="loadProcedures()" placeholder="Incident, gare, L96..." class="block w-full rounded-md border-gray-300 pl-10 px-4 py-2 focus:border-blue-500 focus:ring-blue-500">
+            </div>
+          </div>
+          
+          <h3 class="text-lg font-semibold text-gray-800 mb-3">Catégories</h3>
+          <div id="categories-list" class="space-y-2">
+            </div>
+        </aside>
+
+        <main class="flex-1 space-y-6" id="procedures-list">
+          </main>
+        
+      </div>
+    </div>
   </div>
 
-</div>
-<script src="js/layout.js" defer></script>
+  <div id="procedure-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 opacity-0 invisible transition-all duration-300 ease-out">
+    <div id="procedure-modal-panel" class="bg-white rounded-lg shadow-xl w-full max-w-3xl scale-95 transition-all duration-300 ease-out">
+      <form id="procedure-form" onsubmit="handleFormSubmit(event)">
+        <div class="flex justify-between items-center p-4 border-b">
+          <h3 id="modal-title" class="text-xl font-semibold text-gray-800">Ajouter une procédure</h3>
+          <button type="button" onclick="hideProcedureModal()" class="p-1 rounded-full text-gray-500 hover:bg-gray-200">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+        
+        <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+          <input type="hidden" id="modal-procedure-id">
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="modal-titre" class="block text-sm font-medium text-gray-700">Titre</label>
+              <input type="text" id="modal-titre" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+              <label for="modal-categorie" class="block text-sm font-medium text-gray-700">Catégorie</label>
+              <input type="text" id="modal-categorie" required placeholder="Ex: Incidents, Permanences, Sécurité..." class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            </div>
+          </div>
+          
+          <div>
+            <label for="modal-contenu" class="block text-sm font-medium text-gray-700">Contenu (Format Markdown)</label>
+            <textarea id="modal-contenu" rows="12" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm" placeholder="Ex: # Titre 1, ## Titre 2, - Puce 1, - Puce 2, **Gras**, *Italique*"></textarea>
+            <p class="mt-2 text-xs text-gray-500">
+              Utilisez le <a href="https://www.markdownguide.org/basic-syntax/" target="_blank" class="text-blue-600 hover:underline">Markdown</a> pour formater le texte.
+            </p>
+          </div>
+        </div>
+        
+        <div class="flex justify-end items-center p-4 bg-gray-50 border-t rounded-b-lg">
+          <button type="button" onclick="hideProcedureModal()" class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none">
+            Annuler
+          </button>
+          <button type="submit" id="modal-submit-button" class="ml-3 px-4 py-2 bg-blue-600 text-white border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none">
+            Enregistrer
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-<div id="footer-placeholder"></div>
+
+  <div id="footer-placeholder"></div>
+
+  <script>
+    // Fonctions globales
+    let loadProcedures;
+    let showProcedureModal;
+    let hideProcedureModal;
+    let handleFormSubmit;
+    let deleteProcedure;
+
+    document.addEventListener('DOMContentLoaded', () => {
+    
+      const notyf = (typeof Notyf !== 'undefined') 
+        ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
+        : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
+
+      const proceduresList = document.getElementById('procedures-list');
+      const categoriesList = document.getElementById('categories-list');
+      const searchInput = document.getElementById('search-bar');
+      
+      const modal = document.getElementById('procedure-modal');
+      const modalPanel = document.getElementById('procedure-modal-panel');
+      const modalTitle = document.getElementById('modal-title');
+      const procedureForm = document.getElementById('procedure-form');
+      const procedureIdInput = document.getElementById('modal-procedure-id');
+      const submitButton = document.getElementById('modal-submit-button');
+      
+      const proceduresChannel = supabaseClient.channel('baco-procedures');
+      
+      let selectedCategory = 'all';
+
+      /**
+       * Charge les catégories uniques et les affiche dans la sidebar
+       */
+      async function loadCategories() {
+        try {
+          const { data, error } = await supabaseClient
+            .from('procedures')
+            .select('categorie');
+            
+          if (error) throw error;
+          
+          const categories = [...new Set(data.map(p => p.categorie))].sort();
+          
+          categoriesList.innerHTML = `
+            <button onclick="window.filterByCategory('all', this)" class="w-full text-left px-3 py-2 rounded-md font-medium text-sm bg-blue-100 text-blue-700">
+              Toutes les catégories
+            </button>
+            ${categories.map(cat => `
+              <button onclick="window.filterByCategory('${cat}', this)" class="w-full text-left px-3 py-2 rounded-md font-medium text-sm text-gray-600 hover:bg-gray-200">
+                ${cat}
+              </button>
+            `).join('')}
+          `;
+          
+        } catch (error) {
+          categoriesList.innerHTML = `<p class="text-sm text-red-600">Erreur chargement catégories</p>`;
+        }
+      }
+      
+      /**
+       * Fonction appelée par les boutons de catégorie
+       */
+      window.filterByCategory = (category, element) => {
+        selectedCategory = category;
+        // Gérer le style du bouton actif
+        document.querySelectorAll('#categories-list button').forEach(btn => {
+          btn.classList.remove('bg-blue-100', 'text-blue-700');
+          btn.classList.add('text-gray-600', 'hover:bg-gray-200');
+        });
+        element.classList.add('bg-blue-100', 'text-blue-700');
+        element.classList.remove('text-gray-600', 'hover:bg-gray-200');
+        
+        loadProcedures(); // Recharger les procédures
+      }
+
+      /**
+       * Charge et affiche les procédures en fonction des filtres
+       */
+      loadProcedures = async () => {
+        proceduresList.innerHTML = '<div class="flex justify-center items-center py-20"><i data-lucide="loader-2" class="w-10 h-10 text-blue-600 animate-spin"></i></div>';
+        lucide.createIcons();
+        
+        try {
+          let query = supabaseClient
+            .from('procedures')
+            .select('*')
+            .order('titre', { ascending: true });
+
+          if (selectedCategory !== 'all') {
+            query = query.eq('categorie', selectedCategory);
+          }
+          
+          const searchTerm = searchInput.value.trim();
+          if (searchTerm) {
+            query = query.or(`titre.ilike.%${searchTerm}%,contenu.ilike.%${searchTerm}%`);
+          }
+          
+          const { data, error } = await query;
+          if (error) throw error;
+
+          if (data.length === 0) {
+            proceduresList.innerHTML = `
+              <div class="col-span-full flex flex-col items-center justify-center text-center py-16 px-6 bg-white rounded-lg border border-dashed border-gray-300">
+                <i data-lucide="file-x-2" class="w-16 h-16 text-gray-300"></i>
+                <h3 class="mt-4 text-xl font-semibold text-gray-800">Aucune procédure trouvée</h3>
+                <p class="mt-2 text-sm text-gray-500">Aucun document ne correspond à vos filtres.</p>
+              </div>`;
+            lucide.createIcons();
+            return;
+          }
+
+          proceduresList.innerHTML = data.map(entry => {
+            const entryJson = JSON.stringify(entry).replace(/"/g, "&quot;");
+            // Convertir le Markdown en HTML
+            const contentHtml = window.marked.parse(entry.contenu || '');
+            
+            return `
+              <div class="bg-white border border-gray-200 rounded-lg shadow-sm flex flex-col">
+                <div class="flex justify-between items-center p-4 border-b">
+                  <div>
+                    <h3 class="text-xl font-bold text-blue-700">${entry.titre}</h3>
+                    <span class="text-sm font-medium text-gray-500">${entry.categorie}</span>
+                  </div>
+                  <div class="admin-only flex items-center flex-shrink-0 gap-2">
+                    <button onclick="deleteProcedure(${entry.id}, '${entry.titre}')" class="p-2 text-red-600 rounded-full hover:bg-red-100" title="Supprimer">
+                      <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="showProcedureModal(${entryJson})" class="p-2 text-blue-600 rounded-full hover:bg-blue-100" title="Modifier">
+                      <i data-lucide="pencil" class="w-4 h-4"></i>
+                    </button>
+                  </div>
+                </div>
+                
+                <div class="p-4 prose prose-sm max-w-none">
+                  ${contentHtml}
+                </div>
+              </div>
+            `;
+          }).join('');
+          
+          lucide.createIcons();
+          if (window.hideAdminElements) window.hideAdminElements();
+
+        } catch (error) {
+          proceduresList.innerHTML = `<p class="col-span-full text-red-600 text-center">Erreur: ${error.message}</p>`;
+          notyf.error('Erreur lors du chargement des procédures.');
+        }
+      }
+      
+      /**
+       * Ouvre et pré-remplit le modal
+       */
+      showProcedureModal = (entry = null) => {
+        procedureForm.reset();
+        const isEdit = entry !== null;
+        
+        modalTitle.textContent = isEdit ? `Modifier: ${entry.titre}` : 'Ajouter une procédure';
+        procedureIdInput.value = isEdit ? entry.id : '';
+        
+        document.getElementById('modal-titre').value = isEdit ? entry.titre : '';
+        document.getElementById('modal-categorie').value = isEdit ? entry.categorie : '';
+        document.getElementById('modal-contenu').value = isEdit ? entry.contenu : '';
+        
+        // Logique d'animation (Ouverture)
+        modal.classList.remove('invisible');
+        modal.classList.remove('opacity-0');
+        modalPanel.classList.remove('scale-95');
+        
+        lucide.createIcons();
+      }
+      
+      /**
+       * Cache le modal
+       */
+      hideProcedureModal = () => {
+        modal.classList.add('opacity-0');
+        modalPanel.classList.add('scale-95');
+        setTimeout(() => {
+          modal.classList.add('invisible');
+        }, 300);
+      }
+      
+      /**
+       * Gère la soumission du formulaire (Ajout/Modification)
+       */
+      handleFormSubmit = async (event) => {
+        event.preventDefault();
+        
+        const procedureId = procedureIdInput.value;
+        const isEdit = procedureId !== '';
+        
+        const entryData = {
+          titre: document.getElementById('modal-titre').value,
+          categorie: document.getElementById('modal-categorie').value,
+          contenu: document.getElementById('modal-contenu').value,
+          // 'updated_at' est géré par le trigger SQL
+        };
+        
+        submitButton.disabled = true;
+        submitButton.textContent = 'Enregistrement...';
+
+        try {
+          let error;
+          if (isEdit) {
+            const { error: updateError } = await supabaseClient.from('procedures').update(entryData).eq('id', procedureId);
+            error = updateError;
+          } else {
+            const { error: insertError } = await supabaseClient.from('procedures').insert([entryData]);
+            error = insertError;
+          }
+          if (error) throw error;
+          
+          notyf.success(isEdit ? "Procédure mise à jour !" : "Procédure ajoutée !");
+          hideProcedureModal();
+          
+          // Envoyer un signal aux autres utilisateurs
+          proceduresChannel.send({ type: 'broadcast', event: 'data-change' });
+          
+          loadCategories(); // Recharger les catégories (au cas où une nouvelle a été ajoutée)
+          loadProcedures(); // Recharger les procédures
+          
+        } catch (error) {
+          notyf.error("Erreur: " + error.message);
+        } finally {
+          submitButton.disabled = false;
+          submitButton.textContent = 'Enregistrer';
+        }
+      }
+      
+      /**
+       * Supprime une procédure
+       */
+      deleteProcedure = async (id, titre) => {
+        if (!confirm(`Êtes-vous sûr de vouloir supprimer la procédure "${titre}" ?`)) {
+          return;
+        }
+        try {
+          const { error } = await supabaseClient.from('procedures').delete().eq('id', id);
+          if (error) throw error;
+          
+          notyf.success("Procédure supprimée !");
+          
+          // Envoyer un signal aux autres
+          proceduresChannel.send({ type: 'broadcast', event: 'data-change' });
+          
+          loadCategories(); // Recharger les catégories
+          loadProcedures(); // Recharger les procédures
+        } catch (error) {
+           notyf.error("Erreur: " + error.message);
+        }
+      }
+      
+      // --- Lancement et Abonnements ---
+      loadCategories();
+      loadProcedures();
+      
+      // Écouter les signaux des autres
+      proceduresChannel
+        .on(
+          'broadcast', 
+          { event: 'data-change' },
+          (payload) => {
+            console.log('Changement détecté sur les procédures, rechargement...');
+            notyf.success('Base de connaissances mise à jour...');
+            loadCategories();
+            loadProcedures();
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('Connecté au canal temps réel des procédures.');
+          }
+        });
+
+    }); // Fin de DOMContentLoaded
+  </script>
 
 </body>
 </html>
