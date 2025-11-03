@@ -123,10 +123,18 @@
         
         try {
           // ==========================================================
-          // ==    MODIFICATION: Appel de 'signUp' (au lieu de rpc/invoke)
+          // ==    CORRECTION: Sauvegarder et Restaurer la session    ==
           // ==========================================================
-          // C'est la fonction client standard pour s'inscrire
-          const { data, error } = await supabaseClient.auth.signUp({
+          
+          // 1. Sauvegarder la session Admin
+          const { data: { session: adminSession }, error: sessionError } = await supabaseClient.auth.getSession();
+          if (sessionError || !adminSession) {
+            throw new Error("Impossible de sauvegarder la session admin. " + (sessionError?.message || ''));
+          }
+          const adminRefreshToken = adminSession.refresh_token;
+
+          // 2. Créer le nouvel utilisateur (ceci va changer votre session)
+          const { data, error: signUpError } = await supabaseClient.auth.signUp({
             email: email,
             password: password,
             options: {
@@ -136,11 +144,23 @@
             }
           });
           
-          if (error) throw error;
+          if (signUpError) throw signUpError;
           
-          // Si la confirmation d'email est désactivée, l'utilisateur est créé
-          // et le trigger 'handle_new_user' s'exécute.
+          notyf.success(`Utilisateur ${email} créé... Restauration de la session admin...`);
           
+          // 3. Restaurer la session Admin
+          const { error: restoreError } = await supabaseClient.auth.setSession({
+            refresh_token: adminRefreshToken
+          });
+
+          if (restoreError) {
+            // Si la restauration échoue, l'admin est déconnecté.
+            notyf.error("Session admin perdue! Veuillez vous reconnecter.");
+            window.location.reload();
+            return;
+          }
+          
+          // 4. Succès
           notyf.success(`Utilisateur ${email} créé avec succès !`);
           createUserForm.reset(); // Vider le formulaire
           loadUsers(); // Recharger la liste
@@ -156,7 +176,7 @@
       // --- FIN DE LA LOGIQUE MISE À JOUR ---
 
 
-      // --- Fonctions de gestion de liste (inchangées, elles appellent toujours rpc) ---
+      // --- Fonctions de gestion de liste (inchangées) ---
       window.handleRoleChange = async (userId, newRole) => {
         const action = newRole === 'admin' ? 'promouvoir' : 'rétrograder';
         const actionPast = newRole ==='admin' ? 'promu' : 'rétrogradé';
@@ -205,7 +225,7 @@
       }
       
       async function loadUsers() {
-        // ... (Code de chargement inchangé, il appelle toujours rpc('get_all_users'))
+        // ... (Code de chargement inchangé)
         userListContainer.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
         lucide.createIcons();
         try {
