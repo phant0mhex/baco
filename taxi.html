@@ -27,26 +27,39 @@
     }
   </script>
 </head>
-<body class="h-full flex flex-col min-h-screen bg-gray-50">
+<body class="h-full flex flex-col min-h-screen bg-gray-100">
 
   <div id="nav-placeholder"></div>
+
+<header class="bg-white shadow-sm border-b border-gray-200">
+    <div class="container mx-auto p-6 md:flex md:justify-between md:items-center">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-800">Section Taxis</h1>
+        <p class="mt-1 text-sm text-gray-500">Sociétés de taxi par lieu d'intervention.</p>
+      </div>
+      <div class="mt-4 md:mt-0 admin-only">
+        <button onclick="showTaxiModal()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
+          <i data-lucide="plus" class="w-5 h-5"></i>
+          <span>Ajouter un taxi</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+
+
+
 <div class="flex-grow">
   <div class="container mx-auto p-8">
-    <h1 class="text-3xl font-bold text-gray-800 mb-6">Sociétés de taxi par lieu</h1>
 
-    <div class="mb-6 flex justify-end admin-only">
-      <button onclick="showTaxiModal()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
-        <i data-lucide="plus" class="w-5 h-5"></i>
-        <span>Ajouter un taxi</span>
-      </button>
-    </div>
 
-    <div class="flex flex-wrap gap-3 mb-8" id="lieuCheckboxes">
-      <p class="text-gray-600">Chargement des lieux...</p>
-    </div>
-
-    <hr class="my-8">
-
+<div class="mb-8">
+        <h3 class="text-lg font-medium text-gray-700 mb-3">Filtrer par lieu</h3>
+        <div class="flex flex-wrap gap-3" id="lieuCheckboxes">
+          <p class="text-gray-600">Chargement des lieux...</p>
+        </div>
+      </div>
+</div>
     <div class="content" id="content">
       <p class="text-gray-600">Veuillez sélectionner un lieu pour voir les taxis.</p>
     </div>
