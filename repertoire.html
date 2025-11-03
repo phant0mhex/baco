@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr" class="h-full bg-gray-100">
+<html lang="fr" class="h-full bg-gray-50">
 <head>
   <meta charset="UTF-8">
   <title>Portail BACO - Répertoire</title>
@@ -28,40 +28,13 @@
   </script>
 </head>
 
-<body class="flex flex-col min-h-screen bg-gray-100">
-
-<div id="contact-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 opacity-0 invisible transition-all duration-300 ease-out">
-    <div id="contact-modal-panel" class="bg-white rounded-lg shadow-xl w-full max-w-lg scale-95 transition-all duration-300 ease-out">
-      </div>
-  </div>
-
-  <div id="nav-placeholder"></div>
-
-  <header class="bg-white shadow-sm border-b border-gray-200">
-    <div class="container mx-auto p-6 md:flex md:justify-between md:items-center">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-800">Répertoire Téléphonique</h1>
-        <p class="mt-1 text-sm text-gray-500">Contacts internes MIA, RCC, OCC et autres.</p>
-      </div>
-      <div class="mt-4 md:mt-0 admin-only">
-        <button onclick="showContactModal()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
-          <i data-lucide="plus" class="w-5 h-5"></i>
-          <span>Ajouter un contact</span>
-        </button>
-      </div>
-    </div>
-  </header>
-
-
-
-
-
-
-
 <div id="contact-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4" style="display: none;">
   <div class="bg-white rounded-lg shadow-xl w-full max-w-lg">
     <div class="flex justify-between items-center p-4 border-b">
-      
+      <h3 id="modal-title" class="text-xl font-semibold text-gray-800">Ajouter un contact</h3>
+      <button onclick="hideContactModal()" class="p-1 rounded-full text-gray-500 hover:bg-gray-200">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
     </div>
     
     <form id="contact-form" onsubmit="handleFormSubmit(event)">
