@@ -89,13 +89,14 @@ async function setupRealtimePresence() {
     localUserId = user.id; // Clé unique
     
     // 2. Profil par défaut (fallback)
+    //    Il utilise le VRAI ID de l'utilisateur, garantissant l'unicité.
     userProfile = {
       id: user.id,
       full_name: user.email.split('@')[0], // Nom par défaut
       avatar_url: 'https://via.placeholder.com/40' // Avatar par défaut
     };
 
-    // 3. Tenter de récupérer le vrai profil
+    // 3. Tenter de récupérer le vrai profil depuis la DB
     const { data: profileData, error: profileError } = await supabaseClient
       .from('profiles')
       .select('full_name, avatar_url')
@@ -103,12 +104,13 @@ async function setupRealtimePresence() {
       .single();
 
     if (profileError && profileError.code !== 'PGRST116') {
-      console.error("Erreur chargement profil présence:", profileError.message);
+      // PGRST116 = "La ligne n'a pas été trouvée"
+      console.error("Erreur de chargement du profil pour la présence:", profileError.message);
     }
 
     // --- CORRECTION DE LA LOGIQUE DE FUSION ---
     if (profileData) {
-      // On n'écrase le nom que si le nom de la BDD n'est pas NULL
+      // On n'écrase le nom que si le nom de la BDD n'est pas NULL et n'est pas vide
       if (profileData.full_name) {
         userProfile.full_name = profileData.full_name;
       }
@@ -121,14 +123,14 @@ async function setupRealtimePresence() {
     
   } catch (e) { 
     console.error("Erreur critique setupRealtimePresence:", e);
-    return;
+    return; // Ne peut pas continuer
   }
 
-  // 4. Créer le canal
+  // 4. Créer le canal en utilisant la clé unique garantie
   const channel = supabaseClient.channel('baco-online-users', {
     config: {
       presence: {
-        key: userProfile.id, 
+        key: userProfile.id, // <-- Utilise maintenant l'ID réel (ex: 'xxxx-xxxx-xxxx')
       },
     },
   });
@@ -137,6 +139,7 @@ async function setupRealtimePresence() {
   channel
     .on('presence', { event: 'sync' }, () => {
       const presenceState = channel.presenceState();
+      // On passe l'ID réel pour que la fonction sache qui "filtrer"
       updateOnlineAvatars(presenceState, localUserId); 
     })
     .subscribe(async (status) => {
@@ -161,11 +164,14 @@ function updateOnlineAvatars(state, localUserId) {
   let html = '';
   
   for (const key in state) {
-    const user = state[key][0];
+    const user = state[key][0]; // [0] car c'est le premier état tracké
+    
+    // La vérification (inchangée) fonctionnera maintenant car localUserId est correct
     if (user && user.id && user.id !== localUserId) { 
       count++;
       
       // --- CORRECTION DU FALLBACK D'AFFICHAGE ---
+      // Utiliser 'full_name', mais si c'est 'null' ou vide, utiliser 'Utilisateur'
       const displayName = user.full_name || 'Utilisateur'; 
       // --- FIN CORRECTION ---
       
@@ -179,7 +185,7 @@ function updateOnlineAvatars(state, localUserId) {
   }
   
   counter.textContent = count;
-  counter.classList.toggle('hidden', count === 0);
+  counter.classList.toggle('hidden', count === 0); // Cache le compteur s'il n'y a personne
 
   if (count === 0) {
     list.innerHTML = '<p class="p-3 text-sm text-center text-gray-400">Vous êtes seul en ligne.</p>';
@@ -192,10 +198,13 @@ function updateOnlineAvatars(state, localUserId) {
 
 document.addEventListener('DOMContentLoaded', async () => {
   
+  // Appliquer la sécurité admin immédiatement
   hideAdminElements();
   
+  // Charger la navigation
   const navLoaded = await loadComponent('nav-placeholder', '_nav.html');
   if (navLoaded) {
+    // Si la nav a chargé, exécuter tous les scripts qui en dépendent
     highlightActiveLink();
     loadNavAvatar();
     setupRealtimePresence(); // <- Appel de la fonction corrigée
@@ -262,11 +271,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Charger le footer
   const footerLoaded = await loadComponent('footer-placeholder', '_footer.html');
   if (footerLoaded) {
+    // Si le footer a chargé, exécuter les scripts qui en dépendent
     const yearSpan = document.getElementById('current-year');
     if (yearSpan) {
       yearSpan.textContent = new Date().getFullYear();
     }
   }
   
+  // Appeler Lucide une fois que tout est chargé (nav, footer, et contenu de la page)
   lucide.createIcons();
 });
