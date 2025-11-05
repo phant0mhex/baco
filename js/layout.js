@@ -69,11 +69,6 @@ async function loadNavAvatar() {
   }
 }
 
-/**
- * =================================================================
- * ==                FONCTION 'setupRealtimePresence' CORRIGÉE                ==
- * =================================================================
- */
 async function setupRealtimePresence() {
   let userProfile;
   let localUserId; 
@@ -89,14 +84,13 @@ async function setupRealtimePresence() {
     localUserId = user.id; // Clé unique
     
     // 2. Profil par défaut (fallback)
-    //    Il utilise le VRAI ID de l'utilisateur, garantissant l'unicité.
     userProfile = {
       id: user.id,
       full_name: user.email.split('@')[0], // Nom par défaut
       avatar_url: 'https://via.placeholder.com/40' // Avatar par défaut
     };
 
-    // 3. Tenter de récupérer le vrai profil depuis la DB
+    // 3. Tenter de récupérer le vrai profil
     const { data: profileData, error: profileError } = await supabaseClient
       .from('profiles')
       .select('full_name, avatar_url')
@@ -104,26 +98,21 @@ async function setupRealtimePresence() {
       .single();
 
     if (profileError && profileError.code !== 'PGRST116') {
-      // PGRST116 = "La ligne n'a pas été trouvée"
       console.error("Erreur chargement profil présence:", profileError.message);
     }
 
-    // --- CORRECTION DE LA LOGIQUE DE FUSION ---
     if (profileData) {
-      // On n'écrase le nom que si le nom de la BDD n'est pas NULL et n'est pas vide
       if (profileData.full_name) {
         userProfile.full_name = profileData.full_name;
       }
-      // On met toujours à jour l'avatar s'il existe
       if (profileData.avatar_url) {
         userProfile.avatar_url = profileData.avatar_url;
       }
     }
-    // À ce stade, userProfile.full_name est soit le vrai nom, soit le fallback (jamais null)
     
   } catch (e) { 
     console.error("Erreur critique setupRealtimePresence:", e);
-    return; // Ne peut pas continuer
+    return;
   }
 
   // 4. Créer le canal
@@ -143,16 +132,10 @@ async function setupRealtimePresence() {
     })
     .subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
-        // Annoncer sa présence avec le profil corrigé
         await channel.track(userProfile);
       }
     });
 }
-/**
- * =================================================================
- * ==          FIN DE LA SECTION CORRIGÉE          ==
- * =================================================================
- */
 
 function updateOnlineAvatars(state, localUserId) {
   const counter = document.getElementById('presence-counter');
@@ -163,17 +146,10 @@ function updateOnlineAvatars(state, localUserId) {
   let html = '';
   
   for (const key in state) {
-    const user = state[key][0]; // [0] car c'est le premier état tracké
-    
-    // La vérification (inchangée) fonctionnera maintenant car localUserId est correct
+    const user = state[key][0];
     if (user && user.id && user.id !== localUserId) { 
       count++;
-      
-      // --- CORRECTION DU FALLBACK D'AFFICHAGE ---
-      // Utiliser 'full_name', mais si c'est 'null' ou vide, utiliser 'Utilisateur'
       const displayName = user.full_name || 'Utilisateur'; 
-      // --- FIN CORRECTION ---
-      
       html += `
         <div class="flex items-center gap-3 p-2 rounded-md">
           <img src="${user.avatar_url || 'https://via.placeholder.com/40'}" alt="${displayName}" class="w-8 h-8 rounded-full object-cover">
@@ -184,7 +160,7 @@ function updateOnlineAvatars(state, localUserId) {
   }
   
   counter.textContent = count;
-  counter.classList.toggle('hidden', count === 0); // Cache le compteur s'il n'y a personne
+  counter.classList.toggle('hidden', count === 0);
 
   if (count === 0) {
     list.innerHTML = '<p class="p-3 text-sm text-center text-gray-400">Vous êtes seul en ligne.</p>';
@@ -206,9 +182,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Si la nav a chargé, exécuter tous les scripts qui en dépendent
     highlightActiveLink();
     loadNavAvatar();
-    setupRealtimePresence(); // <- Appel de la fonction corrigée
+    setupRealtimePresence(); 
 
     // Logique du menu burger
+    // ... (code inchangé)
     const menuButton = document.getElementById('mobile-menu-button');
     const menuContent = document.getElementById('nav-content');
     const menuIcon = document.getElementById('mobile-menu-icon');
@@ -222,6 +199,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Logique de déconnexion
+    // ... (code inchangé)
     const logoutButton = document.getElementById('logout-button');
     if (logoutButton) {
       logoutButton.onclick = async () => {
@@ -233,6 +211,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Logique du dropdown de présence
+    // ... (code inchangé)
     const presenceContainer = document.getElementById('presence-container');
     const presenceButton = document.getElementById('presence-toggle-button');
     const presenceDropdown = document.getElementById('presence-dropdown');
@@ -245,6 +224,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Logique du dropdown de profil
+    // ... (code inchangé)
     const profileContainer = document.getElementById('profile-dropdown-container');
     const profileButton = document.getElementById('profile-toggle-button');
     const profileDropdown = document.getElementById('profile-dropdown');
@@ -257,6 +237,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Logique de fermeture "Click-away"
+    // ... (code inchangé)
     window.addEventListener('click', (e) => {
         if (presenceContainer && !presenceContainer.contains(e.target)) {
             presenceDropdown?.classList.add('hidden');
@@ -275,6 +256,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (yearSpan) {
       yearSpan.textContent = new Date().getFullYear();
     }
+
+    // ==========================================================
+    // ==         NOUVEAU: LOGIQUE "GO TO TOP"                 ==
+    // ==========================================================
+    const goToTopButton = document.getElementById('go-to-top-button');
+
+    if (goToTopButton) {
+      // 1. Afficher/Cacher le bouton au scroll
+      window.addEventListener('scroll', () => {
+        if (window.scrollY > 200) { // S'affiche après 200px de scroll
+          goToTopButton.classList.remove('hidden', 'opacity-0');
+        } else {
+          goToTopButton.classList.add('opacity-0');
+          // Attendre la fin de la transition pour le cacher
+          setTimeout(() => {
+             if (window.scrollY <= 200) { // Revérifier au cas où l'utilisateur scrolle à nouveau
+                goToTopButton.classList.add('hidden');
+             }
+          }, 300); // 300ms = duration-300
+        }
+      });
+
+      // 2. Gérer le clic
+      goToTopButton.addEventListener('click', () => {
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth' // Défilement fluide
+        });
+      });
+    }
+    // ==========================================================
   }
   
   // Appeler Lucide une fois que tout est chargé (nav, footer, et contenu de la page)
