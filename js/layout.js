@@ -105,7 +105,7 @@ async function setupRealtimePresence() {
 
     if (profileError && profileError.code !== 'PGRST116') {
       // PGRST116 = "La ligne n'a pas été trouvée"
-      console.error("Erreur de chargement du profil pour la présence:", profileError.message);
+      console.error("Erreur chargement profil présence:", profileError.message);
     }
 
     // --- CORRECTION DE LA LOGIQUE DE FUSION ---
@@ -126,11 +126,11 @@ async function setupRealtimePresence() {
     return; // Ne peut pas continuer
   }
 
-  // 4. Créer le canal en utilisant la clé unique garantie
+  // 4. Créer le canal
   const channel = supabaseClient.channel('baco-online-users', {
     config: {
       presence: {
-        key: userProfile.id, // <-- Utilise maintenant l'ID réel (ex: 'xxxx-xxxx-xxxx')
+        key: userProfile.id, 
       },
     },
   });
@@ -139,7 +139,6 @@ async function setupRealtimePresence() {
   channel
     .on('presence', { event: 'sync' }, () => {
       const presenceState = channel.presenceState();
-      // On passe l'ID réel pour que la fonction sache qui "filtrer"
       updateOnlineAvatars(presenceState, localUserId); 
     })
     .subscribe(async (status) => {
