@@ -373,6 +373,19 @@
           submitButton.textContent = 'Enregistrer';
         }
       }
+
+
+      // Configurer Marked.js pour ouvrir les liens dans un nouvel onglet
+      const renderer = new marked.Renderer();
+      renderer.link = (href, title, text) => {
+        const titleAttr = title ? ` title="${title}"` : '';
+        return `<a href="${href}"${titleAttr} target="_blank" rel="noopener noreferrer">${text}</a>`;
+      };
+      
+      marked.setOptions({
+        renderer: renderer
+      });
+
       
       /**
        * Supprime une procédure
