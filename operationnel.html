@@ -16,7 +16,7 @@
   <script src="js/auth.js"></script> <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
   <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
   
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@5.1.2/marked.min.js"></script>
 
   <script src="js/layout.js" defer></script> 
 
@@ -379,11 +379,21 @@
       if (window.marked) {
         try {
           const renderer = new window.marked.Renderer();
+
+          // ----- DÉBUT MODIFICATION -----
           renderer.link = (href, title, text) => {
+            // On loggue TOUT ce qui passe
+            console.log('marked.renderer.link A ÉTÉ APPELÉ AVEC :', { href, title, text });
+            
             const titleAttr = title ? ` title="${title}"` : '';
-            // Ceci est la ligne clé. Si text est undefined, au moins on ne plantera pas.
-            return `<a href="${href}"${titleAttr} target="_blank" rel="noopener noreferrer">${text}</a>`;
+            
+            // Si text est undefined, on met au moins l'URL pour ne pas planter
+            const linkText = text || href; 
+            
+            return `<a href="${href}"${titleAttr} target="_blank" rel="noopener noreferrer">${linkText}</a>`;
           };
+          // ----- FIN MODIFICATION -----
+
           
           window.marked.setOptions({
             renderer: renderer
