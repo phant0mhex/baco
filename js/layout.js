@@ -56,6 +56,7 @@ async function loadNavAvatar() {
   const navAvatar = document.getElementById('nav-avatar');
   if (!navAvatar) return; 
   try {
+    // supabaseClient est défini dans auth.js (chargé avant)
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     if (authError || !user) return;
     const { data, error } = await supabaseClient.from('profiles').select('avatar_url').eq('id', user.id).single();
@@ -74,28 +75,27 @@ async function loadNavAvatar() {
  * =================================================================
  */
 async function setupRealtimePresence() {
-  let userProfile; // Sera défini ci-dessous
-  let localUserId; // L'ID unique de l'utilisateur actuel
+  let userProfile;
+  let localUserId; 
 
   try {
     // 1. Obtenir l'utilisateur authentifié
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     if (authError || !user) {
       console.warn("Présence non activée: utilisateur non connecté.");
-      return; // Ne pas continuer si personne n'est connecté
+      return; 
     }
     
-    localUserId = user.id; // <-- C'est la clé unique OBLIGATOIRE
+    localUserId = user.id; // Clé unique
     
-    // 2. Créer un profil par défaut (fallback)
-    //    Il utilise le VRAI ID de l'utilisateur, garantissant l'unicité.
+    // 2. Profil par défaut (fallback)
     userProfile = {
       id: user.id,
       full_name: user.email.split('@')[0], // Nom par défaut
       avatar_url: 'https://via.placeholder.com/40' // Avatar par défaut
     };
 
-    // 3. Tenter de récupérer le vrai profil depuis la DB
+    // 3. Tenter de récupérer le vrai profil
     const { data: profileData, error: profileError } = await supabaseClient
       .from('profiles')
       .select('full_name, avatar_url')
@@ -103,31 +103,32 @@ async function setupRealtimePresence() {
       .single();
 
     if (profileError && profileError.code !== 'PGRST116') {
-      // PGRST116 = "La ligne n'a pas été trouvée", ce qui est normal si le profil n'est pas encore créé.
-      // On logue les *autres* erreurs (ex: RLS)
-      console.error("Erreur de chargement du profil pour la présence:", profileError.message);
+      console.error("Erreur chargement profil présence:", profileError.message);
     }
 
- if (profileData) {
-      // On ne fusionne que les valeurs qui existent (qui ne sont pas null)
-      // pour éviter d'écraser le nom d'utilisateur par défaut avec 'null'
+    // --- CORRECTION DE LA LOGIQUE DE FUSION ---
+    if (profileData) {
+      // On n'écrase le nom que si le nom de la BDD n'est pas NULL
       if (profileData.full_name) {
         userProfile.full_name = profileData.full_name;
       }
+      // On met toujours à jour l'avatar s'il existe
       if (profileData.avatar_url) {
         userProfile.avatar_url = profileData.avatar_url;
       }
     }
+    // À ce stade, userProfile.full_name est soit le vrai nom, soit le fallback (jamais null)
+    
   } catch (e) { 
     console.error("Erreur critique setupRealtimePresence:", e);
-    return; // Ne peut pas continuer
+    return;
   }
 
-  // 4. Créer le canal en utilisant la clé unique garantie
+  // 4. Créer le canal
   const channel = supabaseClient.channel('baco-online-users', {
     config: {
       presence: {
-        key: userProfile.id, // <-- Utilise maintenant l'ID réel (ex: 'xxxx-xxxx-xxxx')
+        key: userProfile.id, 
       },
     },
   });
@@ -136,12 +137,11 @@ async function setupRealtimePresence() {
   channel
     .on('presence', { event: 'sync' }, () => {
       const presenceState = channel.presenceState();
-      // On passe l'ID réel pour que la fonction sache qui "filtrer"
       updateOnlineAvatars(presenceState, localUserId); 
     })
     .subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
-        // Annoncer sa présence avec le profil complet
+        // Annoncer sa présence avec le profil corrigé
         await channel.track(userProfile);
       }
     });
@@ -161,22 +161,25 @@ function updateOnlineAvatars(state, localUserId) {
   let html = '';
   
   for (const key in state) {
-    const user = state[key][0]; // [0] car c'est le premier état tracké
-    
-    // La vérification (inchangée) fonctionnera maintenant car localUserId est correct
+    const user = state[key][0];
     if (user && user.id && user.id !== localUserId) { 
       count++;
+      
+      // --- CORRECTION DU FALLBACK D'AFFICHAGE ---
+      const displayName = user.full_name || 'Utilisateur'; 
+      // --- FIN CORRECTION ---
+      
       html += `
         <div class="flex items-center gap-3 p-2 rounded-md">
-          <img src="${user.avatar_url || 'https://via.placeholder.com/40'}" alt="${user.full_name}" class="w-8 h-8 rounded-full object-cover">
-          <span class="text-sm font-medium text-gray-300">${user.full_name}</span>
+          <img src="${user.avatar_url || 'https://via.placeholder.com/40'}" alt="${displayName}" class="w-8 h-8 rounded-full object-cover">
+          <span class="text-sm font-medium text-gray-300">${displayName}</span>
         </div>
       `;
     }
   }
   
   counter.textContent = count;
-  counter.classList.toggle('hidden', count === 0); // Cache le compteur s'il n'y a personne
+  counter.classList.toggle('hidden', count === 0);
 
   if (count === 0) {
     list.innerHTML = '<p class="p-3 text-sm text-center text-gray-400">Vous êtes seul en ligne.</p>';
@@ -189,13 +192,10 @@ function updateOnlineAvatars(state, localUserId) {
 
 document.addEventListener('DOMContentLoaded', async () => {
   
-  // Appliquer la sécurité admin immédiatement
   hideAdminElements();
   
-  // Charger la navigation
   const navLoaded = await loadComponent('nav-placeholder', '_nav.html');
   if (navLoaded) {
-    // Si la nav a chargé, exécuter tous les scripts qui en dépendent
     highlightActiveLink();
     loadNavAvatar();
     setupRealtimePresence(); // <- Appel de la fonction corrigée
@@ -262,13 +262,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Charger le footer
   const footerLoaded = await loadComponent('footer-placeholder', '_footer.html');
   if (footerLoaded) {
-    // Si le footer a chargé, exécuter les scripts qui en dépendent
     const yearSpan = document.getElementById('current-year');
     if (yearSpan) {
       yearSpan.textContent = new Date().getFullYear();
     }
   }
   
-  // Appeler Lucide une fois que tout est chargé (nav, footer, et contenu de la page)
   lucide.createIcons();
 });
