@@ -108,11 +108,16 @@ async function setupRealtimePresence() {
       console.error("Erreur de chargement du profil pour la présence:", profileError.message);
     }
 
-    if (profileData) {
-      // Si on trouve un profil, on fusionne les données
-      userProfile = { ...userProfile, ...profileData };
+ if (profileData) {
+      // On ne fusionne que les valeurs qui existent (qui ne sont pas null)
+      // pour éviter d'écraser le nom d'utilisateur par défaut avec 'null'
+      if (profileData.full_name) {
+        userProfile.full_name = profileData.full_name;
+      }
+      if (profileData.avatar_url) {
+        userProfile.avatar_url = profileData.avatar_url;
+      }
     }
-    
   } catch (e) { 
     console.error("Erreur critique setupRealtimePresence:", e);
     return; // Ne peut pas continuer
