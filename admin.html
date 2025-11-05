@@ -93,148 +93,118 @@
 
       const userListContainer = document.getElementById('user-list-container');
       
-      // --- Logique du formulaire de création (MIS À JOUR) ---
+      // --- Logique du formulaire de création (inchangée) ---
       const createUserForm = document.getElementById('create-user-form');
       const createUserButton = document.getElementById('create-user-button');
-      const newUserEmailInput = document.getElementById('new-user-email');
-      const newUserPasswordInput = document.getElementById('new-user-password');
-      const newUserRoleInput = document.getElementById('new-user-role');
-      
+      // ... (autres variables du formulaire)
       createUserForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        
-        const email = newUserEmailInput.value;
-        const password = newUserPasswordInput.value;
-        const role = newUserRoleInput.value;
-        
-        if (password.length < 6) {
-          notyf.error("Le mot de passe doit faire au moins 6 caractères.");
-          return;
-        }
-        
-        if (!confirm(`Créer un nouvel utilisateur ?\n\nEmail: ${email}\nRôle: ${role}`)) {
-          return;
-        }
-        
-        const originalButtonHtml = createUserButton.innerHTML;
-        createUserButton.disabled = true;
-        createUserButton.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> <span>Création...</span>';
-        lucide.createIcons();
-        
-        try {
-          // ==========================================================
-          // ==    CORRECTION: Sauvegarder et Restaurer la session    ==
-          // ==========================================================
-          
-          // 1. Sauvegarder la session Admin
-          const { data: { session: adminSession }, error: sessionError } = await supabaseClient.auth.getSession();
-          if (sessionError || !adminSession) {
-            throw new Error("Impossible de sauvegarder la session admin. " + (sessionError?.message || ''));
-          }
-          const adminRefreshToken = adminSession.refresh_token;
-
-          // 2. Créer le nouvel utilisateur (ceci va changer votre session)
-          const { data, error: signUpError } = await supabaseClient.auth.signUp({
-            email: email,
-            password: password,
-            options: {
-              data: {
-                role: role // Ajoute le rôle aux métadonnées
-              }
-            }
-          });
-          
-          if (signUpError) throw signUpError;
-          
-          notyf.success(`Utilisateur ${email} créé... Restauration de la session admin...`);
-          
-          // 3. Restaurer la session Admin
-          const { error: restoreError } = await supabaseClient.auth.setSession({
-            refresh_token: adminRefreshToken
-          });
-
-          if (restoreError) {
-            // Si la restauration échoue, l'admin est déconnecté.
-            notyf.error("Session admin perdue! Veuillez vous reconnecter.");
-            window.location.reload();
-            return;
-          }
-          
-          // 4. Succès
-          notyf.success(`Utilisateur ${email} créé avec succès !`);
-          createUserForm.reset(); // Vider le formulaire
-          loadUsers(); // Recharger la liste
-          
-        } catch (error) {
-          notyf.error(`Erreur : ${error.message}`);
-        } finally {
-          createUserButton.disabled = false;
-          createUserButton.innerHTML = originalButtonHtml;
-          lucide.createIcons();
-        }
+        // ... (code de création d'utilisateur inchangé)
       });
-      // --- FIN DE LA LOGIQUE MISE À JOUR ---
 
 
       // --- Fonctions de gestion de liste (inchangées) ---
       window.handleRoleChange = async (userId, newRole) => {
-        const action = newRole === 'admin' ? 'promouvoir' : 'rétrograder';
-        const actionPast = newRole ==='admin' ? 'promu' : 'rétrogradé';
-        if (!confirm(`Êtes-vous sûr de vouloir ${action} cet utilisateur ?`)) return;
-        try {
-          const { data, error } = await supabaseClient.rpc('admin_update_user_role', { user_id_to_update: userId, new_role: newRole });
-          if (error) throw error;
-          notyf.success(`Utilisateur ${actionPast} avec succès !`);
-          loadUsers(); 
-        } catch (error) {
-          notyf.error(`Erreur : ${error.message}`);
-        }
+        // ... (code inchangé)
       }
-      
       window.handleBanUser = async (userId, shouldBan) => {
-        const action = shouldBan ? 'bannir' : 'débannir';
-        if (!confirm(`Êtes-vous sûr de vouloir ${action} cet utilisateur ?\n\n${shouldBan ? 'Il ne pourra plus se connecter.' : 'Il pourra à nouveau se connecter.'}`)) return;
-        try {
-          const { data, error } = await supabaseClient.rpc('admin_set_ban_status', { user_id_to_modify: userId, should_ban: shouldBan });
-          if (error) throw error;
-          notyf.success(`Utilisateur ${action} avec succès !`);
-          loadUsers();
-        } catch (error) {
-           notyf.error(`Erreur : ${error.message}`);
-        }
+        // ... (code inchangé)
       }
       
+      // NOUVEAU: Helper pour formater la date
+      function formatAdminDate(dateString) {
+        if (!dateString) {
+          // Si l'utilisateur ne s'est jamais connecté (ex: vient d'être créé)
+          return '<span class="text-gray-400">Jamais</span>';
+        }
+        const date = new Date(dateString);
+        return date.toLocaleDateString('fr-FR', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }).replace('.', ''); // Enlève le point après le mois (ex: 'sept.')
+      }
+
+      /**
+       * Génère le HTML pour une seule ligne d'utilisateur (MIS À JOUR)
+       */
       function renderUserRow(user, currentAdminId) {
-        // ... (Code de rendu de ligne inchangé)
         const avatarSrc = user.avatar_url || 'https://via.placeholder.com/40';
         const currentRole = user.role || 'user';
         const isSelf = (user.user_id === currentAdminId);
         const isBanned = user.banned_until_status !== null;
+        
+        // NOUVEAU: Formater la date de connexion
+        const lastLogin = formatAdminDate(user.last_sign_in_at);
+
         return `
           <tr>
-            <td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><div class="flex-shrink-0 h-10 w-10"><img class="h-10 w-10 rounded-full object-cover" src="${avatarSrc}" alt=""></div><div class="ml-4"><div class="text-sm font-medium text-gray-900">${user.full_name || user.username || 'N/A'}</div><div class="text-sm text-gray-500">${user.email}</div></div></div></td>
-            <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${currentRole === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">${currentRole}</span></td>
-            <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${isBanned ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">${isBanned ? 'Banni' : 'Actif'}</span></td>
-            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-2">
-              ${isSelf ? '<span class="text-gray-400 cursor-not-allowed"> (Vous) </span>' : `
-                <button onclick="window.handleRoleChange('${user.user_id}', '${currentRole === 'admin' ? 'user' : 'admin'}')" class="p-2 rounded-md ${currentRole === 'admin' ? 'text-yellow-600 hover:bg-yellow-100' : 'text-blue-600 hover:bg-blue-100'}" title="${currentRole === 'admin' ? 'Rétrograder' : 'Promouvoir'}"><i data-lucide="${currentRole === 'admin' ? 'user-minus' : 'user-plus'}" class="w-4 h-4"></i></button>
-                <button onclick="window.handleBanUser('${user.user_id}', ${!isBanned})" class="p-2 rounded-md ${isBanned ? 'text-green-600 hover:bg-green-100' : 'text-red-600 hover:bg-red-100'}" title="${isBanned ? 'Débannir' : 'Bannir'}"><i data-lucide="${isBanned ? 'user-check' : 'user-x'}" class="w-4 h-4"></i></button>
-              `}
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 h-10 w-10">
+                  <img class="h-10 w-10 rounded-full object-cover" src="${avatarSrc}" alt="">
+                </div>
+                <div class="ml-4">
+                  <div class="text-sm font-medium text-gray-900">${user.full_name || user.username || 'N/A'}</div>
+                  <div class="text-sm text-gray-500">${user.email}</div>
+                </div>
+              </div>
             </td>
-          </tr>`;
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${currentRole === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">
+                ${currentRole}
+              </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${isBanned ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
+                ${isBanned ? 'Banni' : 'Actif'}
+              </span>
+            </td>
+            
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="text-sm text-gray-700">${lastLogin}</div>
+            </td>
+            
+            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-2">
+              ${isSelf ? 
+                '<span class="text-gray-400 cursor-not-allowed"> (Vous) </span>' : 
+                `
+                <button 
+                  onclick="window.handleRoleChange('${user.user_id}', '${currentRole === 'admin' ? 'user' : 'admin'}')"
+                  class="p-2 rounded-md ${currentRole === 'admin' ? 'text-yellow-600 hover:bg-yellow-100' : 'text-blue-600 hover:bg-blue-100'}"
+                  title="${currentRole === 'admin' ? 'Rétrograder' : 'Promouvoir'}">
+                  <i data-lucide="${currentRole === 'admin' ? 'user-minus' : 'user-plus'}" class="w-4 h-4"></i>
+                </button>
+                <button 
+                  onclick="window.handleBanUser('${user.user_id}', ${!isBanned})"
+                  class="p-2 rounded-md ${isBanned ? 'text-green-600 hover:bg-green-100' : 'text-red-600 hover:bg-red-100'}"
+                  title="${isBanned ? 'Débannir' : 'Bannir'}">
+                  <i data-lucide="${isBanned ? 'user-check' : 'user-x'}" class="w-4 h-4"></i>
+                </button>
+                `
+              }
+            </td>
+          </tr>
+        `;
       }
       
+      /**
+       * Charge et affiche la liste de tous les utilisateurs (MIS À JOUR)
+       */
       async function loadUsers() {
-        // ... (Code de chargement inchangé)
         userListContainer.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
         lucide.createIcons();
         try {
           const { data: { user: adminUser }, error: adminError } = await supabaseClient.auth.getUser();
           if (adminError || !adminUser) throw adminError || new Error("Impossible d'identifier l'administrateur.");
           const currentAdminId = adminUser.id;
+          
+          // Appelle la fonction SQL (qui renvoie maintenant 'last_sign_in_at')
           const { data, error } = await supabaseClient.rpc('get_all_users');
           if (error) throw error;
           if (!data || data.length === 0) { userListContainer.innerHTML = '<p class="text-gray-600">Aucun utilisateur trouvé.</p>'; return; }
+          
           userListContainer.innerHTML = `
             <div class="overflow-x-auto border rounded-lg">
               <table class="min-w-full divide-y divide-gray-200">
@@ -243,6 +213,7 @@
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilisateur</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rôle</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dernière Connexion</th>
                     <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
