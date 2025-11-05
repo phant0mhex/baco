@@ -375,16 +375,27 @@
       }
 
 
-      // Configurer Marked.js pour ouvrir les liens dans un nouvel onglet
-      const renderer = new marked.Renderer();
-      renderer.link = (href, title, text) => {
-        const titleAttr = title ? ` title="${title}"` : '';
-        return `<a href="${href}"${titleAttr} target="_blank" rel="noopener noreferrer">${text}</a>`;
-      };
-      
-      marked.setOptions({
-        renderer: renderer
-      });
+     // Configurer Marked.js pour ouvrir les liens dans un nouvel onglet (version sécurisée)
+      if (window.marked) {
+        try {
+          const renderer = new window.marked.Renderer();
+          renderer.link = (href, title, text) => {
+            const titleAttr = title ? ` title="${title}"` : '';
+            // Ceci est la ligne clé. Si text est undefined, au moins on ne plantera pas.
+            return `<a href="${href}"${titleAttr} target="_blank" rel="noopener noreferrer">${text}</a>`;
+          };
+          
+          window.marked.setOptions({
+            renderer: renderer
+          });
+        } catch (e) {
+          console.error("Erreur lors de la configuration de Marked.js:", e);
+          notyf.error("Erreur de configuration du Markdown.");
+        }
+      } else {
+        console.error("La bibliothèque Marked.js (marked.min.js) n'est pas chargée !");
+        notyf.error("Erreur critique : Marked.js introuvable.");
+      }
 
       
       /**
