@@ -120,8 +120,10 @@
             <i data-lucide="x" class="w-5 h-5"></i>
           </button>
         </div>
+        
         <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
           <input type="hidden" id="modal-procedure-id">
+          
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label for="modal-titre" class="block text-sm font-medium text-gray-700">Titre</label>
@@ -132,11 +134,13 @@
               <input type="text" id="modal-categorie" required placeholder="Ex: Incidents, Permanences, Sécurité..." class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
             </div>
           </div>
+          
           <div>
             <label for="modal-contenu" class="block text-sm font-medium text-gray-700 mb-1">Contenu</label>
             <textarea id="modal-contenu" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"></textarea>
           </div>
         </div>
+        
         <div class="flex justify-end items-center p-4 bg-gray-50 border-t rounded-b-lg">
           <button type="button" onclick="hideProcedureModal()" class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none">
             Annuler
@@ -219,6 +223,20 @@
       }
 
       /**
+       * Formate la date de traçabilité
+       */
+      function formatTraceabilityDate(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('fr-FR', {
+          day: 'numeric',
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit'
+        }).replace('.', ''); // Enlève le point de "nov."
+      }
+
+      /**
        * Charge les catégories uniques et les affiche dans la sidebar
        */
       async function loadCategories() {
@@ -270,10 +288,16 @@
         lucide.createIcons();
         
         try {
+          // ======================= MODIFICATION : Requête SELECT =======================
           let query = supabaseClient
             .from('procedures')
-            .select('*')
+            .select(`
+              *, 
+              updated_at,
+              profiles ( full_name ) 
+            `)
             .order('titre', { ascending: true });
+          // =========================================================================
 
           if (selectedCategory !== 'all') {
             query = query.eq('categorie', selectedCategory);
@@ -281,6 +305,7 @@
           
           const searchTerm = searchInput.value.trim();
           if (searchTerm) {
+            // Utilise la syntaxe Supabase correcte pour `ilike`
             query = query.or(`titre.ilike.*${searchTerm}*,contenu.ilike.*${searchTerm}*`);
           }
           
@@ -305,6 +330,31 @@
             const displayTitle = highlightText(entry.titre, searchTerm);
             const displayCategory = highlightText(entry.categorie, searchTerm);
             
+            // ======================= NOUVEL AJOUT : Logique de traçabilité =======================
+            let traceabilityHtml = '';
+            // `entry.profiles` peut être null si le user a été supprimé
+            if (entry.updated_at && entry.profiles) { 
+                const date = formatTraceabilityDate(entry.updated_at);
+                const name = entry.profiles.full_name || 'un utilisateur';
+                traceabilityHtml = `
+                  <div class="p-4 border-t border-gray-100">
+                    <p class="text-xs text-gray-500 italic">
+                      Dernière modification par ${name} ${date}
+                    </p>
+                  </div>
+                `;
+            } else if (entry.updated_at) { // Fallback si le profil n'est pas trouvé
+                 const date = formatTraceabilityDate(entry.updated_at);
+                 traceabilityHtml = `
+                  <div class="p-4 border-t border-gray-100">
+                    <p class="text-xs text-gray-500 italic">
+                      Dernière modification ${date}
+                    </p>
+                  </div>
+                `;
+            }
+            // ===================================================================================
+            
             return `
               <div class="bg-white border border-gray-200 rounded-lg shadow-sm flex flex-col">
                 <div class="flex justify-between items-center p-4 border-b">
@@ -320,11 +370,14 @@
                       <i data-lucide="pencil" class="w-4 h-4"></i>
                     </button>
                   </div>
-                  </div>
+                </div>
                 
                 <div class="p-4 prose prose-sm max-w-none">
                   ${contentHtml}
                 </div>
+                
+                ${traceabilityHtml}
+                
               </div>
             `;
           }).join('');
@@ -396,6 +449,7 @@
         try {
           let error;
           if (isEdit) {
+            // Le trigger SQL s'occupera de 'updated_at' et 'updated_by'
             const { error: updateError } = await supabaseClient.from('procedures').update(entryData).eq('id', procedureId);
             error = updateError;
           } else {
@@ -421,7 +475,7 @@
       }
 
 
-     // Configurer Marked.js (Code inchangé)
+     // Configurer Marked.js pour les liens
       if (window.marked) {
         try {
           const renderer = new window.marked.Renderer();
@@ -447,13 +501,14 @@
           return;
         }
         try {
+          // On supprime les favoris d'abord (car la suppression de la procédure pourrait échouer sinon)
+          await supabaseClient.from('favoris').delete().match({ id_contenu: id, type_contenu: 'procedure' });
+          
+          // On supprime la procédure
           const { error } = await supabaseClient.from('procedures').delete().eq('id', id);
           if (error) throw error;
           
           notyf.success("Procédure supprimée !");
-          
-          // Supprimer aussi des favoris (cette ligne est maintenant supprimée de la table favoris)
-          // await supabaseClient.from('favoris').delete().match({ id_contenu: id, type_contenu: 'procedure' });
           
           proceduresChannel.send({ type: 'broadcast', event: 'data-change' });
           
