@@ -63,7 +63,7 @@
 
         <div>
           <label for="modal-zone" class="block text-sm font-medium text-gray-700">Zone (optionnel)</label>
-          <input type="text" id="modal-zone" placeholder="FMS, FTY, FCR..." class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          <input type="text" id="modal-zone" placeholder="FMS, FTY, LT..." class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
         </div>
         
         <div class="md:col-span-2">
@@ -128,18 +128,10 @@
       <p class="text-gray-600">Chargement des catégories...</p>
     </div>
 
-    <div id="zoneSubCategoriesContainer" style="display:none;"> <h3 class="text-xl font-semibold text-gray-800 mb-4">2. Filtres de Zone</h3> <div class="flex flex-wrap gap-3 mb-8" id="zoneSubCategories"> <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
-          <input type="checkbox" value="FTY" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
-          <span class="font-medium text-gray-700">FTY</span>
-        </label>
-        <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
-          <input type="checkbox" value="FMS" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
-          <span class="font-medium text-gray-700">FMS</span>
-        </label>
-        <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
-          <input type="checkbox" value="FCR" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
-          <span class="font-medium text-gray-700">FCR</span>
-        </label>
+    <div id="zoneSubCategoriesContainer" style="display:none;">
+      <h3 class="text-xl font-semibold text-gray-800 mb-4">2. Filtres de Zone</h3>
+      <div class="flex flex-wrap gap-3 mb-8" id="zoneSubCategories">
+         <p class="text-gray-600">Chargement des zones...</p>
       </div>
     </div>
     
@@ -186,30 +178,80 @@
 
 
     // ==========================================================
-    // ==              DÉBUT DE LA MODIFICATION                ==
+    // ==         NOUVELLE FONCTION : CHARGER ZONES            ==
+    // ==========================================================
+    /**
+     * Peuple dynamiquement les filtres de zone en fonction des catégories principales sélectionnées
+     */
+    async function populateZoneFilters(selectedMainCategories) {
+        const zoneCheckboxContainer = document.getElementById('zoneSubCategories');
+        zoneCheckboxContainer.innerHTML = '<p class="text-gray-600">Chargement des zones...</p>';
+        
+        // Définit quelles catégories ont des filtres de zone
+        const zonableCategories = ['MIA', 'DSE'];
+        const relevantCategories = selectedMainCategories.filter(cat => zonableCategories.includes(cat));
+
+        if (relevantCategories.length === 0) {
+            zoneCheckboxContainer.innerHTML = ''; // Pas de catégories zonables sélectionnées
+            return;
+        }
+
+        try {
+            // Récupère toutes les zones distinctes pour les catégories sélectionnées
+            const { data, error } = await supabaseClient
+                .from('contacts_repertoire')
+                .select('zone')
+                .in('categorie_principale', relevantCategories);
+            
+            if (error) throw error;
+
+            // Dé-dupliquer, filtrer les nuls/vides, et trier
+            const zones = [...new Set(data.map(item => item.zone))].filter(Boolean).sort();
+            
+            if (zones.length === 0) {
+                zoneCheckboxContainer.innerHTML = '<p class="text-xs text-gray-500">Aucune zone de filtre trouvée pour cette sélection.</p>';
+                return;
+            }
+
+            // Générer le HTML des checkboxes de zone
+            zoneCheckboxContainer.innerHTML = zones.map(zone => `
+                <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+                    <input type="checkbox" value="${zone}" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+                    <span class="font-medium text-gray-700">${zone}</span>
+                </label>
+            `).join('');
+            
+        } catch (error) {
+            zoneCheckboxContainer.innerHTML = `<p class="text-red-600">Erreur zones: ${error.message}</p>`;
+        }
+    }
+    // ==========================================================
+    // ==                FIN DE LA NOUVEAUTÉ                 ==
     // ==========================================================
 
+
     /**
-     * Met à jour l'affichage des sous-catégories (zones)
+     * Met à jour l'affichage des sous-catégories (zones) - MAINTENANT ASYNCHRONE
      */
-    function updateSubCategories() {
-      // Cible les catégories qui DOIVENT afficher le filtre de zone
-      const miaCheckbox = document.querySelector('#mainCategories input[value="MIA"]');
-      const dseCheckbox = document.querySelector('#mainCategories input[value="DSE"]'); // DSE est maintenant inclus
+    async function updateSubCategories() {
+      const mainChecked = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
+      // Définit quelles catégories déclenchent l'affichage des filtres de zone
+      const zonableCategories = ['MIA', 'DSE']; 
       
-      const miaIsChecked = miaCheckbox ? miaCheckbox.checked : false;
-      const dseIsChecked = dseCheckbox ? dseCheckbox.checked : false; // On vérifie DSE
+      const showZoneFilters = mainChecked.some(cat => zonableCategories.includes(cat));
       
-      const showZoneFilters = miaIsChecked || dseIsChecked; // On affiche si l'un OU l'autre est coché
-      
-      document.getElementById('zoneSubCategoriesContainer').style.display = showZoneFilters ? 'block' : 'none'; // Utiliser le new ID
-      
-      if (!showZoneFilters) {
-         // Utiliser le new ID
-         document.querySelectorAll('#zoneSubCategories input:checked').forEach(cb => cb.checked = false);
+      const zoneContainer = document.getElementById('zoneSubCategoriesContainer');
+      const zoneCheckboxContainer = document.getElementById('zoneSubCategories');
+
+      if (showZoneFilters) {
+          zoneContainer.style.display = 'block';
+          await populateZoneFilters(mainChecked); // On attend que les filtres soient créés
+      } else {
+          zoneContainer.style.display = 'none';
+          zoneCheckboxContainer.innerHTML = ''; // Vider les filtres
       }
       
-      updateDisplay();
+      updateDisplay(); // Mettre à jour les résultats
     }
 
     async function updateDisplay() {
@@ -219,7 +261,7 @@
       lucide.createIcons();
 
       const mainChecked = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
-      const zoneSubChecked = Array.from(document.querySelectorAll('#zoneSubCategories input:checked')).map(cb => cb.value); // VAR RENOMMÉE
+      const zoneSubChecked = Array.from(document.querySelectorAll('#zoneSubCategories input:checked')).map(cb => cb.value);
       const searchTerm = document.getElementById('search-bar').value.trim();
       
       let hasContent = false;
@@ -230,49 +272,52 @@
         .select('id, nom, tel, groupe, email, categorie_principale, zone')
         .order('nom', { ascending: (currentSortOrder === 'az') });
 
-      // 2. Construire les FILTRES
+      // ==========================================================
+      // ==         LOGIQUE DE FILTRAGE MISE À JOUR             ==
+      // ==========================================================
       const orFilters = [];
-      const categoriesWithZones = ['MIA', 'DSE']; // Catégories affectées par les filtres de zone
+      const categoriesWithZones = ['MIA', 'DSE'];
       
-      // Sépare les catégories à filtrer par zone de celles qui ne le sont pas
       const mainCategoriesWithZones = mainChecked.filter(cat => categoriesWithZones.includes(cat));
       const mainCategoriesWithoutZones = mainChecked.filter(cat => !categoriesWithZones.includes(cat));
 
       // A. Gérer les catégories AVEC filtres de zone (MIA, DSE)
       if (mainCategoriesWithZones.length > 0) {
-        if (zoneSubChecked.length > 0) {
-          // Appliquer les filtres de zone
-          mainCategoriesWithZones.forEach(cat => {
-            zoneSubChecked.forEach(zone => {
-              if (zone === 'FTY' && cat === 'MIA') {
-                // Cas spécial FTY (MIA seulement)
-                orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FTY)`);
-                orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FMS,groupe.eq.TL/MPI)`);
-              } else if (zone === 'FMS') {
-                orFilters.push(`and(categorie_principale.eq.${cat},zone.eq.FMS)`);
-              } else if (zone === 'FCR') {
-                orFilters.push(`and(categorie_principale.eq.${cat},zone.eq.FCR)`);
-              }
-              // Si FTY est coché mais la cat est DSE, on ne fait rien (car FTY est spécial pour MIA)
-              // Si vous voulez que FTY s'applique aussi à DSE, changez la logique
-            });
-          });
-        } else {
-          // Pas de filtre de zone coché, mais les catégories principales le sont.
-          // On affiche TOUS les contacts de ces catégories (MIA, DSE)
-          mainCategoriesWithZones.forEach(cat => {
-            orFilters.push(`categorie_principale.eq.${cat}`);
-          });
-        }
+          if (zoneSubChecked.length > 0) {
+              // Cas 1: Des zones spécifiques sont cochées (ex: FMS, LT)
+              zoneSubChecked.forEach(zone => {
+                  if (zone === 'FTY') {
+                      // A.1: Cas spécial FTY (concerne MIA)
+                      if (mainCategoriesWithZones.includes('MIA')) {
+                          orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FTY)`);
+                          orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FMS,groupe.eq.TL/MPI)`);
+                      }
+                      // Si DSE a aussi des zones 'FTY', on les inclut
+                      if (mainCategoriesWithZones.includes('DSE')) {
+                           orFilters.push(`and(categorie_principale.eq.DSE,zone.eq.FTY)`);
+                      }
+                  } else {
+                      // A.2: Cas normal pour toutes les autres zones (FMS, FCR, LT, etc.)
+                      // Applique la zone à chaque catégorie "zonable" cochée
+                      mainCategoriesWithZones.forEach(cat => {
+                          orFilters.push(`and(categorie_principale.eq.${cat},zone.eq.${zone})`);
+                      });
+                  }
+              });
+          } else {
+              // Cas 2: Aucune zone cochée, on affiche tout de MIA, DSE, etc.
+              mainCategoriesWithZones.forEach(cat => {
+                  orFilters.push(`categorie_principale.eq.${cat}`);
+              });
+          }
       }
       
       // B. Gérer les catégories SANS filtres de zone (Autre, RCC-OCC, etc.)
       mainCategoriesWithoutZones.forEach(cat => {
-        orFilters.push(`categorie_principale.eq.${cat}`);
+          orFilters.push(`categorie_principale.eq.${cat}`);
       });
-
       // ==========================================================
-      // ==                FIN DE LA MODIFICATION                ==
+      // ==           FIN DE LA LOGIQUE DE FILTRAGE            ==
       // ==========================================================
 
 
@@ -406,8 +451,8 @@
       });
       
       updateSortButtons();
-      await loadMainCategories(); // 1. Charger les filtres
-      updateDisplay();            // 2. Lancer l'affichage
+      await loadMainCategories(); // 1. Charger les filtres de catégories
+      updateDisplay();            // 2. Lancer l'affichage (qui sera vide par défaut)
     });
 
     
@@ -422,7 +467,9 @@
       } else {
         alert("Contact supprimé avec succès !");
         updateDisplay();
-        loadMainCategories(); 
+        // Recharger les catégories et les zones au cas où la data a changé
+        await loadMainCategories();
+        await updateSubCategories(); 
       }
     }
 
@@ -500,8 +547,10 @@
       } else {
         alert(isEdit ? "Contact mis à jour !" : "Contact ajouté !");
         hideContactModal();
-        updateDisplay();
-        loadMainCategories(); 
+        // Recharger les catégories et les zones au cas où la data a changé
+        await loadMainCategories();
+        await updateSubCategories();
+        updateDisplay(); 
       }
     }
   </script>
