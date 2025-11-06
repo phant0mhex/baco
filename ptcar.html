@@ -71,7 +71,6 @@
   <script src="js/layout.js" defer></script>
   
   <script>
-    // ======================= MODIFICATION : DEBOUNCE =======================
     let searchTimer;
     
     // Fonction qui attend 300ms avant de lancer la recherche
@@ -81,7 +80,6 @@
         loadData();
       }, 300); // Attend 300ms après la dernière frappe
     }
-    // =====================================================================
   
     document.addEventListener('DOMContentLoaded', () => {
       loadData(); // Charger les données au démarrage
@@ -92,7 +90,6 @@
       const statusMsg = document.getElementById('status-message');
       const searchTerm = document.getElementById('search-bar').value.trim();
 
-      // Afficher le spinner pendant le chargement
       tbody.innerHTML = '';
       statusMsg.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
       lucide.createIcons();
@@ -101,28 +98,29 @@
         let query = supabaseClient
           .from('ptcar_abbreviations')
           .select('ptcar_fr, ptcar_nl, abbr')
-          .order('abbr', { ascending: true }); // Trier par abréviation
+          .order('abbr', { ascending: true }); 
 
         // Si un terme de recherche est entré
         if (searchTerm) {
+          
+          // ======================= CORRECTION APPLIQUÉE ICI =======================
+          // Remplacement de '%' par '*' pour la syntaxe de filtre Supabase
           query = query.or(
-            // La syntaxe .ilike.%searchTerm% est correcte
-            `abbr.ilike.%${searchTerm}%`,
-            `ptcar_fr.ilike.%${searchTerm}%`,
-            `ptcar_nl.ilike.%${searchTerm}%`
+            `abbr.ilike.*${searchTerm}*`,
+            `ptcar_fr.ilike.*${searchTerm}*`,
+            `ptcar_nl.ilike.*${searchTerm}*`
           );
+          // ======================================================================
         }
         
-        query = query.limit(100); // Limiter à 100 résultats
+        query = query.limit(100);
 
         const { data, error } = await query;
         if (error) throw error;
 
-        // Vider le message de statut si on a des résultats
         statusMsg.innerHTML = '';
 
         if (data.length === 0) {
-          // Gérer le cas "recherche vide"
           const message = searchTerm
             ? `Aucune abréviation ne correspond à "${searchTerm}".`
             : "Aucune donnée trouvée.";
@@ -138,7 +136,6 @@
           return;
         }
 
-        // Construire le HTML du tableau
         tbody.innerHTML = data.map(row => `
           <tr class="hover:bg-gray-50">
             <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600">${row.abbr || 'N/A'}</td>
