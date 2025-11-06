@@ -46,7 +46,8 @@
         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
           <i data-lucide="search" class="w-5 h-5 text-gray-400"></i>
         </div>
-<input type="search" id="search-bar" oninput="debouncePtCarSearch()" placeholder="Rechercher (ex: FNT, Antoing, ATH...)" class="block w-full rounded-md border-gray-300 pl-10 px-4 py-2 focus:border-blue-500 focus:ring-blue-500">      
+        <input type="search" id="search-bar" oninput="debouncePtCarSearch()" placeholder="Rechercher (ex: FNT, Antoing, ATH...)" class="block w-full rounded-md border-gray-300 pl-10 px-4 py-2 focus:border-blue-500 focus:ring-blue-500">      
+      </div>
     </div>
 
     <div id="result-container" class="overflow-hidden bg-white shadow border border-gray-200 rounded-lg">
@@ -74,155 +75,163 @@
   <script src="js/layout.js" defer></script>
   
   <script>
-    let searchTimer;
-    let currentPage = 1;
-    const rowsPerPage = 15;
-
-
-function debouncePtCarSearch() {
-      clearTimeout(searchTimer);
-      currentPage = 1;
-      searchTimer = setTimeout(() => {
-        loadData();
-      }, 300);
-    }
-  
     document.addEventListener('DOMContentLoaded', () => {
-      loadData();
-    });
+    
+      let searchTimer;
+      let currentPage = 1;
+      const rowsPerPage = 15;
 
-    async function loadData() {
-      const tbody = document.getElementById('result-tbody');
-      const statusMsg = document.getElementById('status-message');
-      const paginationContainer = document.getElementById('pagination-container');
-      const searchTerm = document.getElementById('search-bar').value.trim();
+      function debouncePtCarSearch() {
+        clearTimeout(searchTimer);
+        currentPage = 1;
+        searchTimer = setTimeout(() => {
+          loadData();
+        }, 300);
+      }
+      
+      // On attache la fonction à 'window' pour que le oninput puisse la trouver
+      window.debouncePtCarSearch = debouncePtCarSearch;
+    
+      async function loadData() {
+        const tbody = document.getElementById('result-tbody');
+        const statusMsg = document.getElementById('status-message');
+        const paginationContainer = document.getElementById('pagination-container');
+        const searchTerm = document.getElementById('search-bar').value.trim();
 
-      tbody.innerHTML = '';
-      statusMsg.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
-      paginationContainer.innerHTML = '';
-      lucide.createIcons();
+        tbody.innerHTML = '';
+        statusMsg.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
+        paginationContainer.innerHTML = '';
+        lucide.createIcons();
 
-      try {
-        let countQuery = supabaseClient
-          .from('ptcar_abbreviations')
-          .select('*', { count: 'exact', head: true });
+        try {
+          // supabaseClient est maintenant défini (grâce à auth.js et au DOMContentLoaded)
+          let countQuery = supabaseClient
+            .from('ptcar_abbreviations')
+            .select('*', { count: 'exact', head: true });
 
-        let dataQuery = supabaseClient
-          .from('ptcar_abbreviations')
-          .select('ptcar_fr, ptcar_nl, abbr')
-          .order('abbr', { ascending: true });
+          let dataQuery = supabaseClient
+            .from('ptcar_abbreviations')
+            .select('ptcar_fr, ptcar_nl, abbr')
+            .order('abbr', { ascending: true });
 
-        if (searchTerm) {
-          const searchFilter = `abbr.ilike.*${searchTerm}*,ptcar_fr.ilike.*${searchTerm}*,ptcar_nl.ilike.*${searchTerm}*`;
-          countQuery = countQuery.or(searchFilter);
-          dataQuery = dataQuery.or(searchFilter);
+          if (searchTerm) {
+            const searchFilter = `abbr.ilike.*${searchTerm}*,ptcar_fr.ilike.*${searchTerm}*,ptcar_nl.ilike.*${searchTerm}*`;
+            countQuery = countQuery.or(searchFilter);
+            dataQuery = dataQuery.or(searchFilter);
+          }
+          
+          const { count, error: countError } = await countQuery;
+          if (countError) throw countError;
+
+          const totalPages = Math.ceil(count / rowsPerPage);
+          
+          const from = (currentPage - 1) * rowsPerPage;
+          const to = from + rowsPerPage - 1;
+          dataQuery = dataQuery.range(from, to);
+
+          const { data, error: dataError } = await dataQuery;
+          if (dataError) throw dataError;
+
+          statusMsg.innerHTML = '';
+
+          if (data.length === 0) {
+            const message = searchTerm
+              ? `Aucune abréviation ne correspond à "${searchTerm}".`
+              : "Aucune donnée trouvée.";
+              
+            statusMsg.innerHTML = `
+              <div class="col-span-full flex flex-col items-center justify-center text-center py-16 px-6 bg-white rounded-lg border border-dashed border-gray-300">
+                <i data-lucide="tag" class="w-16 h-16 text-gray-300"></i>
+                <h3 class="mt-4 text-xl font-semibold text-gray-800">Aucun résultat</h3>
+                <p class="mt-2 text-sm text-gray-500">${message}</p>
+              </div>
+            `;
+            lucide.createIcons();
+            return;
+          }
+
+          tbody.innerHTML = data.map(row => `
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600">${row.abbr || 'N/A'}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${row.ptcar_fr || 'N/A'}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${row.ptcar_nl || 'N/A'}</td>
+            </tr>
+          `).join('');
+          
+          renderPagination(totalPages, count, from, to);
+
+        } catch (error) {
+          statusMsg.innerHTML = `<p class="text-red-600 text-center">Erreur: ${error.message}</p>`;
         }
+      }
+      
+      function changePage(page) {
+        if (page === currentPage) return;
+        currentPage = page;
+        loadData();
+      }
+      
+      // On attache la fonction à 'window' pour que le onclick puisse la trouver
+      window.changePage = changePage;
+      
+      /**
+       * Construit les contrôles de pagination
+       */
+      function renderPagination(totalPages, totalRows, from, to) {
+        const container = document.getElementById('pagination-container');
         
-        const { count, error: countError } = await countQuery;
-        if (countError) throw countError;
-
-        const totalPages = Math.ceil(count / rowsPerPage);
-        
-        const from = (currentPage - 1) * rowsPerPage;
-        const to = from + rowsPerPage - 1;
-        dataQuery = dataQuery.range(from, to);
-
-        const { data, error: dataError } = await dataQuery;
-        if (dataError) throw dataError;
-
-        statusMsg.innerHTML = '';
-
-        if (data.length === 0) {
-          const message = searchTerm
-            ? `Aucune abréviation ne correspond à "${searchTerm}".`
-            : "Aucune donnée trouvée.";
-            
-          statusMsg.innerHTML = `
-            <div class="col-span-full flex flex-col items-center justify-center text-center py-16 px-6 bg-white rounded-lg border border-dashed border-gray-300">
-              <i data-lucide="tag" class="w-16 h-16 text-gray-300"></i>
-              <h3 class="mt-4 text-xl font-semibold text-gray-800">Aucun résultat</h3>
-              <p class="mt-2 text-sm text-gray-500">${message}</p>
-            </div>
-          `;
-          lucide.createIcons();
+        if (totalPages <= 1) {
+          container.innerHTML = '';
           return;
         }
-
-        tbody.innerHTML = data.map(row => `
-          <tr class="hover:bg-gray-50">
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600">${row.abbr || 'N/A'}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${row.ptcar_fr || 'N/A'}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${row.ptcar_nl || 'N/A'}</td>
-          </tr>
-        `).join('');
         
-        renderPagination(totalPages, count, from, to);
+        const toRow = Math.min(to + 1, totalRows);
+        
+        // ======================= MODIFICATION =======================
+        // Ajout des classes bg-white, border, rounded-md, shadow-sm, px-3, py-1.5
+        // Ajout de font-bold et text-gray-900 sur les nombres
+        const infoHtml = `
+          <p class="text-sm text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm px-3 py-1.5">
+            Résultats <span class="font-bold text-gray-900">${from + 1}</span> à <span class="font-bold text-gray-900">${toRow}</span> sur
+            <span class="font-bold text-gray-900">${totalRows}</span>
+          </p>
+        `;
+        // ==========================================================
+        
+        const prevDisabled = currentPage === 1;
+        const nextDisabled = currentPage === totalPages;
+        
+        const buttonsHtml = `
+          <div class="flex gap-2">
+            <button 
+              onclick="changePage(${currentPage - 1})" 
+              ${prevDisabled ? 'disabled' : ''}
+              class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm 
+                     hover:bg-gray-50 
+                     disabled:opacity-50 disabled:cursor-not-allowed">
+              <i data-lucide="arrow-left" class="w-4 h-4"></i>
+              <span>Précédent</span>
+            </button>
+            
+            <button 
+              onclick="changePage(${currentPage + 1})" 
+              ${nextDisabled ? 'disabled' : ''}
+              class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm 
+                     hover:bg-gray-50 
+                     disabled:opacity-50 disabled:cursor-not-allowed">
+              <span>Suivant</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+        `;
+        
+        container.innerHTML = infoHtml + buttonsHtml;
+        lucide.createIcons();
+      }
 
-      } catch (error) {
-        statusMsg.innerHTML = `<p class="text-red-600 text-center">Erreur: ${error.message}</p>`;
-      }
-    }
-    
-    function changePage(page) {
-      if (page === currentPage) return;
-      currentPage = page;
+      // Lancement initial
       loadData();
-    }
-    
-    /**
-     * Construit les contrôles de pagination
-     */
-    function renderPagination(totalPages, totalRows, from, to) {
-      const container = document.getElementById('pagination-container');
-      
-      if (totalPages <= 1) {
-        container.innerHTML = '';
-        return;
-      }
-      
-      const toRow = Math.min(to + 1, totalRows);
-      
-      // ======================= MODIFICATION =======================
-      // Ajout des classes bg-white, border, rounded-md, shadow-sm, px-3, py-1.5
-      // Ajout de font-bold et text-gray-900 sur les nombres
-      const infoHtml = `
-        <p class="text-sm text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm px-3 py-1.5">
-          Résultats <span class="font-bold text-gray-900">${from + 1}</span> à <span class="font-bold text-gray-900">${toRow}</span> sur
-          <span class="font-bold text-gray-900">${totalRows}</span>
-        </p>
-      `;
-      // ==========================================================
-      
-      const prevDisabled = currentPage === 1;
-      const nextDisabled = currentPage === totalPages;
-      
-      const buttonsHtml = `
-        <div class="flex gap-2">
-          <button 
-            onclick="changePage(${currentPage - 1})" 
-            ${prevDisabled ? 'disabled' : ''}
-            class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm 
-                   hover:bg-gray-50 
-                   disabled:opacity-50 disabled:cursor-not-allowed">
-            <i data-lucide="arrow-left" class="w-4 h-4"></i>
-            <span>Précédent</span>
-          </button>
-          
-          <button 
-            onclick="changePage(${currentPage + 1})" 
-            ${nextDisabled ? 'disabled' : ''}
-            class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm 
-                   hover:bg-gray-50 
-                   disabled:opacity-50 disabled:cursor-not-allowed">
-            <span>Suivant</span>
-            <i data-lucide="arrow-right" class="w-4 h-4"></i>
-          </button>
-        </div>
-      `;
-      
-      container.innerHTML = infoHtml + buttonsHtml;
-      lucide.createIcons();
-    }
+    });
   </script>
   
   <div id="footer-placeholder"></div>
