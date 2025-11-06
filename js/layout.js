@@ -186,6 +186,7 @@ async function loadLatestChangelog() {
 
 /**
  * Injecte les styles CSS personnalisés pour Flatpickr (thème "BACO")
+ * VERSION CORRIGÉE AVEC !important
  */
 function injectCalendarStyles() {
   const style = document.createElement('style');
@@ -195,98 +196,100 @@ function injectCalendarStyles() {
   style.innerHTML = `
     /* Utilise notre nom de thème pour augmenter la spécificité */
     .flatpickr-calendar.baco-theme {
-      background: #1F2937; /* bg-gray-800 */
-      border: 1px solid #374151; /* border-gray-700 */
-      border-radius: 0.5rem; /* rounded-lg */
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-xl */
-      width: auto;
-      min-width: 320px;
-      padding: 0.5rem; /* p-2 */
-      color: #D1D5DB; /* text-gray-300 */
+      background: #1F2937 !important; /* bg-gray-800 */
+      border: 1px solid #374151 !important; /* border-gray-700 */
+      border-radius: 0.5rem !important; /* rounded-lg */
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important; /* shadow-xl */
+      width: auto !important;
+      min-width: 320px !important;
+      padding: 0.5rem !important; /* p-2 */
+      color: #D1D5DB !important; /* text-gray-300 */
     }
     
     /* En-tête (Mois, Année) */
     .baco-theme .flatpickr-months {
-      background: transparent;
-      padding: 0.25rem 0.5rem 0.75rem; /* px-2 pt-1 pb-3 */
-      border-bottom: 1px solid #374151; /* border-gray-700 */
+      background: transparent !important;
+      padding: 0.25rem 0.5rem 0.75rem !important; /* px-2 pt-1 pb-3 */
+      border-bottom: 1px solid #374151 !important; /* border-gray-700 */
     }
     .baco-theme .flatpickr-months .flatpickr-month,
     .baco-theme .flatpickr-current-month .numInputWrapper {
-      color: #F9FAFB; /* text-gray-100 */
-      font-weight: 600; /* font-semibold */
-      height: 2.5rem; /* h-10 */
+      color: #F9FAFB !important; /* text-gray-100 */
+      font-weight: 600 !important; /* font-semibold */
+      height: 2.5rem !important; /* h-10 */
     }
     .baco-theme .flatpickr-current-month input.cur-year {
-        font-weight: 600;
-        color: #F9FAFB;
+        font-weight: 600 !important;
+        color: #F9FAFB !important;
     }
     .baco-theme .flatpickr-months .flatpickr-prev-month,
     .baco-theme .flatpickr-months .flatpickr-next-month {
-      fill: #D1D5DB; /* text-gray-300 */
-      padding: 0.25rem; /* p-1 */
-      border-radius: 0.375rem; /* rounded-md */
+      fill: #D1D5DB !important; /* text-gray-300 */
+      padding: 0.25rem !important; /* p-1 */
+      border-radius: 0.375rem !important; /* rounded-md */
     }
     .baco-theme .flatpickr-months .flatpickr-prev-month:hover,
     .baco-theme .flatpickr-months .flatpickr-next-month:hover {
-      fill: #F9FAFB; /* text-gray-100 */
-      background: #374151; /* hover:bg-gray-700 */
+      fill: #F9FAFB !important; /* text-gray-100 */
+      background: #374151 !important; /* hover:bg-gray-700 */
     }
 
     /* Wrapper Jours (Sem, lun, mar...) */
     .baco-theme .flatpickr-weekwrapper {
-      border-right: 1px solid #374151; /* border-gray-700 */
+      border-right: 1px solid #374151 !important; /* border-gray-700 */
     }
     .baco-theme .flatpickr-weekdaycontainer {
-      padding: 0.5rem 0; /* py-2 */
+      padding: 0.5rem 0 !important; /* py-2 */
     }
     .baco-theme .flatpickr-weekday, 
     .baco-theme .flatpickr-weekwrapper .flatpickr-weeks {
-      color: #9CA3AF; /* text-gray-400 */
-      font-weight: 500; /* font-medium */
-      font-size: 0.75rem; /* text-xs */
-      text-transform: uppercase;
-      background: transparent;
+      color: #9CA3AF !important; /* text-gray-400 */
+      font-weight: 500 !important; /* font-medium */
+      font-size: 0.75rem !important; /* text-xs */
+      text-transform: uppercase !important;
+      background: transparent !important;
     }
     .baco-theme .flatpickr-weekwrapper .flatpickr-weeks {
-      padding-top: 0.6rem; /* Alignement vertical */
+      padding-top: 0.6rem !important; /* Alignement vertical */
     }
     
     /* Jours (numéros) */
     .baco-theme .flatpickr-day {
-      color: #D1D5DB; /* text-gray-300 */
-      border: 1px solid transparent;
-      border-radius: 0.375rem; /* rounded-md */
-      font-weight: 400;
+      color: #D1D5DB !important; /* text-gray-300 */
+      border: 1px solid transparent !important;
+      border-radius: 0.375rem !important; /* rounded-md */
+      font-weight: 400 !important;
     }
     .baco-theme .flatpickr-day:hover {
-      background: #374151; /* hover:bg-gray-700 */
-      color: #F9FAFB;
-      border-color: #374151;
+      background: #374151 !important; /* hover:bg-gray-700 */
+      color: #F9FAFB !important;
+      border-color: #374151 !important;
     }
     .baco-theme .flatpickr-day.today {
-      background: transparent;
-      border-color: #374151; /* Un cercle gris discret pour "aujourd'hui" */
-      color: #F9FAFB;
+      /* Style pour "aujourd'hui" (cercle bleu) */
+      background: transparent !important;
+      border-color: #2563EB !important; /* Cercle bleu-600 */
+      color: #F9FAFB !important;
     }
     .baco-theme .flatpickr-day.selected, 
     .baco-theme .flatpickr-day.startRange, 
     .baco-theme .flatpickr-day.endRange {
-      background: #2563EB; /* Le VRAI bleu du site (bg-blue-600) */
-      border-color: #2563EB;
-      color: #FFFFFF;
+      /* Style pour le jour cliqué (fond bleu) */
+      background: #2563EB !important; /* Le VRAI bleu du site (bg-blue-600) */
+      border-color: #2563EB !important;
+      color: #FFFFFF !important;
     }
     
     /* Jours désactivés (mois précédent/suivant) */
     .baco-theme .flatpickr-day.flatpickr-disabled, 
     .baco-theme .flatpickr-day.prevMonthDay, 
     .baco-theme .flatpickr-day.nextMonthDay {
-      color: #4B5563; /* text-gray-600 */
+      color: #4B5563 !important; /* text-gray-600 */
     }
     .baco-theme .flatpickr-day.prevMonthDay:hover, 
     .baco-theme .flatpickr-day.nextMonthDay:hover {
-      background: transparent;
-      border-color: transparent;
+      background: transparent !important;
+      border-color: transparent !important;
     }
   `;
   document.head.appendChild(style);
@@ -538,6 +541,12 @@ document.addEventListener('DOMContentLoaded', async () => {
           appendTo: document.body, // S'assure qu'il s'affiche par-dessus tout
 
           theme: "baco-theme", // On lui donne un nom de thème
+
+          onReady: function(selectedDates, dateStr, instance) {
+          // Gardez cette ligne pour la police Geist
+          instance.calendarContainer.classList.add('font-sans');
+        }
+
         });
       } else {
         console.warn('Flatpickr (ou sa traduction FR) n\'est pas chargé. Le calendrier de la nav ne s\'affichera pas.');
