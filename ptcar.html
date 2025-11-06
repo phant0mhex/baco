@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-gray-100">
+<head>
+  <meta charset="UTF-8">
+  <title>Portail BACO - PtCar</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/auth.js" defer></script>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/variable/geist-sans.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-mono/variable/geist-mono.css" rel="stylesheet">
+
+  <script src="https://unpkg.com/lucide@latest" defer></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Geist Sans', 'sans-serif'],
+            mono: ['Geist Mono', 'monospace'],
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="flex flex-col min-h-screen">
+
+  <div id="nav-placeholder"></div>
+
+<div class="flex-grow">
+  <div class="container mx-auto p-8 max-w-4xl">
+    
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-800">Répertoire des PtCar</h1>
+      <p class="mt-1 text-sm text-gray-500">Rechercher une abréviation PtCar ou un nom.</p>
+    </header>
+
+    <div class="mb-8">
+      <label for="search-bar" class="sr-only">Rechercher</label>
+      <div class="relative mt-1 rounded-md shadow-sm">
+        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+          <i data-lucide="search" class="w-5 h-5 text-gray-400"></i>
+        </div>
+        <input type="search" id="search-bar" oninput="loadData()" placeholder="Rechercher (ex: FNT, Antoing, ATH...)" class="block w-full rounded-md border-gray-300 pl-10 px-4 py-2 focus:border-blue-500 focus:ring-blue-500">
+      </div>
+    </div>
+
+    <div id="result-container" class="overflow-hidden bg-white shadow border border-gray-200 rounded-lg">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Abréviation</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PtCar FR</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PtCar NL</th>
+          </tr>
+        </thead>
+        <tbody id="result-tbody" class="bg-white divide-y divide-gray-200">
+          </tbody>
+      </table>
+    </div>
+    
+    <div id="status-message" class="py-10"></div>
+
+  </div>
+</div>
+  
+  <script src="js/layout.js" defer></script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      loadData(); // Charger les données au démarrage
+    });
+
+    async function loadData() {
+      const tbody = document.getElementById('result-tbody');
+      const statusMsg = document.getElementById('status-message');
+      const searchTerm = document.getElementById('search-bar').value.trim();
+
+      // Afficher le spinner pendant le chargement
+      tbody.innerHTML = '';
+      statusMsg.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
+      lucide.createIcons();
+
+      try {
+        let query = supabaseClient
+          .from('ptcar_abbreviations')
+          .select('ptcar_fr, ptcar_nl, abbr')
+          .order('abbr', { ascending: true }); // Trier par abréviation
+
+        // Si un terme de recherche est entré
+        if (searchTerm) {
+          query = query.or(
+            `abbr.ilike.%${searchTerm}%`,
+            `ptcar_fr.ilike.%${searchTerm}%`,
+            `ptcar_nl.ilike.%${searchTerm}%`
+          );
+        }
+        
+        // Limiter les résultats pour ne pas surcharger (ex: 100 premiers)
+        query = query.limit(100);
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        // Vider le message de statut si on a des résultats
+        statusMsg.innerHTML = '';
+
+        if (data.length === 0) {
+          statusMsg.innerHTML = `
+            <div class="col-span-full flex flex-col items-center justify-center text-center py-16 px-6 bg-white rounded-lg border border-dashed border-gray-300">
+              <i data-lucide="tag" class="w-16 h-16 text-gray-300"></i>
+              <h3 class="mt-4 text-xl font-semibold text-gray-800">Aucun résultat</h3>
+              <p class="mt-2 text-sm text-gray-500">Aucune abréviation ne correspond à "${searchTerm}".</p>
+            </div>
+          `;
+          lucide.createIcons();
+          return;
+        }
+
+        // Construire le HTML du tableau
+        tbody.innerHTML = data.map(row => `
+          <tr class="hover:bg-gray-50">
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600">${row.abbr || 'N/A'}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${row.ptcar_fr || 'N/A'}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${row.ptcar_nl || 'N/A'}</td>
+          </tr>
+        `).join('');
+
+      } catch (error) {
+        statusMsg.innerHTML = `<p class="text-red-600 text-center">Erreur: ${error.message}</p>`;
+      }
+    }
+  </script>
+  
+  <div id="footer-placeholder"></div>
+</body>
+</html>
