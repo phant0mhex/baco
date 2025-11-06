@@ -20,6 +20,20 @@
             sans: ['Geist Sans', 'sans-serif'],
             mono: ['Geist Mono', 'monospace'],
           },
+          
+          // ======================= NOUVEL AJOUT =======================
+          // Définition de notre animation de gradient
+          animation: {
+            'gradient-pan': 'gradient-pan 3s ease infinite',
+          },
+          keyframes: {
+            'gradient-pan': {
+              '0%': { backgroundPosition: '0% 50%' },
+              '50%': { backgroundPosition: '100% 50%' },
+              '100%': { backgroundPosition: '0% 50%' },
+            }
+          }
+          // ==========================================================
         },
       },
     }
@@ -29,9 +43,17 @@
 
   <div id="nav-placeholder"></div>
 
-<div class="flex-grow"> <div class="container mx-auto p-8">
+<div class="flex-grow"> 
+  <div class="container mx-auto p-8">
     <header class="mb-10 text-center">
-      <h2 id="user-greeting" class="text-2xl font-light text-blue-600 dark:text-blue-400 mb-4" style="min-height: 2rem;">
+      
+      <h2 id="user-greeting" 
+          class="text-2xl font-bold mb-4 
+                 bg-gradient-to-r from-blue-600 to-cyan-400 
+                 dark:from-blue-400 dark:to-cyan-300 
+                 bg-clip-text text-transparent 
+                 bg-[size:200%_auto] animate-gradient-pan" 
+          style="min-height: 2rem;">
         </h2>
       <h1 class="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2">Bienvenue sur le portail de données</h1>
       <p class="text-lg text-gray-600 dark:text-gray-400">Choisissez votre domaine :</p>
@@ -50,9 +72,17 @@
       <a href="pmr.html" class="block h-full p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
          <h3 class="flex items-center gap-3 text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
            <i data-lucide="accessibility" class="w-5 h-5 text-blue-600"></i>
-           <span>PMR</span>
+           <span>Rampes PMR</span>
          </h3>
          <p class="text-sm text-gray-600 dark:text-gray-400 pl-8">Données relatives aux Personnes à Mobilité Réduite.</p>
+      </a>
+      
+      <a href="clients_pmr.html" class="block h-full p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
+         <h3 class="flex items-center gap-3 text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+           <i data-lucide="users" class="w-5 h-5 text-blue-600"></i>
+           <span>Clients PMR</span>
+         </h3>
+         <p class="text-sm text-gray-600 dark:text-gray-400 pl-8">Répertoire des clients à mobilité réduite.</p>
       </a>
       
       <a href="bus.html" class="block h-full p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
@@ -105,11 +135,12 @@
 
     </div>
   </div>
-</div> <script src="js/layout.js" defer></script>
+</div> 
+
+  <script src="js/layout.js" defer></script>
   
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // (Script de salut inchangé)
       lucide.createIcons();
       async function loadUserGreeting() {
         const greetingElement = document.getElementById('user-greeting');
