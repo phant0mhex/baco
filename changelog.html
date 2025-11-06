@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-gray-50">
+<head>
+  <meta charset="UTF-8">
+  <title>Changelog - Portail BACO</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+  
+  <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/variable/geist-sans.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-mono/variable/geist-mono.css" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest" defer></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/auth.js"></script> 
+  
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/marked@5.1.2/marked.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
+  <script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
+  
+  <script src="js/layout.js" defer></script> 
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Geist Sans', 'sans-serif'], mono: ['Geist Mono', 'monospace'] },
+          typography: (theme) => ({
+            DEFAULT: { css: { color: theme('colors.gray.700'), /* ... */ } },
+          }),
+        },
+      },
+      plugins: [ tailwind.plugins.typography ],
+    }
+  </script>
+  
+  <style>
+    .EasyMDEContainer { z-index: 60; }
+    .editor-toolbar { z-index: 61; }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen bg-gray-100">
+
+  <div id="nav-placeholder"></div>
+
+  <div class="flex-grow">
+    
+    <header class="bg-white shadow-sm border-b border-gray-200">
+      <div class="container mx-auto p-6 md:flex md:justify-between md:items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-800">Changelog</h1>
+          <p class="mt-1 text-sm text-gray-500">Historique des mises à jour et corrections du portail.</p>
+        </div>
+        <div class="mt-4 md:mt-0 admin-only">
+          <button onclick="showChangelogModal()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
+            <i data-lucide="plus" class="w-5 h-5"></i>
+            <span>Ajouter une entrée</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="container mx-auto p-8 max-w-3xl">
+      <div id="changelog-feed" class="space-y-8">
+        </div>
+    </div>
+  </div>
+  
+  <div id="changelog-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50" style="display: none;">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl">
+      <form id="changelog-form" onsubmit="handleFormSubmit(event)">
+        <div class="flex justify-between items-center p-4 border-b">
+          <h3 id="modal-title" class="text-xl font-semibold text-gray-800">Ajouter une entrée</h3>
+          <button type="button" onclick="hideChangelogModal()" class="p-1 rounded-full text-gray-500 hover:bg-gray-200">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+        
+        <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="modal-title-input" class="block text-sm font-medium text-gray-700">Titre</label>
+              <input type="text" id="modal-title-input" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+              <label for="modal-type-select" class="block text-sm font-medium text-gray-700">Type</label>
+              <select id="modal-type-select" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                <option value="Amélioré">Amélioré</option>
+                <option value="Nouveau">Nouveau</option>
+                <option value="Corrigé">Corrigé</option>
+              </select>
+            </div>
+          </div>
+          
+          <div>
+            <label for="modal-content" class="block text-sm font-medium text-gray-700 mb-1">Détails (Markdown)</label>
+            <textarea id="modal-content"></textarea>
+          </div>
+        </div>
+        
+        <div class="flex justify-end items-center p-4 bg-gray-50 border-t rounded-b-lg">
+          <button type="button" onclick="hideChangelogModal()" class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none">
+            Annuler
+          </button>
+          <button type="submit" id="modal-submit-button" class="ml-3 px-4 py-2 bg-blue-600 text-white border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none">
+            Enregistrer
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <div id="footer-placeholder"></div>
+
+  <script>
+    // Fonctions globales
+    let showChangelogModal;
+    let hideChangelogModal;
+    let handleFormSubmit;
+    let deleteEntry;
+
+    document.addEventListener('DOMContentLoaded', () => {
+    
+      const notyf = (typeof Notyf !== 'undefined') 
+        ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
+        : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
+
+      const feed = document.getElementById('changelog-feed');
+      const modal = document.getElementById('changelog-modal');
+      const modalForm = document.getElementById('changelog-form');
+      const modalTitle = document.getElementById('modal-title');
+      const modalTitleInput = document.getElementById('modal-title-input');
+      const modalTypeSelect = document.getElementById('modal-type-select');
+      const submitButton = document.getElementById('modal-submit-button');
+      
+      let currentUserId = null;
+
+      // Initialiser l'éditeur Markdown
+      const easyMDE = new EasyMDE({
+            element: document.getElementById('modal-content'),
+            spellChecker: false,
+            status: false,
+            toolbar: ["bold", "italic", "|", "unordered-list", "ordered-list", "|", "link", "|", "preview", "guide"],
+            minHeight: "150px"
+      });
+      
+      /**
+       * Formate la date (ex: "03 novembre 2025")
+       */
+      function formatLogDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('fr-FR', {
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric'
+        });
+      }
+      
+      /**
+       * Retourne les classes Tailwind pour un badge de type
+       */
+      function getTypeBadge(type) {
+        switch (type) {
+          case 'Nouveau':
+            return 'bg-green-100 text-green-800';
+          case 'Corrigé':
+            return 'bg-red-100 text-red-800';
+          case 'Amélioré':
+          default:
+            return 'bg-blue-100 text-blue-800';
+        }
+      }
+
+      /**
+       * Charge et affiche le fil des modifications
+       */
+      async function loadChangelog() {
+        feed.innerHTML = '<div class="flex justify-center items-center py-20"><i data-lucide="loader-2" class="w-10 h-10 text-blue-600 animate-spin"></i></div>';
+        lucide.createIcons();
+        
+        try {
+          // On récupère les entrées ET le profil de l'auteur
+          const { data, error } = await supabaseClient
+            .from('changelog')
+            .select(`
+              *,
+              profiles ( full_name, avatar_url )
+            `)
+            .order('created_at', { ascending: false }); // Le plus récent en haut
+
+          if (error) throw error;
+          
+          if (!currentUserId) {
+             const { data: { user } } = await supabaseClient.auth.getUser();
+             if (user) currentUserId = user.id;
+          }
+
+         if (data.length === 0) {
+            feed.innerHTML = `
+              <div class="flex flex-col items-center justify-center text-center py-16 px-6 bg-white rounded-lg border border-dashed border-gray-300">
+                <i data-lucide="list-checks" class="w-16 h-16 text-gray-300"></i>
+                <h3 class="mt-4 text-xl font-semibold text-gray-800">Aucune entrée</h3>
+                <p class="mt-2 text-sm text-gray-500">Le journal des modifications est vide pour le moment.</p>
+              </div>
+            `;
+            lucide.createIcons();
+            return;
+          }
+
+          feed.innerHTML = data.map(entry => {
+            const author = entry.profiles;
+            const timestamp = formatLogDate(entry.created_at);
+            const badgeClasses = getTypeBadge(entry.type);
+            
+            const authorName = author ? author.full_name : 'Utilisateur';
+            const authorAvatar = author ? author.avatar_url : 'https://api.dicebear.com/9.x/micah/svg?seed=deleted';
+            
+            // Convertir le Markdown du contenu en HTML
+            const contentHtml = window.marked.parse(entry.content || '');
+            
+            return `
+              <div class="bg-white shadow border border-gray-200 rounded-lg overflow-hidden">
+                <div class="p-5 border-b bg-white">
+                  <div class="flex justify-between items-center mb-3">
+                    <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full ${badgeClasses}">
+                      ${entry.type}
+                    </span>
+                    <span class="text-sm text-gray-500">${timestamp}</span>
+                  </div>
+                  
+                  <h2 class="text-2xl font-bold text-gray-800">${entry.title}</h2>
+                  
+                  <div class="flex items-center gap-2 mt-3">
+                    <img src="${authorAvatar}" alt="avatar" class="w-6 h-6 rounded-full object-cover">
+                    <span class="text-sm font-medium text-gray-600">Par ${authorName}</span>
+                  </div>
+                </div>
+                
+                <div class="p-5 prose prose-sm max-w-none">
+                  ${contentHtml}
+                </div>
+                
+                <div class="admin-only flex justify-end p-2 bg-gray-50 border-t">
+                  <button onclick="deleteEntry(${entry.id}, '${entry.title}')" class="p-2 text-red-500 rounded-full hover:bg-red-100" title="Supprimer">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+          lucide.createIcons();
+          if (window.hideAdminElements) window.hideAdminElements();
+          
+        } catch (error) {
+          feed.innerHTML = `<p class="text-red-600 text-center">Erreur: ${error.message}</p>`;
+          notyf.error('Erreur lors du chargement du changelog.');
+        }
+      }
+      
+      /**
+       * Gère la soumission d'une nouvelle entrée
+       */
+      handleFormSubmit = async (event) => {
+        event.preventDefault();
+        
+        if (!currentUserId) {
+           notyf.error("Erreur: utilisateur non identifié.");
+           return;
+        }
+        
+        const entryData = {
+          title: modalTitleInput.value,
+          type: modalTypeSelect.value,
+          content: easyMDE.value(),
+          user_id: currentUserId // Associer l'entrée à l'utilisateur
+        };
+        
+        submitButton.disabled = true;
+        submitButton.textContent = 'Enregistrement...';
+        
+        try {
+          // 'upsert' gère l'ajout (nous n'utilisons pas l'édition ici, mais upsert est sûr)
+          const { error } = await supabaseClient
+            .from('changelog')
+            .insert(entryData);
+            
+          if (error) throw error;
+          
+          notyf.success('Entrée ajoutée !');
+          hideChangelogModal();
+          loadChangelog(); // Recharger le fil
+          
+        } catch (error) {
+          notyf.error("Erreur: " + error.message);
+        } finally {
+          submitButton.disabled = false;
+          submitButton.textContent = 'Enregistrer';
+        }
+      }
+      
+      /**
+       * Gère la suppression d'une entrée
+       */
+      deleteEntry = async (id, title) => {
+        if (!confirm(`Êtes-vous sûr de vouloir supprimer l'entrée : "${title}" ?`)) return;
+        
+        try {
+          const { error } = await supabaseClient
+            .from('changelog')
+            .delete()
+            .eq('id', id);
+            
+          if (error) throw error;
+          
+          notyf.success('Entrée supprimée.');
+          loadChangelog(); // Recharger
+          
+        } catch (error) {
+          notyf.error("Erreur: " + error.message);
+        }
+      }
+      
+      /**
+       * Fonctions du Modal
+       */
+      showChangelogModal = () => {
+        modalForm.reset();
+        easyMDE.value(''); // Vider l'éditeur
+        modal.style.display = 'flex';
+        lucide.createIcons();
+      }
+      
+      hideChangelogModal = () => {
+        modal.style.display = 'none';
+      }
+
+      // --- Lancement ---
+      loadChangelog();
+      modalForm.addEventListener('submit', handleFormSubmit);
+
+    }); // Fin de DOMContentLoaded
+  </script>
+
+</body>
+</html>
