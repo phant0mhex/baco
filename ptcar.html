@@ -45,7 +45,7 @@
         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
           <i data-lucide="search" class="w-5 h-5 text-gray-400"></i>
         </div>
-        <input type="search" id="search-bar" oninput="loadData()" placeholder="Rechercher (ex: FNT, Antoing, ATH...)" class="block w-full rounded-md border-gray-300 pl-10 px-4 py-2 focus:border-blue-500 focus:ring-blue-500">
+        <input type="search" id="search-bar" onkeyup="debounceSearch()" placeholder="Rechercher (ex: FNT, Antoing, ATH...)" class="block w-full rounded-md border-gray-300 pl-10 px-4 py-2 focus:border-blue-500 focus:ring-blue-500">
       </div>
     </div>
 
@@ -71,6 +71,18 @@
   <script src="js/layout.js" defer></script>
   
   <script>
+    // ======================= MODIFICATION : DEBOUNCE =======================
+    let searchTimer;
+    
+    // Fonction qui attend 300ms avant de lancer la recherche
+    function debounceSearch() {
+      clearTimeout(searchTimer); // Annule la recherche précédente
+      searchTimer = setTimeout(() => {
+        loadData();
+      }, 300); // Attend 300ms après la dernière frappe
+    }
+    // =====================================================================
+  
     document.addEventListener('DOMContentLoaded', () => {
       loadData(); // Charger les données au démarrage
     });
@@ -94,14 +106,14 @@
         // Si un terme de recherche est entré
         if (searchTerm) {
           query = query.or(
+            // La syntaxe .ilike.%searchTerm% est correcte
             `abbr.ilike.%${searchTerm}%`,
             `ptcar_fr.ilike.%${searchTerm}%`,
             `ptcar_nl.ilike.%${searchTerm}%`
           );
         }
         
-        // Limiter les résultats pour ne pas surcharger (ex: 100 premiers)
-        query = query.limit(100);
+        query = query.limit(100); // Limiter à 100 résultats
 
         const { data, error } = await query;
         if (error) throw error;
@@ -110,11 +122,16 @@
         statusMsg.innerHTML = '';
 
         if (data.length === 0) {
+          // Gérer le cas "recherche vide"
+          const message = searchTerm
+            ? `Aucune abréviation ne correspond à "${searchTerm}".`
+            : "Aucune donnée trouvée.";
+            
           statusMsg.innerHTML = `
             <div class="col-span-full flex flex-col items-center justify-center text-center py-16 px-6 bg-white rounded-lg border border-dashed border-gray-300">
               <i data-lucide="tag" class="w-16 h-16 text-gray-300"></i>
               <h3 class="mt-4 text-xl font-semibold text-gray-800">Aucun résultat</h3>
-              <p class="mt-2 text-sm text-gray-500">Aucune abréviation ne correspond à "${searchTerm}".</p>
+              <p class="mt-2 text-sm text-gray-500">${message}</p>
             </div>
           `;
           lucide.createIcons();
