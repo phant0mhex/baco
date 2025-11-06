@@ -31,8 +31,7 @@
 
   <div id="nav-placeholder"></div>
 
-<div class="flex-grow">
-  <div class="container mx-auto p-8 max-w-4xl">
+<div class="flex-grow"> <div class="container mx-auto p-8 max-w-4xl">
     
     <header class="mb-8">
       <h1 class="text-3xl font-bold text-gray-800">Répertoire des PtCar</h1>
@@ -67,19 +66,14 @@
 
     <div id="pagination-container" class="flex justify-between items-center mt-6">
       </div>
-    
-    </div>
-</div>
-  
-  <script src="js/layout.js" defer></script>
+
+  </div>
+</div> <script src="js/layout.js" defer></script>
   
   <script>
     let searchTimer;
-    
-    // ======================= NOUVELLES VARIABLES D'ÉTAT =======================
     let currentPage = 1;
-    const rowsPerPage = 15; // Nombre de résultats par page
-    // ========================================================================
+    const rowsPerPage = 15;
     
     // Fonction qui attend 300ms avant de lancer la recherche
     function debounceSearch() {
@@ -94,7 +88,6 @@
       loadData(); // Charger les données au démarrage
     });
 
-    // ======================= loadData() MIS À JOUR =======================
     async function loadData() {
       const tbody = document.getElementById('result-tbody');
       const statusMsg = document.getElementById('status-message');
@@ -173,20 +166,12 @@
       }
     }
     
-    // ======================= NOUVELLE FONCTION : changePage =======================
-    /**
-     * Change la page actuelle et recharge les données
-     */
     function changePage(page) {
       if (page === currentPage) return;
       currentPage = page;
       loadData();
     }
     
-    // ======================= NOUVELLE FONCTION : renderPagination =======================
-    /**
-     * Construit les contrôles de pagination
-     */
     function renderPagination(totalPages, totalRows, from, to) {
       const container = document.getElementById('pagination-container');
       
