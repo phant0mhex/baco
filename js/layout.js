@@ -180,7 +180,7 @@ async function loadLatestChangelog() {
 }
 
 // ===============================================================
-// ==              DÉBUT DE LA NOUVELLE SECTION                 ==
+// ==              SECTION RECHERCHE GLOBALE (MISE À JOUR)      ==
 // ===============================================================
 
 let globalSearchTimer;
@@ -206,6 +206,15 @@ function createSearchModal() {
     .search-result-item:hover, .search-result-item.selected {
       background-color: #374151; /* gray-700 */
     }
+    /* Style pour les tags KBD */
+    kbd {
+      font-family: 'Geist Mono', monospace;
+      font-size: 0.75rem; /* text-xs */
+      background-color: #374151; /* gray-700 */
+      border: 1px solid #4B5563; /* gray-600 */
+      border-radius: 4px;
+      padding: 2px 5px;
+    }
   `;
   document.head.appendChild(style);
 
@@ -217,7 +226,7 @@ function createSearchModal() {
         <div class="relative flex items-center p-4 border-b border-gray-700">
           <i data-lucide="search" class="w-5 h-5 text-gray-400 absolute left-7"></i>
           <input type="text" id="global-search-input" 
-                 placeholder="Chercher partout (Cmd+K / Shift+K)" 
+                 placeholder="Chercher partout..." 
                  class="w-full bg-gray-800 border-0 text-lg text-white pl-10 pr-4 py-2 focus:outline-none placeholder-gray-500">
           <i data-lucide="loader-2" id="global-search-spinner" class="w-5 h-5 text-blue-500 animate-spin absolute right-7" style="display: none;"></i>
         </div>
@@ -226,7 +235,10 @@ function createSearchModal() {
           <p class="text-center text-gray-500 p-6">Commencez à taper pour rechercher...</p>
         </div>
         
-      </div>
+        <div class="p-2 text-xs text-center text-gray-500 border-t border-gray-700">
+          Utilisez <kbd>Cmd+K</kbd> ou <kbd>Shift+K</kbd> pour ouvrir/fermer.
+        </div>
+        </div>
     </div>
   `;
   document.body.insertAdjacentHTML('beforeend', modalHtml);
@@ -314,7 +326,7 @@ async function executeSearch() {
 }
 
 /**
- * Affiche les résultats dans la modale
+ * Affiche les résultats dans la modale (MISE À JOUR)
  */
 function renderSearchResults(results) {
   if (!results || results.length === 0) {
@@ -333,15 +345,23 @@ function renderSearchResults(results) {
     'Bus (Chauffeur)': 'user-check'
   };
 
+  // ======================= MODIFICATION : Ajout du badge de source =======================
   globalSearchResults.innerHTML = results.map(r => `
-    <a href="${r.url}" onclick="hideGlobalSearch()" class="search-result-item flex items-center gap-4 p-3 rounded-md cursor-pointer">
-      <i data-lucide="${iconMap[r.result_type] || 'file'}" class="w-5 h-5 text-gray-400 flex-shrink-0"></i>
-      <div class="overflow-hidden">
-        <p class="text-base text-white font-medium truncate">${r.title}</p>
-        <p class="text-sm text-gray-400 truncate">${r.snippet}</p>
+    <a href="${r.url}" onclick="hideGlobalSearch()" class="search-result-item flex items-center justify-between gap-4 p-3 rounded-md cursor-pointer">
+      
+      <div class="flex items-center gap-4 overflow-hidden">
+        <i data-lucide="${iconMap[r.result_type] || 'file'}" class="w-5 h-5 text-gray-400 flex-shrink-0"></i>
+        <div class="overflow-hidden">
+          <p class="text-base text-white font-medium truncate">${r.title}</p>
+          <p class="text-sm text-gray-400 truncate">${r.snippet}</p>
+        </div>
       </div>
+      
+      <span class="text-xs text-gray-400 bg-gray-700 px-2 py-0.5 rounded-full flex-shrink-0">${r.result_type}</span>
+      
     </a>
   `).join('');
+  // ===================================================================================
   
   lucide.createIcons(); // Redessiner les icônes
 }
@@ -350,20 +370,22 @@ function renderSearchResults(results) {
  * Écouteur de touches global pour Cmd+K / Shift+K
  */
 function globalKeyListener(e) {
+  const modalVisible = globalSearchModal.style.display === 'flex';
+  
   // Raccourci Shift + K
   if (e.shiftKey && e.key === 'K') {
     e.preventDefault();
-    showGlobalSearch();
+    modalVisible ? hideGlobalSearch() : showGlobalSearch();
   }
   // Raccourci Cmd + K (Mac) ou Ctrl + K (Windows/Linux)
   if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
     e.preventDefault();
-    showGlobalSearch();
+    modalVisible ? hideGlobalSearch() : showGlobalSearch();
   }
 }
 
 // ===============================================================
-// ==                FIN DE LA NOUVELLE SECTION                 ==
+// ==                FIN DE LA SECTION RECHERCHE                ==
 // ===============================================================
 
 
@@ -372,10 +394,8 @@ function globalKeyListener(e) {
 
 document.addEventListener('DOMContentLoaded', async () => {
   
-  // ===================== NOUVEAUX AJOUTS =====================
   createSearchModal(); // Crée le HTML et le CSS de la modale
   window.addEventListener('keydown', globalKeyListener); // Attache l'écouteur de touches
-  // =========================================================
 
   // Appliquer la sécurité admin immédiatement
   hideAdminElements();
