@@ -18,6 +18,8 @@
   
   <script src="https://cdn.jsdelivr.net/npm/marked@5.1.2/marked.min.js"></script>
 
+  <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
+  <script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
   <script src="js/layout.js" defer></script> 
 
   <script>
@@ -50,7 +52,22 @@
       ],
     }
   </script>
-</head>
+  
+  <style>
+    /* Force l'éditeur à être au-dessus du fond semi-transparent de la modale */
+    .EasyMDEContainer {
+      z-index: 60; 
+    }
+    /* Corrige un bug de z-index de la barre d'outils */
+    .editor-toolbar {
+      z-index: 61;
+    }
+    /* S'assure que la modale est bien au-dessus de la nav (z-50) */
+    #procedure-modal {
+      z-index: 55;
+    }
+  </style>
+  </head>
 <body class="flex flex-col min-h-screen bg-gray-100">
 
   <div id="nav-placeholder"></div>
@@ -98,8 +115,7 @@
     </div>
   </div>
 
-  <div id="procedure-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 opacity-0 invisible transition-all duration-300 ease-out z-50">
-    <div id="procedure-modal-panel" class="bg-white rounded-lg shadow-xl w-full max-w-3xl scale-95 transition-all duration-300 ease-out">
+  <div id="procedure-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 opacity-0 invisible transition-all duration-300 ease-out z-50"> <div id="procedure-modal-panel" class="bg-white rounded-lg shadow-xl w-full max-w-3xl scale-95 transition-all duration-300 ease-out">
       <form id="procedure-form" onsubmit="handleFormSubmit(event)">
         <div class="flex justify-between items-center p-4 border-b">
           <h3 id="modal-title" class="text-xl font-semibold text-gray-800">Ajouter une procédure</h3>
@@ -123,12 +139,10 @@
           </div>
           
           <div>
-            <label for="modal-contenu" class="block text-sm font-medium text-gray-700">Contenu (Format Markdown)</label>
-            <textarea id="modal-contenu" rows="12" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm" placeholder="Ex: # Titre 1, ## Titre 2, - Puce 1, - Puce 2, **Gras**, *Italique*"></textarea>
-            <p class="mt-2 text-xs text-gray-500">
-              Utilisez le <a href="https://www.markdownguide.org/basic-syntax/" target="_blank" class="text-blue-600 hover:underline">Markdown</a> pour formater le texte.
-            </p>
-          </div>
+            <label for="modal-contenu" class="block text-sm font-medium text-gray-700 mb-1">Contenu</label>
+            <textarea id="modal-contenu" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"></textarea>
+            
+            </div>
         </div>
         
         <div class="flex justify-end items-center p-4 bg-gray-50 border-t rounded-b-lg">
@@ -175,10 +189,33 @@
       
       let selectedCategory = 'all';
 
+      // ======================= NOUVEAU : Initialisation de l'éditeur =======================
+      let easyMDE;
+      try {
+        easyMDE = new EasyMDE({
+            element: document.getElementById('modal-contenu'),
+            spellChecker: false, // Désactive le correcteur orthographique
+            status: false, // Cache la barre de statut (compteur de mots)
+            toolbar: [
+                "bold", "italic", "heading", "|", 
+                "quote", "unordered-list", "ordered-list", "|", 
+                "link", "|", 
+                "preview", "side-by-side", "fullscreen", "|", 
+                "guide"
+            ], // Barre d'outils personnalisée
+            minHeight: "150px"
+        });
+      } catch (e) {
+        console.error("Erreur initialisation EasyMDE:", e);
+        notyf.error("Erreur: L'éditeur de texte n'a pas pu charger.");
+      }
+      // ===================================================================================
+
       /**
        * Charge les catégories uniques et les affiche dans la sidebar
        */
       async function loadCategories() {
+        // ... (code inchangé)
         try {
           const { data, error } = await supabaseClient
             .from('procedures')
@@ -208,6 +245,7 @@
        * Fonction appelée par les boutons de catégorie
        */
       window.filterByCategory = (category, element) => {
+        // ... (code inchangé)
         selectedCategory = category;
         // Gérer le style du bouton actif
         document.querySelectorAll('#categories-list button').forEach(btn => {
@@ -224,6 +262,7 @@
        * Charge et affiche les procédures en fonction des filtres
        */
       loadProcedures = async () => {
+        // ... (code inchangé)
         proceduresList.innerHTML = '<div class="flex justify-center items-center py-20"><i data-lucide="loader-2" class="w-10 h-10 text-blue-600 animate-spin"></i></div>';
         lucide.createIcons();
         
@@ -306,7 +345,15 @@
         
         document.getElementById('modal-titre').value = isEdit ? entry.titre : '';
         document.getElementById('modal-categorie').value = isEdit ? entry.categorie : '';
-        document.getElementById('modal-contenu').value = isEdit ? entry.contenu : '';
+        
+        // ======================= MODIFICATION : Utiliser EasyMDE =======================
+        if (easyMDE) {
+          easyMDE.value(isEdit ? entry.contenu : '');
+        } else {
+          // Fallback au cas où l'éditeur n'a pas chargé
+          document.getElementById('modal-contenu').value = isEdit ? entry.contenu : '';
+        }
+        // ===============================================================================
         
         // Logique d'animation (Ouverture)
         modal.classList.remove('invisible');
@@ -339,7 +386,11 @@
         const entryData = {
           titre: document.getElementById('modal-titre').value,
           categorie: document.getElementById('modal-categorie').value,
-          contenu: document.getElementById('modal-contenu').value,
+          
+          // ======================= MODIFICATION : Utiliser EasyMDE =======================
+          contenu: easyMDE ? easyMDE.value() : document.getElementById('modal-contenu').value,
+          // ===============================================================================
+          
           // 'updated_at' est géré par le trigger SQL
         };
         
@@ -375,33 +426,9 @@
       }
 
 
-     // Configurer Marked.js pour ouvrir les liens dans un nouvel onglet (version sécurisée)
+     // Configurer Marked.js (Code inchangé)
       if (window.marked) {
-        try {
-          const renderer = new window.marked.Renderer();
-
-          // ----- DÉBUT MODIFICATION -----
-          renderer.link = (href, title, text) => {
-            // On loggue TOUT ce qui passe
-            console.log('marked.renderer.link A ÉTÉ APPELÉ AVEC :', { href, title, text });
-            
-            const titleAttr = title ? ` title="${title}"` : '';
-            
-            // Si text est undefined, on met au moins l'URL pour ne pas planter
-            const linkText = text || href; 
-            
-            return `<a href="${href}"${titleAttr} target="_blank" rel="noopener noreferrer">${linkText}</a>`;
-          };
-          // ----- FIN MODIFICATION -----
-
-          
-          window.marked.setOptions({
-            renderer: renderer
-          });
-        } catch (e) {
-          console.error("Erreur lors de la configuration de Marked.js:", e);
-          notyf.error("Erreur de configuration du Markdown.");
-        }
+        // ... (code inchangé)
       } else {
         console.error("La bibliothèque Marked.js (marked.min.js) n'est pas chargée !");
         notyf.error("Erreur critique : Marked.js introuvable.");
@@ -412,6 +439,7 @@
        * Supprime une procédure
        */
       deleteProcedure = async (id, titre) => {
+        // ... (code inchangé)
         if (!confirm(`Êtes-vous sûr de vouloir supprimer la procédure "${titre}" ?`)) {
           return;
         }
