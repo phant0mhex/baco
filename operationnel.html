@@ -13,13 +13,16 @@
   <script src="https://unpkg.com/lucide@latest" defer></script>
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/auth.js"></script> <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+  <script src="js/auth.js"></script> 
+  
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
   <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
   
   <script src="https://cdn.jsdelivr.net/npm/marked@5.1.2/marked.min.js"></script>
 
   <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
   <script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
+
   <script src="js/layout.js" defer></script> 
 
   <script>
@@ -30,7 +33,6 @@
             sans: ['Geist Sans', 'sans-serif'],
             mono: ['Geist Mono', 'monospace'],
           },
-          // Permet au plugin 'prose' de bien s'afficher
           typography: (theme) => ({
             DEFAULT: {
               css: {
@@ -40,13 +42,11 @@
                 h3: { color: theme('colors.gray.800') },
                 strong: { color: theme('colors.gray.900') },
                 a: { color: theme('colors.blue.600') },
-                // ... autres styles si nécessaire
               },
             },
           }),
         },
       },
-      // Activer le plugin typography
       plugins: [
         tailwind.plugins.typography,
       ],
@@ -54,20 +54,17 @@
   </script>
   
   <style>
-    /* Force l'éditeur à être au-dessus du fond semi-transparent de la modale */
-    .EasyMDEContainer {
-      z-index: 60; 
-    }
-    /* Corrige un bug de z-index de la barre d'outils */
-    .editor-toolbar {
-      z-index: 61;
-    }
-    /* S'assure que la modale est bien au-dessus de la nav (z-50) */
-    #procedure-modal {
-      z-index: 55;
+    .EasyMDEContainer { z-index: 60; }
+    .editor-toolbar { z-index: 61; }
+    #procedure-modal { z-index: 55; }
+    /* Style pour le surlignage */
+    mark {
+      background-color: #fef08a; /* yellow-200 */
+      border-radius: 0.125rem; /* rounded */
+      padding: 0 0.125rem; /* px-0.5 */
     }
   </style>
-  </head>
+</head>
 <body class="flex flex-col min-h-screen bg-gray-100">
 
   <div id="nav-placeholder"></div>
@@ -115,7 +112,8 @@
     </div>
   </div>
 
-  <div id="procedure-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 opacity-0 invisible transition-all duration-300 ease-out z-50"> <div id="procedure-modal-panel" class="bg-white rounded-lg shadow-xl w-full max-w-3xl scale-95 transition-all duration-300 ease-out">
+  <div id="procedure-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 opacity-0 invisible transition-all duration-300 ease-out z-50">
+    <div id="procedure-modal-panel" class="bg-white rounded-lg shadow-xl w-full max-w-3xl scale-95 transition-all duration-300 ease-out">
       <form id="procedure-form" onsubmit="handleFormSubmit(event)">
         <div class="flex justify-between items-center p-4 border-b">
           <h3 id="modal-title" class="text-xl font-semibold text-gray-800">Ajouter une procédure</h3>
@@ -141,8 +139,7 @@
           <div>
             <label for="modal-contenu" class="block text-sm font-medium text-gray-700 mb-1">Contenu</label>
             <textarea id="modal-contenu" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"></textarea>
-            
-            </div>
+          </div>
         </div>
         
         <div class="flex justify-end items-center p-4 bg-gray-50 border-t rounded-b-lg">
@@ -167,6 +164,9 @@
     let hideProcedureModal;
     let handleFormSubmit;
     let deleteProcedure;
+    
+    let currentUserId; // Pour stocker l'ID de l'utilisateur
+    let favoritedProcedureIds = new Set(); // Pour un lookup rapide
 
     document.addEventListener('DOMContentLoaded', () => {
     
@@ -188,34 +188,89 @@
       const proceduresChannel = supabaseClient.channel('baco-procedures');
       
       let selectedCategory = 'all';
-
-      // ======================= NOUVEAU : Initialisation de l'éditeur =======================
       let easyMDE;
+
       try {
         easyMDE = new EasyMDE({
             element: document.getElementById('modal-contenu'),
-            spellChecker: false, // Désactive le correcteur orthographique
-            status: false, // Cache la barre de statut (compteur de mots)
+            spellChecker: false,
+            status: false,
             toolbar: [
                 "bold", "italic", "heading", "|", 
                 "quote", "unordered-list", "ordered-list", "|", 
                 "link", "|", 
                 "preview", "side-by-side", "fullscreen", "|", 
                 "guide"
-            ], // Barre d'outils personnalisée
+            ],
             minHeight: "150px"
         });
       } catch (e) {
         console.error("Erreur initialisation EasyMDE:", e);
         notyf.error("Erreur: L'éditeur de texte n'a pas pu charger.");
       }
-      // ===================================================================================
+      
+      /**
+       * Gère l'ajout ou la suppression d'un favori
+       */
+      async function toggleFavorite(element, type, id, isFavorited) {
+        if (!currentUserId) {
+          notyf.error("Erreur: Utilisateur non identifié.");
+          return;
+        }
+        
+        element.disabled = true;
+        element.classList.add('opacity-50', 'cursor-wait');
+
+        try {
+          if (isFavorited) {
+            const { error } = await supabaseClient.from('favoris').delete()
+              .match({ user_id: currentUserId, id_contenu: id, type_contenu: type });
+            if (error) throw error;
+            
+            favoritedProcedureIds.delete(id);
+            element.classList.remove('fill-yellow-400', 'text-yellow-400');
+            element.classList.add('text-gray-400');
+            element.setAttribute('onclick', `toggleFavorite(this, '${type}', ${id}, false)`);
+            
+          } else {
+            const { error } = await supabaseClient.from('favoris')
+              .insert({ user_id: currentUserId, id_contenu: id, type_contenu: type });
+            if (error) throw error;
+            
+            favoritedProcedureIds.add(id);
+            element.classList.add('fill-yellow-400', 'text-yellow-400');
+            element.classList.remove('text-gray-400');
+            element.setAttribute('onclick', `toggleFavorite(this, '${type}', ${id}, true)`);
+          }
+        } catch (error) {
+          notyf.error("Erreur: " + error.message);
+        } finally {
+          element.disabled = false;
+          element.classList.remove('opacity-50', 'cursor-wait');
+        }
+      }
+
+      /**
+       * Surligne le terme de recherche dans un texte
+       */
+      function highlightText(text, term) {
+        if (!term || !text) {
+          return text;
+        }
+        try {
+          const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const regex = new RegExp(`(${escapedTerm})`, 'gi');
+          return text.replace(regex, '<mark class="bg-yellow-200 rounded px-0.5">$1</mark>');
+        } catch (e) {
+          console.error("Erreur de surlignage:", e);
+          return text;
+        }
+      }
 
       /**
        * Charge les catégories uniques et les affiche dans la sidebar
        */
       async function loadCategories() {
-        // ... (code inchangé)
         try {
           const { data, error } = await supabaseClient
             .from('procedures')
@@ -245,9 +300,7 @@
        * Fonction appelée par les boutons de catégorie
        */
       window.filterByCategory = (category, element) => {
-        // ... (code inchangé)
         selectedCategory = category;
-        // Gérer le style du bouton actif
         document.querySelectorAll('#categories-list button').forEach(btn => {
           btn.classList.remove('bg-blue-100', 'text-blue-700');
           btn.classList.add('text-gray-600', 'hover:bg-gray-200');
@@ -262,9 +315,30 @@
        * Charge et affiche les procédures en fonction des filtres
        */
       loadProcedures = async () => {
-        // ... (code inchangé)
         proceduresList.innerHTML = '<div class="flex justify-center items-center py-20"><i data-lucide="loader-2" class="w-10 h-10 text-blue-600 animate-spin"></i></div>';
         lucide.createIcons();
+        
+        // Récupérer l'ID utilisateur et les favoris
+        try {
+          if (!currentUserId) {
+            const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+            if (authError || !user) throw new Error("Utilisateur non connecté");
+            currentUserId = user.id;
+          }
+          
+          const { data: favs, error: favError } = await supabaseClient
+            .from('favoris')
+            .select('id_contenu')
+            .eq('user_id', currentUserId)
+            .eq('type_contenu', 'procedure');
+          
+          if (favError) throw favError;
+          favoritedProcedureIds = new Set(favs.map(f => f.id_contenu));
+          
+        } catch (error) {
+          proceduresList.innerHTML = `<p class="col-span-full text-red-600 text-center">Erreur (auth/favs): ${error.message}</p>`;
+          return;
+        }
         
         try {
           let query = supabaseClient
@@ -278,7 +352,7 @@
           
           const searchTerm = searchInput.value.trim();
           if (searchTerm) {
-            query = query.or(`titre.ilike.%${searchTerm}%,contenu.ilike.%${searchTerm}%`);
+            query = query.or(`titre.ilike.*${searchTerm}*,contenu.ilike.*${searchTerm}*`);
           }
           
           const { data, error } = await query;
@@ -297,23 +371,36 @@
 
           proceduresList.innerHTML = data.map(entry => {
             const entryJson = JSON.stringify(entry).replace(/"/g, "&quot;");
-            // Convertir le Markdown en HTML
             const contentHtml = window.marked.parse(entry.contenu || '');
+            
+            const displayTitle = highlightText(entry.titre, searchTerm);
+            const displayCategory = highlightText(entry.categorie, searchTerm);
+            
+            const isFavorited = favoritedProcedureIds.has(entry.id);
+            const starClass = isFavorited ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400';
+            const favoriteButton = `
+              <button onclick="toggleFavorite(this, 'procedure', ${entry.id}, ${isFavorited})" class="p-2 rounded-full hover:bg-yellow-100" title="Mettre en favori">
+                <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
+              </button>
+            `;
             
             return `
               <div class="bg-white border border-gray-200 rounded-lg shadow-sm flex flex-col">
                 <div class="flex justify-between items-center p-4 border-b">
                   <div>
-                    <h3 class="text-xl font-bold text-blue-700">${entry.titre}</h3>
-                    <span class="text-sm font-medium text-gray-500">${entry.categorie}</span>
+                    <h3 class="text-xl font-bold text-blue-700">${displayTitle}</h3>
+                    <span class="text-sm font-medium text-gray-500">${displayCategory}</span>
                   </div>
-                  <div class="admin-only flex items-center flex-shrink-0 gap-2">
-                    <button onclick="deleteProcedure(${entry.id}, '${entry.titre}')" class="p-2 text-red-600 rounded-full hover:bg-red-100" title="Supprimer">
-                      <i data-lucide="trash-2" class="w-4 h-4"></i>
-                    </button>
-                    <button onclick="showProcedureModal(${entryJson})" class="p-2 text-blue-600 rounded-full hover:bg-blue-100" title="Modifier">
-                      <i data-lucide="pencil" class="w-4 h-4"></i>
-                    </button>
+                  <div class="flex items-center flex-shrink-0 gap-1">
+                    ${favoriteButton}
+                    <div class="admin-only flex items-center gap-2">
+                      <button onclick="deleteProcedure(${entry.id}, '${entry.titre}')" class="p-2 text-red-600 rounded-full hover:bg-red-100" title="Supprimer">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                      </button>
+                      <button onclick="showProcedureModal(${entryJson})" class="p-2 text-blue-600 rounded-full hover:bg-blue-100" title="Modifier">
+                        <i data-lucide="pencil" class="w-4 h-4"></i>
+                      </button>
+                    </div>
                   </div>
                 </div>
                 
@@ -346,16 +433,12 @@
         document.getElementById('modal-titre').value = isEdit ? entry.titre : '';
         document.getElementById('modal-categorie').value = isEdit ? entry.categorie : '';
         
-        // ======================= MODIFICATION : Utiliser EasyMDE =======================
         if (easyMDE) {
           easyMDE.value(isEdit ? entry.contenu : '');
         } else {
-          // Fallback au cas où l'éditeur n'a pas chargé
           document.getElementById('modal-contenu').value = isEdit ? entry.contenu : '';
         }
-        // ===============================================================================
         
-        // Logique d'animation (Ouverture)
         modal.classList.remove('invisible');
         modal.classList.remove('opacity-0');
         modalPanel.classList.remove('scale-95');
@@ -386,12 +469,7 @@
         const entryData = {
           titre: document.getElementById('modal-titre').value,
           categorie: document.getElementById('modal-categorie').value,
-          
-          // ======================= MODIFICATION : Utiliser EasyMDE =======================
           contenu: easyMDE ? easyMDE.value() : document.getElementById('modal-contenu').value,
-          // ===============================================================================
-          
-          // 'updated_at' est géré par le trigger SQL
         };
         
         submitButton.disabled = true;
@@ -411,11 +489,10 @@
           notyf.success(isEdit ? "Procédure mise à jour !" : "Procédure ajoutée !");
           hideProcedureModal();
           
-          // Envoyer un signal aux autres utilisateurs
           proceduresChannel.send({ type: 'broadcast', event: 'data-change' });
           
-          loadCategories(); // Recharger les catégories (au cas où une nouvelle a été ajoutée)
-          loadProcedures(); // Recharger les procédures
+          loadCategories(); 
+          loadProcedures(); 
           
         } catch (error) {
           notyf.error("Erreur: " + error.message);
@@ -426,12 +503,21 @@
       }
 
 
-     // Configurer Marked.js (Code inchangé)
+     // Configurer Marked.js pour les liens
       if (window.marked) {
-        // ... (code inchangé)
+        try {
+          const renderer = new window.marked.Renderer();
+          renderer.link = (href, title, text) => {
+            const titleAttr = title ? ` title="${title}"` : '';
+            const linkText = text || href; 
+            return `<a href="${href}"${titleAttr} target="_blank" rel="noopener noreferrer">${linkText}</a>`;
+          };
+          window.marked.setOptions({ renderer: renderer });
+        } catch (e) {
+          console.error("Erreur configuration Marked.js:", e);
+        }
       } else {
-        console.error("La bibliothèque Marked.js (marked.min.js) n'est pas chargée !");
-        notyf.error("Erreur critique : Marked.js introuvable.");
+        console.error("Marked.js n'est pas chargé !");
       }
 
       
@@ -439,7 +525,6 @@
        * Supprime une procédure
        */
       deleteProcedure = async (id, titre) => {
-        // ... (code inchangé)
         if (!confirm(`Êtes-vous sûr de vouloir supprimer la procédure "${titre}" ?`)) {
           return;
         }
@@ -449,11 +534,13 @@
           
           notyf.success("Procédure supprimée !");
           
-          // Envoyer un signal aux autres
+          // Supprimer aussi des favoris de tous les utilisateurs (optionnel mais propre)
+          await supabaseClient.from('favoris').delete().match({ id_contenu: id, type_contenu: 'procedure' });
+          
           proceduresChannel.send({ type: 'broadcast', event: 'data-change' });
           
-          loadCategories(); // Recharger les catégories
-          loadProcedures(); // Recharger les procédures
+          loadCategories();
+          loadProcedures();
         } catch (error) {
            notyf.error("Erreur: " + error.message);
         }
@@ -463,7 +550,6 @@
       loadCategories();
       loadProcedures();
       
-      // Écouter les signaux des autres
       proceduresChannel
         .on(
           'broadcast', 

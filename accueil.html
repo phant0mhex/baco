@@ -20,9 +20,6 @@
             sans: ['Geist Sans', 'sans-serif'],
             mono: ['Geist Mono', 'monospace'],
           },
-          
-          // ======================= NOUVEL AJOUT =======================
-          // Définition de notre animation de gradient
           animation: {
             'gradient-pan': 'gradient-pan 3s ease infinite',
           },
@@ -33,7 +30,6 @@
               '100%': { backgroundPosition: '0% 50%' },
             }
           }
-          // ==========================================================
         },
       },
     }
@@ -54,13 +50,27 @@
                  bg-clip-text text-transparent 
                  bg-[size:200%_auto] animate-gradient-pan" 
           style="min-height: 2rem;">
-        </h2>
+      </h2>
+      
       <h1 class="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2">Bienvenue sur le portail de données</h1>
       <p class="text-lg text-gray-600 dark:text-gray-400">Choisissez votre domaine :</p>
     </header>
 
+    <div id="favorites-container" class="mb-12" style="display: none;">
+      <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-4">Mes Favoris</h2>
+      <div id="favorites-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        </div>
+    </div>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
+      <a href="application.html" class="block h-full p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
+         <h3 class="flex items-center gap-3 text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+           <i data-lucide="app-window" class="w-5 h-5 text-blue-600"></i>
+           <span>Application</span>
+         </h3>
+         <p class="text-sm text-gray-600 dark:text-gray-400 pl-8">Application de gestion des agents.</p>
+      </a>
+      
       <a href="operationnel.html" class="block h-full p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
         <h3 class="flex items-center gap-3 text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
           <i data-lucide="shield" class="w-5 h-5 text-blue-600"></i>
@@ -142,12 +152,17 @@
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
+      let currentUserId = null; // Stocker l'ID utilisateur
+      
       async function loadUserGreeting() {
         const greetingElement = document.getElementById('user-greeting');
         if (!greetingElement) return;
         try {
           const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
           if (authError || !user) throw authError || new Error('Utilisateur non connecté');
+          
+          currentUserId = user.id; // Stocker l'ID
+          
           const { data, error } = await supabaseClient.from('profiles').select('full_name').eq('id', user.id).single();
           if (error) throw error;
           if (data && data.full_name) {
@@ -160,7 +175,70 @@
           greetingElement.textContent = 'Bonjour !';
         }
       }
-      loadUserGreeting();
+      
+      // ======================= NOUVELLE FONCTION =======================
+      async function loadFavorites() {
+        await loadUserGreeting(); // S'assurer que currentUserId est défini
+        if (!currentUserId) return; // Ne rien faire si pas connecté
+
+        const container = document.getElementById('favorites-container');
+        const list = document.getElementById('favorites-list');
+        list.innerHTML = '<div class="col-span-full flex justify-center py-4"><i data-lucide="loader-2" class="w-6 h-6 text-blue-600 animate-spin"></i></div>';
+        lucide.createIcons();
+
+        try {
+          // 1. Appeler la nouvelle fonction SQL
+          const { data: favorites, error } = await supabaseClient.rpc('get_user_favorites', {
+            p_user_id: currentUserId
+          });
+
+          if (error) throw error;
+          
+          if (favorites.length === 0) {
+            list.innerHTML = `
+              <p class="col-span-full text-sm text-gray-600 dark:text-gray-400 italic">
+                Vous n'avez pas encore de favoris. Cliquez sur l'étoile 
+                <i data-lucide="star" class="w-4 h-4 inline-block -mt-1"></i> 
+                sur un contact, une procédure ou un client PMR pour l'ajouter ici.
+              </p>`;
+            container.style.display = 'block';
+            lucide.createIcons();
+            return;
+          }
+
+          // 2. Mapper les types à des icônes
+          const iconMap = {
+            'Contact': 'book-user',
+            'Procédure': 'shield',
+            'Client PMR': 'users'
+          };
+          
+          // 3. Afficher les résultats
+          list.innerHTML = favorites.map(fav => `
+            <a href="${fav.url}" class="block p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
+              <div class="flex justify-between items-start">
+                <h3 class="flex items-center gap-3 text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  <i data-lucide="${iconMap[fav.type] || 'file'}" class="w-5 h-5 text-blue-600"></i>
+                  <span>${fav.title}</span>
+                </h3>
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400">${fav.type}</span>
+              </div>
+              <p class="text-sm text-gray-600 dark:text-gray-400 pl-8">${fav.snippet || '&nbsp;'}</p>
+            </a>
+          `).join('');
+          
+          container.style.display = 'block'; // Afficher le conteneur
+          lucide.createIcons();
+
+        } catch (error) {
+          console.error("Erreur chargement favoris:", error.message);
+          list.innerHTML = `<p class="col-span-full text-red-500">Erreur lors du chargement des favoris.</p>`;
+        }
+      }
+      
+      loadFavorites(); // Lancer le chargement des favoris
+      // ==========================================================
+      
     });
   </script>
 <div id="footer-placeholder"></div>

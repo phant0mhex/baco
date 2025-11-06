@@ -30,6 +30,15 @@
       },
     }
   </script>
+  
+  <style>
+    /* Style pour le surlignage */
+    mark {
+      background-color: #fef08a; /* yellow-200 */
+      border-radius: 0.125rem; /* rounded */
+      padding: 0 0.125rem; /* px-0.5 */
+    }
+  </style>
 </head>
 <body class="flex flex-col min-h-screen">
 
@@ -62,7 +71,7 @@
             <i data-lucide="search" class="w-5 h-5 text-gray-400"></i>
           </div>
           <input type="search" id="search-bar" onkeyup="debouncePmrSearch()" placeholder="Nom, Prénom, Tél, Type (ex: CRP)..." class="block w-full rounded-md border-gray-300 pl-10 px-4 py-2 focus:border-blue-500 focus:ring-blue-500">
-          </div>
+        </div>
       </div>
 
       <div id="result-display" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -132,12 +141,11 @@
     let hidePmrClientModal;
     let handleFormSubmit;
     let deletePmrClient;
-    
-    // ======================= MODIFICATION =======================
-    let debouncePmrSearch; // Renommage de la variable
-    // ==========================================================
+    let debouncePmrSearch; // Renommé pour éviter conflit
     
     let searchTimer;
+    let currentUserId; // Pour stocker l'ID de l'utilisateur
+    let favoritedClientIds = new Set(); // Pour un lookup rapide
 
     document.addEventListener('DOMContentLoaded', () => {
     
@@ -156,11 +164,66 @@
       const modalSubmitButton = document.getElementById('modal-submit-button');
       
       /**
+       * Gère l'ajout ou la suppression d'un favori
+       */
+      async function toggleFavorite(element, type, id, isFavorited) {
+        if (!currentUserId) {
+          notyf.error("Erreur: Utilisateur non identifié.");
+          return;
+        }
+        
+        element.disabled = true;
+        element.classList.add('opacity-50', 'cursor-wait');
+
+        try {
+          if (isFavorited) {
+            const { error } = await supabaseClient.from('favoris').delete()
+              .match({ user_id: currentUserId, id_contenu: id, type_contenu: type });
+            if (error) throw error;
+            
+            favoritedClientIds.delete(id);
+            element.classList.remove('fill-yellow-400', 'text-yellow-400');
+            element.classList.add('text-gray-400');
+            element.setAttribute('onclick', `toggleFavorite(this, '${type}', ${id}, false)`);
+            
+          } else {
+            const { error } = await supabaseClient.from('favoris')
+              .insert({ user_id: currentUserId, id_contenu: id, type_contenu: type });
+            if (error) throw error;
+            
+            favoritedClientIds.add(id);
+            element.classList.add('fill-yellow-400', 'text-yellow-400');
+            element.classList.remove('text-gray-400');
+            element.setAttribute('onclick', `toggleFavorite(this, '${type}', ${id}, true)`);
+          }
+        } catch (error) {
+          notyf.error("Erreur: " + error.message);
+        } finally {
+          element.disabled = false;
+          element.classList.remove('opacity-50', 'cursor-wait');
+        }
+      }
+
+      /**
+       * Surligne le terme de recherche dans un texte
+       */
+      function highlightText(text, term) {
+        if (!term || !text) {
+          return text;
+        }
+        try {
+          const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const regex = new RegExp(`(${escapedTerm})`, 'gi');
+          return text.replace(regex, '<mark class="bg-yellow-200 rounded px-0.5">$1</mark>');
+        } catch (e) {
+          return text;
+        }
+      }
+      
+      /**
        * Attend 300ms après la dernière frappe avant de lancer la recherche
        */
-      // ======================= MODIFICATION =======================
-      debouncePmrSearch = () => { // Renommage de la fonction
-      // ==========================================================
+      debouncePmrSearch = () => { // Fonction renommée
         clearTimeout(searchTimer);
         searchTimer = setTimeout(() => {
           loadData();
@@ -175,6 +238,28 @@
         statusMsg.innerHTML = '<div class="flex justify-center items-center py-20"><i data-lucide="loader-2" class="w-10 h-10 text-blue-600 animate-spin"></i></div>';
         lucide.createIcons();
         
+        // Récupérer l'ID utilisateur et les favoris
+        try {
+          if (!currentUserId) {
+            const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+            if (authError || !user) throw new Error("Utilisateur non connecté");
+            currentUserId = user.id;
+          }
+          
+          const { data: favs, error: favError } = await supabaseClient
+            .from('favoris')
+            .select('id_contenu')
+            .eq('user_id', currentUserId)
+            .eq('type_contenu', 'client_pmr');
+          
+          if (favError) throw favError;
+          favoritedClientIds = new Set(favs.map(f => f.id_contenu));
+          
+        } catch (error) {
+          statusMsg.innerHTML = `<p class="text-red-600 text-center">Erreur (auth/favs): ${error.message}</p>`;
+          return;
+        }
+        
         const searchTerm = searchBar.value.trim();
 
         try {
@@ -184,7 +269,6 @@
             .order('nom', { ascending: true }); // Trier par nom de famille
 
           if (searchTerm) {
-            // Créer un filtre de recherche "OR"
             query = query.or(
               `nom.ilike.*${searchTerm}*`,
               `prenom.ilike.*${searchTerm}*`,
@@ -193,7 +277,7 @@
             );
           }
           
-          query = query.limit(100); // Limiter à 100 résultats pour la performance
+          query = query.limit(100);
 
           const { data, error } = await query;
           if (error) throw error;
@@ -212,7 +296,7 @@
             return;
           }
 
-          resultDisplay.innerHTML = data.map(client => renderClientCard(client)).join('');
+          resultDisplay.innerHTML = data.map(client => renderClientCard(client, searchTerm)).join('');
           
           lucide.createIcons();
           if (window.hideAdminElements) window.hideAdminElements();
@@ -226,10 +310,9 @@
       /**
        * Génère le HTML pour une carte client
        */
-      function renderClientCard(client) {
+      function renderClientCard(client, searchTerm) {
         const clientJson = JSON.stringify(client).replace(/"/g, "&quot;");
         
-        // Classes pour le badge
         let typeClass = 'bg-gray-100 text-gray-800';
         if (client.type === 'CRP' || client.type === 'CRF') {
           typeClass = 'bg-red-100 text-red-800';
@@ -239,20 +322,34 @@
 
         const hasRemarques = client.remarques && client.remarques.trim() !== '';
         
+        // Surlignage
+        const displayName = highlightText(`${client.prenom || ''} ${client.nom}`, searchTerm);
+        const displayType = highlightText(client.type, searchTerm);
+        const displayTel = highlightText(client.telephone, searchTerm);
+        
+        // Favori
+        const isFavorited = favoritedClientIds.has(client.id);
+        const starClass = isFavorited ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400';
+        const favoriteButton = `
+          <button onclick="toggleFavorite(this, 'client_pmr', ${client.id}, ${isFavorited})" class="p-2 rounded-full hover:bg-yellow-100" title="Mettre en favori">
+            <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
+          </button>
+        `;
+        
         return `
           <div class="bg-white border border-gray-200 rounded-lg shadow-sm flex flex-col">
             <div class="flex justify-between items-start p-4 border-b">
               <div>
-                <h3 class="text-xl font-bold text-blue-700">${client.prenom || ''} ${client.nom}</h3>
-                ${client.type ? `<span class="mt-1 inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full ${typeClass}">${client.type}</span>` : ''}
+                <h3 class="text-xl font-bold text-blue-700">${displayName}</h3>
+                ${client.type ? `<span class="mt-1 inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full ${typeClass}">${displayType}</span>` : ''}
               </div>
 
-              <div class="flex items-center flex-shrink-0 gap-1">
-                <button onclick="deletePmrClient(${client.id}, '${client.prenom} ${client.nom}')" class="admin-only p-2 text-red-600 rounded-full hover:bg-red-100" title="Supprimer">
-                  <i data-lucide="trash-2" class="w-4 h-4"></i>
-                </button>
+              <div class="flex items-center flex-shrink-0 gap-0"> ${favoriteButton}
                 <button onclick="showPmrClientModal(${clientJson})" class="p-2 text-blue-600 rounded-full hover:bg-blue-100" title="Modifier">
                   <i data-lucide="pencil" class="w-4 h-4"></i>
+                </button>
+                <button onclick="deletePmrClient(${client.id}, '${client.prenom} ${client.nom}')" class="admin-only p-2 text-red-600 rounded-full hover:bg-red-100" title="Supprimer">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
                 </button>
               </div>
             </div>
@@ -261,7 +358,7 @@
               ${client.telephone ? `
               <a href="etrali:${client.telephone}" class="flex items-center gap-3">
                 <i data-lucide="phone" class="w-4 h-4 text-gray-500 flex-shrink-0"></i>
-                <span class="text-sm font-medium text-gray-800 hover:text-blue-600">${client.telephone}</span>
+                <span class="text-sm font-medium text-gray-800 hover:text-blue-600">${displayTel}</span>
               </a>` : ''}
               
               ${hasRemarques ? `
@@ -312,7 +409,7 @@
           
           notyf.success(isEdit ? "Client mis à jour !" : "Client ajouté !");
           hidePmrClientModal();
-          loadData(); // Rafraîchir
+          loadData();
           
         } catch (error) {
           notyf.error("Erreur: " + error.message);
@@ -337,7 +434,9 @@
           if (error) throw error;
           
           notyf.success("Client supprimé !");
-          loadData(); // Rafraîchir
+          // Supprimer aussi des favoris
+          await supabaseClient.from('favoris').delete().match({ id_contenu: id, type_contenu: 'client_pmr' });
+          loadData();
         } catch (error) {
            notyf.error("Erreur: " + error.message);
         }
