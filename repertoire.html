@@ -58,7 +58,7 @@
         
         <div>
           <label for="modal-categorie" class="block text-sm font-medium text-gray-700">Catégorie</label>
-          <input type="text" id="modal-categorie" required placeholder="MIA, RCC-OCC, Autre..." class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          <input type="text" id="modal-categorie" required placeholder="MIA, DSE, RCC-OCC..." class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
         </div>
 
         <div>
@@ -123,16 +123,12 @@
       </div>
     </div>
 
-
     <h3 class="text-xl font-semibold text-gray-800 mb-4">1. Catégories</h3>
     <div class="flex flex-wrap gap-3 mb-8" id="mainCategories">
       <p class="text-gray-600">Chargement des catégories...</p>
     </div>
 
-    <div id="miaSubCategoriesContainer" style="display:none;">
-      <h3 class="text-xl font-semibold text-gray-800 mb-4">2. Filtres MIA</h3>
-      <div class="flex flex-wrap gap-3 mb-8" id="miaSubCategories">
-        <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+    <div id="zoneSubCategoriesContainer" style="display:none;"> <h3 class="text-xl font-semibold text-gray-800 mb-4">2. Filtres de Zone</h3> <div class="flex flex-wrap gap-3 mb-8" id="zoneSubCategories"> <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
           <input type="checkbox" value="FTY" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
           <span class="font-medium text-gray-700">FTY</span>
         </label>
@@ -146,7 +142,7 @@
         </label>
       </div>
     </div>
-
+    
     <hr class="my-8">
     <div id="resultDisplay">
       <p class="text-gray-600">Veuillez sélectionner une catégorie pour afficher les contacts.</p>
@@ -158,68 +154,59 @@
 
 
   <script>
-    // --- Variable pour le tri ---
-    let currentSortOrder = 'az'; // 'az' ou 'za'
+    let currentSortOrder = 'az';
     
-    // --- FONCTIONS LOGIQUES ---
-    
-    
-    // ==========================================================
-    // ==         NOUVELLE FONCTION : CHARGER CATEGORIES       ==
-    // ==========================================================
     /**
      * Charge dynamiquement les catégories principales depuis Supabase
      */
     async function loadMainCategories() {
       const categoriesContainer = document.getElementById('mainCategories');
-      
       try {
-        // 1. Récupérer toutes les 'categorie_principale'
         const { data, error } = await supabaseClient
           .from('contacts_repertoire')
           .select('categorie_principale');
-          
         if (error) throw error;
-        
-        // 2. Dé-dupliquer, filtrer les nuls/vides, et trier
         const categories = [...new Set(data.map(item => item.categorie_principale))]
-          .filter(Boolean) // Retire les 'null' ou ""
+          .filter(Boolean)
           .sort();
-          
         if (categories.length === 0) {
            categoriesContainer.innerHTML = '<p class="text-gray-600">Aucune catégorie trouvée.</p>';
            return;
         }
-
-        // 3. Générer le HTML des checkboxes
         categoriesContainer.innerHTML = categories.map(categorie => `
           <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
             <input type="checkbox" value="${categorie}" onchange="updateSubCategories()" class="rounded text-blue-600 focus:ring-blue-500">
             <span class="font-medium text-gray-700">${categorie}</span>
           </label>
         `).join('');
-        
       } catch (error) {
         categoriesContainer.innerHTML = `<p class="text-red-600">Erreur chargement catégories: ${error.message}</p>`;
       }
     }
-    // ==========================================================
-    // ==                  FIN DE LA NOUVEAUTÉ                 ==
-    // ==========================================================
 
+
+    // ==========================================================
+    // ==              DÉBUT DE LA MODIFICATION                ==
+    // ==========================================================
 
     /**
-     * Met à jour l'affichage des sous-catégories MIA (MODIFIÉE POUR ÊTRE PLUS SÛRE)
+     * Met à jour l'affichage des sous-catégories (zones)
      */
     function updateSubCategories() {
+      // Cible les catégories qui DOIVENT afficher le filtre de zone
       const miaCheckbox = document.querySelector('#mainCategories input[value="MIA"]');
+      const dseCheckbox = document.querySelector('#mainCategories input[value="DSE"]'); // DSE est maintenant inclus
+      
       const miaIsChecked = miaCheckbox ? miaCheckbox.checked : false;
+      const dseIsChecked = dseCheckbox ? dseCheckbox.checked : false; // On vérifie DSE
       
-      document.getElementById('miaSubCategoriesContainer').style.display = miaIsChecked ? 'block' : 'none';
+      const showZoneFilters = miaIsChecked || dseIsChecked; // On affiche si l'un OU l'autre est coché
       
-      // Si MIA n'est pas coché, on décoche les sous-filtres pour éviter les conflits
-      if (!miaIsChecked) {
-         document.querySelectorAll('#miaSubCategories input:checked').forEach(cb => cb.checked = false);
+      document.getElementById('zoneSubCategoriesContainer').style.display = showZoneFilters ? 'block' : 'none'; // Utiliser le new ID
+      
+      if (!showZoneFilters) {
+         // Utiliser le new ID
+         document.querySelectorAll('#zoneSubCategories input:checked').forEach(cb => cb.checked = false);
       }
       
       updateDisplay();
@@ -229,52 +216,71 @@
       const container = document.getElementById('resultDisplay');
       
       container.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
-      lucide.createIcons(); // Render le spinner
+      lucide.createIcons();
 
       const mainChecked = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
-      const miaSubChecked = Array.from(document.querySelectorAll('#miaSubCategories input:checked')).map(cb => cb.value);
-      
+      const zoneSubChecked = Array.from(document.querySelectorAll('#zoneSubCategories input:checked')).map(cb => cb.value); // VAR RENOMMÉE
       const searchTerm = document.getElementById('search-bar').value.trim();
       
       let hasContent = false;
-      const columns = {}; // Pour grouper par 'groupe'
+      const columns = {};
 
-      // 1. Démarrer la requête et AJOUTER LE TRI
       let query = supabaseClient
         .from('contacts_repertoire')
         .select('id, nom, tel, groupe, email, categorie_principale, zone')
-        .order('nom', { ascending: (currentSortOrder === 'az') }); // <-- Tri appliqué ici
+        .order('nom', { ascending: (currentSortOrder === 'az') });
 
-      // 2. Construire les FILTRES (Catégories)
+      // 2. Construire les FILTRES
       const orFilters = [];
+      const categoriesWithZones = ['MIA', 'DSE']; // Catégories affectées par les filtres de zone
       
-      // Cas spécial pour MIA avec sous-filtres
-      if (mainChecked.includes('MIA') && miaSubChecked.length > 0) {
-        if (miaSubChecked.includes('FMS')) orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FMS)`);
-        if (miaSubChecked.includes('FCR')) orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FCR)`);
-        if (miaSubChecked.includes('FTY')) {
-          orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FTY)`);
-          orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FMS,groupe.eq.TL/MPI)`); 
+      // Sépare les catégories à filtrer par zone de celles qui ne le sont pas
+      const mainCategoriesWithZones = mainChecked.filter(cat => categoriesWithZones.includes(cat));
+      const mainCategoriesWithoutZones = mainChecked.filter(cat => !categoriesWithZones.includes(cat));
+
+      // A. Gérer les catégories AVEC filtres de zone (MIA, DSE)
+      if (mainCategoriesWithZones.length > 0) {
+        if (zoneSubChecked.length > 0) {
+          // Appliquer les filtres de zone
+          mainCategoriesWithZones.forEach(cat => {
+            zoneSubChecked.forEach(zone => {
+              if (zone === 'FTY' && cat === 'MIA') {
+                // Cas spécial FTY (MIA seulement)
+                orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FTY)`);
+                orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FMS,groupe.eq.TL/MPI)`);
+              } else if (zone === 'FMS') {
+                orFilters.push(`and(categorie_principale.eq.${cat},zone.eq.FMS)`);
+              } else if (zone === 'FCR') {
+                orFilters.push(`and(categorie_principale.eq.${cat},zone.eq.FCR)`);
+              }
+              // Si FTY est coché mais la cat est DSE, on ne fait rien (car FTY est spécial pour MIA)
+              // Si vous voulez que FTY s'applique aussi à DSE, changez la logique
+            });
+          });
+        } else {
+          // Pas de filtre de zone coché, mais les catégories principales le sont.
+          // On affiche TOUS les contacts de ces catégories (MIA, DSE)
+          mainCategoriesWithZones.forEach(cat => {
+            orFilters.push(`categorie_principale.eq.${cat}`);
+          });
         }
-      } 
-      // Si MIA est coché mais AUCUN sous-filtre, on affiche TOUT MIA
-      else if (mainChecked.includes('MIA')) {
-         orFilters.push('categorie_principale.eq.MIA');
       }
       
-      // Gérer les autres catégories
-      mainChecked.forEach(cat => {
-        if (cat !== 'MIA') {
-          orFilters.push(`categorie_principale.eq.${cat}`);
-        }
+      // B. Gérer les catégories SANS filtres de zone (Autre, RCC-OCC, etc.)
+      mainCategoriesWithoutZones.forEach(cat => {
+        orFilters.push(`categorie_principale.eq.${cat}`);
       });
+
+      // ==========================================================
+      // ==                FIN DE LA MODIFICATION                ==
+      // ==========================================================
 
 
       if (orFilters.length > 0) {
         query = query.or(orFilters.join(','));
       }
 
-      // 3. Appliquer la RECHERCHE (s'il y en a une)
+      // 3. Appliquer la RECHERCHE
       if (searchTerm) {
         query = query.or(
           `nom.ilike.%${searchTerm}%`,
@@ -284,7 +290,7 @@
         );
       }
       
-      // 4. Gérer l'état vide (si aucun filtre ET aucune recherche)
+      // 4. Gérer l'état vide
       if (orFilters.length === 0 && !searchTerm) {
           container.innerHTML = '<p class="text-gray-600">Veuillez sélectionner une catégorie ou lancer une recherche.</p>';
           return;
@@ -307,7 +313,7 @@
       }
       
       let outputHTML = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">';
-      const sortedKeys = Object.keys(columns).sort(); // Trier les groupes par ordre alphabétique
+      const sortedKeys = Object.keys(columns).sort();
 
       for (const col of sortedKeys) {
           outputHTML += `<div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">`;
@@ -371,10 +377,7 @@
       lucide.createIcons();
     }
     
-    // ==========================================================
-    // ==     MODIFICATION DU CHARGEMENT INITIAL (DOMContentLoaded)     ==
-    // ==========================================================
-    document.addEventListener('DOMContentLoaded', async () => { // <-- AJOUT DE ASYNC
+    document.addEventListener('DOMContentLoaded', async () => {
       const sortAzButton = document.getElementById('sort-az');
       const sortZaButton = document.getElementById('sort-za');
 
@@ -402,18 +405,13 @@
         updateDisplay();
       });
       
-      updateSortButtons(); // Appliquer le style au chargement
-      
-      // --- MODIFICATION ---
-      await loadMainCategories(); // 1. Charger les filtres de catégories
-      updateDisplay();            // 2. Lancer l'affichage initial (qui sera vide par défaut)
+      updateSortButtons();
+      await loadMainCategories(); // 1. Charger les filtres
+      updateDisplay();            // 2. Lancer l'affichage
     });
-    // ==========================================================
-    // ==                FIN DE LA MODIFICATION                ==
-    // ==========================================================
 
     
-    // --- GESTION DE LA SUPPRESSION (INCHANGÉE) ---
+    // --- GESTION DE LA SUPPRESSION ---
     async function deleteContact(id, nom) {
       if (!confirm(`Êtes-vous sûr de vouloir supprimer le contact "${nom}" ?`)) {
         return;
@@ -424,14 +422,12 @@
       } else {
         alert("Contact supprimé avec succès !");
         updateDisplay();
-        // Recharger les catégories si jamais la dernière personne d'une catégorie a été supprimée
         loadMainCategories(); 
       }
     }
 
     
-    // --- FONCTIONS POUR LE MODAL (INCHANGÉES) ---
-
+    // --- FONCTIONS POUR LE MODAL ---
     const modal = document.getElementById('contact-modal');
     const modalTitle = document.getElementById('modal-title');
     const contactForm = document.getElementById('contact-form');
@@ -504,8 +500,7 @@
       } else {
         alert(isEdit ? "Contact mis à jour !" : "Contact ajouté !");
         hideContactModal();
-        updateDisplay(); // Rafraîchir la liste
-        // Recharger les catégories au cas où une nouvelle a été ajoutée
+        updateDisplay();
         loadMainCategories(); 
       }
     }
