@@ -28,8 +28,6 @@ async function loadComponent(placeholderId, htmlFilePath) {
 }
 
 // --- Fonctions utilitaires (au niveau global) ---
-// ... (Toutes vos fonctions existantes: highlightActiveLink, hideAdminElements, loadNavAvatar, etc.)
-// ... (Laissez-les ici, elles ne sont pas affichées pour la clarté)
 function highlightActiveLink() {
   const currentPage = window.location.pathname.split('/').pop();
   if (currentPage) {
