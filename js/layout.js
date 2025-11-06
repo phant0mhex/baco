@@ -575,11 +575,12 @@ document.addEventListener('DOMContentLoaded', async () => {
           locale: "fr",       // On garde la traduction
           static: true,       // Fait apparaître le calendrier sous le bouton
           appendTo: document.body, // S'assure qu'il s'affiche par-dessus tout
-          theme: "baco-theme", // On applique notre thème
+         
           
           onReady: function(selectedDates, dateStr, instance) {
             // On ajoute la classe 'font-sans' de Tailwind au conteneur du calendrier
             instance.calendarContainer.classList.add('font-sans');
+            instance.calendarContainer.classList.add('baco-theme'); // <-- ON AJOUTE LE THÈME ICI
           }
         });
       } else {
