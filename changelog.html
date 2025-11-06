@@ -296,6 +296,11 @@
           hideChangelogModal();
           loadChangelog(); // Recharger le fil
           
+          // Mettre à jour le footer (via layout.js) si cette fonction existe
+          if (window.loadLatestChangelog) {
+            window.loadLatestChangelog();
+          }
+          
         } catch (error) {
           notyf.error("Erreur: " + error.message);
         } finally {
@@ -321,6 +326,11 @@
           notyf.success('Entrée supprimée.');
           loadChangelog(); // Recharger
           
+          // Mettre à jour le footer (via layout.js) si cette fonction existe
+          if (window.loadLatestChangelog) {
+            window.loadLatestChangelog();
+          }
+          
         } catch (error) {
           notyf.error("Erreur: " + error.message);
         }
@@ -342,7 +352,11 @@
 
       // --- Lancement ---
       loadChangelog();
-      modalForm.addEventListener('submit', handleFormSubmit);
+      
+      // ======================= MODIFICATION =======================
+      // Suppression de l'écouteur d'événement redondant
+      // modalForm.addEventListener('submit', handleFormSubmit); // <-- CETTE LIGNE EST SUPPRIMÉE
+      // ==========================================================
 
     }); // Fin de DOMContentLoaded
   </script>
