@@ -179,7 +179,6 @@ async function loadLatestChangelog() {
   }
 }
 
-
 // ===============================================================
 // ==              SECTION CALENDRIER PERSONNALISÉ              ==
 // ===============================================================
@@ -195,126 +194,128 @@ function injectCalendarStyles() {
   // text-gray-100 (#F9FAFB), text-gray-300 (#D1D5DB), accent-blue-600 (#2563EB)
   style.innerHTML = `
     .flatpickr-calendar.baco-theme {
-      background: #1F2937; /* bg-gray-800 */
-      border: 1px solid #374151; /* border-gray-700 */
-      border-radius: 0.5rem; /* rounded-lg */
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-xl */
-      width: 340px; /* Largeur fixe pour un look propre */
-      padding: 0.75rem; /* p-3 */
-      color: #D1D5DB; /* text-gray-300 */
+      background: #1F2937 !important; /* bg-gray-800 */
+      border: 1px solid #374151 !important; /* border-gray-700 */
+      border-radius: 0.5rem !important; /* rounded-lg */
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important; /* shadow-xl */
+      width: auto !important;
+      min-width: 340px !important; /* Largeur fixe pour un look propre */
+      padding: 0.75rem !important; /* p-3 */
+      color: #D1D5DB !important; /* text-gray-300 */
     }
 
     /* === En-tête (Mois, Année) === */
     .baco-theme .flatpickr-months {
-      background: transparent;
-      padding: 0.25rem; /* p-1 */
-      border-bottom: 1px solid #374151; /* border-gray-700 */
-      margin-bottom: 0.75rem; /* mb-3 */
+      background: transparent !important;
+      padding: 0.25rem !important; /* p-1 */
+      border-bottom: 1px solid #374151 !important; /* border-gray-700 */
+      margin-bottom: 0.75rem !important; /* mb-3 */
     }
     .baco-theme .flatpickr-months .flatpickr-month {
-      height: 2.5rem; /* h-10 */
+      height: 2.5rem !important; /* h-10 */
     }
     
     /* Style des flèches */
     .baco-theme .flatpickr-months .flatpickr-prev-month,
     .baco-theme .flatpickr-months .flatpickr-next-month {
-      fill: #D1D5DB; /* text-gray-300 */
-      padding: 0.5rem; /* p-2 */
-      border-radius: 0.375rem; /* rounded-md */
-      top: 0.5rem;
+      fill: #D1D5DB !important; /* text-gray-300 */
+      padding: 0.5rem !important; /* p-2 */
+      border-radius: 0.375rem !important; /* rounded-md */
+      top: 0.5rem !important;
     }
     .baco-theme .flatpickr-months .flatpickr-prev-month:hover,
     .baco-theme .flatpickr-months .flatpickr-next-month:hover {
-      fill: #F9FAFB; /* text-gray-100 */
-      background: #374151; /* hover:bg-gray-700 */
+      fill: #F9FAFB !important; /* text-gray-100 */
+      background: #374151 !important; /* hover:bg-gray-700 */
     }
     
     /* Style des menus déroulants (Mois & Année) */
     .baco-theme .flatpickr-current-month .flatpickr-monthDropdown-months,
     .baco-theme .flatpickr-current-month input.cur-year {
-      font-size: 1.125rem; /* text-lg */
-      font-weight: 600; /* font-semibold */
+      font-size: 1.125rem !important; /* text-lg */
+      font-weight: 600 !important; /* font-semibold */
       color: #F9FAFB !important; /* text-gray-100 */
       background: transparent !important;
       border: none !important;
-      padding: 0 0.25rem;
-      border-radius: 0.375rem; /* rounded-md */
-      transition: background 0.1s ease;
+      padding: 0 0.25rem !important;
+      border-radius: 0.375rem !important; /* rounded-md */
+      transition: background 0.1s ease !important;
     }
     .baco-theme .flatpickr-current-month .flatpickr-monthDropdown-months:hover,
     .baco-theme .flatpickr-current-month input.cur-year:hover {
       background: #374151 !important; /* hover:bg-gray-700 */
     }
     .baco-theme .numInputWrapper { /* Conteneur de l'année */
-      width: 4rem; /* Assez large pour "2025" */
+      width: 4rem !important; /* Assez large pour "2025" */
     }
 
     /* === Jours (Grille) === */
     .baco-theme .flatpickr-weekdaycontainer {
-      padding: 0 0.5rem; /* px-2 */
+      padding: 0 0.5rem !important; /* px-2 */
     }
     .baco-theme .flatpickr-weekday {
-      color: #9CA3AF; /* text-gray-400 */
-      font-weight: 500; /* font-medium */
-      font-size: 0.75rem; /* text-xs */
-      text-transform: uppercase;
-      background: transparent;
-      height: 2rem;
-      line-height: 2rem;
+      color: #9CA3AF !important; /* text-gray-400 */
+      font-weight: 500 !important; /* font-medium */
+      font-size: 0.75rem !important; /* text-xs */
+      text-transform: uppercase !important;
+      background: transparent !important;
+      height: 2rem !important;
+      line-height: 2rem !important;
     }
     
     /* Numéros de semaine (Sem) */
     .baco-theme .flatpickr-weekwrapper {
-      border-right: 1px solid #374151; /* border-gray-700 */
-      margin-right: 0.5rem; /* mr-2 */
+      border-right: 1px solid #374151 !important; /* border-gray-700 */
+      margin-right: 0.5rem !important; /* mr-2 */
     }
     .baco-theme .flatpickr-weekwrapper .flatpickr-weeks {
-      padding: 0 0.5rem; /* px-2 */
-      box-shadow: none;
+      padding: 0 0.5rem !important; /* px-2 */
+      box-shadow: none !important;
     }
     .baco-theme .flatpickr-weekwrapper .flatpickr-weeks span {
       color: #9CA3AF !important; /* text-gray-400 */
-      font-size: 0.875rem; /* text-sm */
-      font-weight: 500;
+      font-size: 0.875rem !important; /* text-sm */
+      font-weight: 500 !important;
       height: 2.25rem !important; /* h-9 (taille des jours) */
       line-height: 2.25rem !important;
     }
     
     /* Jours (numéros) */
     .baco-theme .dayContainer {
-        padding: 0 0.25rem; /* px-1 */
+        padding: 0 0.25rem !important; /* px-1 */
     }
     .baco-theme .flatpickr-day {
-      color: #D1D5DB; /* text-gray-300 */
-      border: none;
-      border-radius: 0.375rem; /* rounded-md */
-      font-weight: 400;
-      height: 2.25rem; /* h-9 */
-      line-height: 2.25rem; /* Centrage vertical */
-      max-width: 2.25rem;
+      color: #D1D5DB !important; /* text-gray-300 */
+      border: 1px solid transparent !important;
+      border-radius: 0.375rem !important; /* rounded-md */
+      font-weight: 400 !important;
+      height: 2.25rem !important; /* h-9 */
+      line-height: 2.25rem !important; /* Centrage vertical */
+      max-width: 2.25rem !important;
     }
     .baco-theme .flatpickr-day:hover {
-      background: #374151; /* hover:bg-gray-700 */
-      color: #F9FAFB;
+      background: #374151 !important; /* hover:bg-gray-700 */
+      color: #F9FAFB !important;
+      border-color: #374151 !important;
     }
     
     /* Aujourd'hui (cercle bleu) */
     .baco-theme .flatpickr-day.today {
-      background: transparent;
-      border: 1px solid #2563EB; /* Cercle bleu-600 */
-      color: #F9FAFB; /* text-white */
+      background: transparent !important;
+      border: 1px solid #2563EB !important; /* Cercle bleu-600 */
+      color: #F9FAFB !important; /* text-white */
     }
     .baco-theme .flatpickr-day.today:hover {
-      background: #374151; /* hover:bg-gray-700 */
-      border-color: #374151;
+      background: #374151 !important; /* hover:bg-gray-700 */
+      border-color: #374151 !important;
     }
     
     /* Jour sélectionné (fond bleu) */
     .baco-theme .flatpickr-day.selected, 
     .baco-theme .flatpickr-day.startRange, 
     .baco-theme .flatpickr-day.endRange {
-      background: #2563EB; /* Le VRAI bleu du site (bg-blue-600) */
-      border-color: #2563EB;
+      background: #2563EB !important; /* Le VRAI bleu du site (bg-blue-600) */
+      border-color: #2563EB !important;
       color: #FFFFFF !important;
     }
     
@@ -326,7 +327,8 @@ function injectCalendarStyles() {
     }
     .baco-theme .flatpickr-day.prevMonthDay:hover, 
     .baco-theme .flatpickr-day.nextMonthDay:hover {
-      background: transparent;
+      background: transparent !important;
+      border-color: transparent !important;
     }
   `;
   document.head.appendChild(style);
@@ -547,8 +549,8 @@ function globalKeyListener(e) {
 // --- Exécution principale au chargement du DOM ---
 
 document.addEventListener('DOMContentLoaded', async () => {
-
-
+  
+  // NOUVEAU: Injection du style calendrier
   injectCalendarStyles();
   
   createSearchModal(); // Crée le HTML et le CSS de la modale
@@ -565,8 +567,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadNavAvatar();
     setupRealtimePresence(); 
 
-
-// --- AJOUTER LA LOGIQUE DU CALENDRIER ICI ---
+    // --- NOUVEAU: Initialisation du Calendrier ---
     const calendarButton = document.getElementById('calendar-toggle-button');
     if (calendarButton) {
       // Vérifier si flatpickr et la traduction sont bien chargés
@@ -576,21 +577,18 @@ document.addEventListener('DOMContentLoaded', async () => {
           locale: "fr",       // On garde la traduction
           static: true,       // Fait apparaître le calendrier sous le bouton
           appendTo: document.body, // S'assure qu'il s'affiche par-dessus tout
-
-          theme: "baco-theme", // On lui donne un nom de thème
-
+          theme: "baco-theme", // On applique notre thème
+          
           onReady: function(selectedDates, dateStr, instance) {
-          // Gardez cette ligne pour la police Geist
-          instance.calendarContainer.classList.add('font-sans');
-        }
-
+            // On ajoute la classe 'font-sans' de Tailwind au conteneur du calendrier
+            instance.calendarContainer.classList.add('font-sans');
+          }
         });
       } else {
         console.warn('Flatpickr (ou sa traduction FR) n\'est pas chargé. Le calendrier de la nav ne s\'affichera pas.');
       }
     }
-    // --- FIN DE L'AJOUT ---
-
+    // --- FIN NOUVEAU CALENDRIER ---
 
     // Logique du menu burger
     const menuButton = document.getElementById('mobile-menu-button');
