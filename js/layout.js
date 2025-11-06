@@ -213,19 +213,27 @@ function injectCalendarStyles() {
       height: 2.5rem !important; /* h-10 */
     }
     
-    /* Style des flèches */
+    /* === CORRECTION FLÈCHES === */
     .baco-theme .flatpickr-months .flatpickr-prev-month,
     .baco-theme .flatpickr-months .flatpickr-next-month {
-      fill: #D1D5DB !important; /* text-gray-300 */
       padding: 0.5rem !important; /* p-2 */
       border-radius: 0.375rem !important; /* rounded-md */
       top: 0.5rem !important;
     }
+    /* Cible le SVG à l'intérieur pour écraser le 'fill' rouge par défaut */
+    .baco-theme .flatpickr-months .flatpickr-prev-month svg,
+    .baco-theme .flatpickr-months .flatpickr-next-month svg {
+       fill: #D1D5DB !important; /* text-gray-300 */
+    }
     .baco-theme .flatpickr-months .flatpickr-prev-month:hover,
     .baco-theme .flatpickr-months .flatpickr-next-month:hover {
-      fill: #F9FAFB !important; /* text-gray-100 */
       background: #374151 !important; /* hover:bg-gray-700 */
     }
+    .baco-theme .flatpickr-months .flatpickr-prev-month:hover svg,
+    .baco-theme .flatpickr-months .flatpickr-next-month:hover svg {
+      fill: #F9FAFB !important; /* text-gray-100 */
+    }
+    /* === FIN CORRECTION FLÈCHES === */
     
     /* Style des menus déroulants (Mois & Année) */
     .baco-theme .flatpickr-current-month .flatpickr-monthDropdown-months,
@@ -317,11 +325,11 @@ function injectCalendarStyles() {
       color: #FFFFFF !important;
     }
     
-    /* Jours désactivés (mois précédent/suivant) */
+    /* === CORRECTION CHIFFRES INVISIBLES === */
     .baco-theme .flatpickr-day.flatpickr-disabled, 
     .baco-theme .flatpickr-day.prevMonthDay, 
     .baco-theme .flatpickr-day.nextMonthDay {
-      color: #4B5563 !important; /* text-gray-600 */
+      color: #6B7280 !important; /* text-gray-500 (plus clair que gray-600) */
     }
     .baco-theme .flatpickr-day.prevMonthDay:hover, 
     .baco-theme .flatpickr-day.nextMonthDay:hover {
@@ -331,7 +339,6 @@ function injectCalendarStyles() {
   `;
   document.head.appendChild(style);
 }
-
 
 // ===============================================================
 // ==              SECTION RECHERCHE GLOBALE (MISE À JOUR)      ==
