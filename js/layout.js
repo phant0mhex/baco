@@ -180,7 +180,6 @@ async function loadLatestChangelog() {
 // ===============================================================
 // ==              SECTION CALENDRIER PERSONNALISÉ              ==
 // ===============================================================
-
 /**
  * Injecte les styles CSS personnalisés pour Flatpickr (thème "BACO")
  * Version finale, épurée et alignée sur le design du site.
@@ -329,7 +328,8 @@ function injectCalendarStyles() {
     .baco-theme .flatpickr-day.flatpickr-disabled, 
     .baco-theme .flatpickr-day.prevMonthDay, 
     .baco-theme .flatpickr-day.nextMonthDay {
-      color: #6B7280 !important; /* text-gray-500 (plus clair que gray-600) */
+      /* On utilise la même couleur que les en-têtes (LUN, MAR...) */
+      color: #9CA3AF !important; /* text-gray-400 */
     }
     .baco-theme .flatpickr-day.prevMonthDay:hover, 
     .baco-theme .flatpickr-day.nextMonthDay:hover {
