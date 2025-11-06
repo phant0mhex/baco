@@ -41,15 +41,16 @@
       <div class="container mx-auto p-6 md:flex md:justify-between md:items-center">
         <div>
           <h1 class="text-3xl font-bold text-gray-800">Clients PMR</h1>
-          <p class="mt-1 text-sm text-gray-500">Répertoire des clients PMR.</p>
+          <p class="mt-1 text-sm text-gray-500">Répertoire des clients à mobilité réduite.</p>
         </div>
-        <div class="mt-4 md:mt-0 admin-only">
+        
+        <div class="mt-4 md:mt-0">
           <button onclick="showPmrClientModal()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
             <i data-lucide="plus" class="w-5 h-5"></i>
             <span>Ajouter un client</span>
           </button>
         </div>
-      </div>
+        </div>
     </header>
 
     <div class="container mx-auto p-8">
@@ -240,15 +241,16 @@
                 <h3 class="text-xl font-bold text-blue-700">${client.prenom || ''} ${client.nom}</h3>
                 ${client.type ? `<span class="mt-1 inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full ${typeClass}">${client.type}</span>` : ''}
               </div>
-              <div class="admin-only flex items-center flex-shrink-0 gap-1">
-                <button onclick="deletePmrClient(${client.id}, '${client.prenom} ${client.nom}')" class="p-2 text-red-600 rounded-full hover:bg-red-100" title="Supprimer">
+
+              <div class="flex items-center flex-shrink-0 gap-1">
+                <button onclick="deletePmrClient(${client.id}, '${client.prenom} ${client.nom}')" class="admin-only p-2 text-red-600 rounded-full hover:bg-red-100" title="Supprimer">
                   <i data-lucide="trash-2" class="w-4 h-4"></i>
                 </button>
                 <button onclick="showPmrClientModal(${clientJson})" class="p-2 text-blue-600 rounded-full hover:bg-blue-100" title="Modifier">
                   <i data-lucide="pencil" class="w-4 h-4"></i>
                 </button>
               </div>
-            </div>
+              </div>
             
             <div class="p-4 space-y-3">
               ${client.telephone ? `
@@ -343,7 +345,7 @@
         modalForm.reset();
         const isEdit = client !== null;
         
-        modalTitle.textContent = isEdit ? `Modifier: ${client.prenom} ${client.nom}` : 'Ajouter un client';
+        modalTitle.textContent = isEdit ? `Modifier: ${client.prenom || ''} ${client.nom}` : 'Ajouter un client';
         modalClientId.value = isEdit ? client.id : '';
         
         document.getElementById('modal-prenom').value = isEdit ? client.prenom : '';
