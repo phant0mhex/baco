@@ -12,6 +12,9 @@
 
   <script src="https://unpkg.com/lucide@latest" defer></script>
 
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+  <script src="js/layout.js" defer></script>
   <script>
     tailwind.config = {
       theme: {
@@ -141,11 +144,17 @@
   </div>
 
 </div>
-  <script src="js/layout.js" defer></script>
-
+  
   <script>
+    let currentUserId;
+    let favoritedBusIds = new Set();
+  
     document.addEventListener('DOMContentLoaded', () => {
     
+      const notyf = (typeof Notyf !== 'undefined') 
+        ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
+        : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
+
       // --- Références aux éléments du DOM ---
       const modal = document.getElementById('bus-modal');
       const modalTitle = document.getElementById('modal-title');
@@ -160,6 +169,49 @@
       window.hideBusModal = hideBusModal;
       window.handleBusFormSubmit = handleBusFormSubmit;
       window.deleteBus = deleteBus;
+      
+      /**
+       * Gère l'ajout ou la suppression d'un favori
+       */
+      window.toggleFavorite = async function(element, type, id, isFavorited) {
+        if (!currentUserId) {
+          notyf.error("Erreur: Utilisateur non identifié.");
+          return;
+        }
+        
+        element.disabled = true;
+        element.classList.add('opacity-50', 'cursor-wait');
+        const icon = element.querySelector('i');
+        if (!icon) return;
+
+        try {
+          if (isFavorited) {
+            const { error } = await supabaseClient.from('favoris').delete()
+              .match({ user_id: currentUserId, id_contenu: id, type_contenu: type });
+            if (error) throw error;
+            
+            favoritedBusIds.delete(id);
+            icon.classList.remove('fill-yellow-400', 'text-yellow-400');
+            icon.classList.add('text-gray-400');
+            element.setAttribute('onclick', `toggleFavorite(this, '${type}', ${id}, false)`);
+            
+          } else {
+            const { error } = await supabaseClient.from('favoris')
+              .insert({ user_id: currentUserId, id_contenu: id, type_contenu: type });
+            if (error) throw error;
+            
+            favoritedBusIds.add(id);
+            icon.classList.add('fill-yellow-400', 'text-yellow-400');
+            icon.classList.remove('text-gray-400');
+            element.setAttribute('onclick', `toggleFavorite(this, '${type}', ${id}, true)`);
+          }
+        } catch (error) {
+          notyf.error("Erreur: " + error.message);
+        } finally {
+          element.disabled = false;
+          element.classList.remove('opacity-50', 'cursor-wait');
+        }
+      }
 
       // --- FONCTION 1 : AFFICHER LES SOCIÉTÉS ---
       async function updateSocieteDisplay() {
@@ -170,6 +222,27 @@
 
         if (lignesSelectionnees.length === 0) {
           contentContainer.innerHTML = '<p class="text-gray-600">Veuillez sélectionner au moins une ligne.</p>';
+          return;
+        }
+
+        try {
+          if (!currentUserId) {
+            const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+            if (authError || !user) throw new Error("Utilisateur non connecté");
+            currentUserId = user.id;
+          }
+          
+          const { data: favs, error: favError } = await supabaseClient
+            .from('favoris')
+            .select('id_contenu')
+            .eq('user_id', currentUserId)
+            .eq('type_contenu', 'bus');
+          
+          if (favError) throw favError;
+          favoritedBusIds = new Set(favs.map(f => f.id_contenu));
+          
+        } catch (error) {
+          contentContainer.innerHTML = `<p class='text-red-600'>Erreur (auth/favs): ${error.message}</p>`;
           return;
         }
 
@@ -206,19 +279,31 @@
             '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-8" id="societeCheckboxes">' +
               societesAffichees.map(s => {
                 const societeJson = JSON.stringify(s).replace(/"/g, "&quot;");
+                
+                const isFavorited = favoritedBusIds.has(s.id);
+                const starClass = isFavorited ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400';
+                const favoriteButton = `
+                  <button onclick="toggleFavorite(this, 'bus', ${s.id}, ${isFavorited})" class="p-1 rounded-full hover:bg-yellow-100" title="Mettre en favori">
+                    <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
+                  </button>
+                `;
+                
                 return `
                 <div class="flex items-center justify-between px-4 py-3 bg-white border border-gray-300 rounded-lg shadow-sm">
                   <label class="flex items-center space-x-2 cursor-pointer grow mr-2">
                     <input type="checkbox" value="${s.id}" onchange="updateChauffeursDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
                     <span class="font-medium text-gray-700">${s.nom}</span>
                   </label>
-                  <div class="flex items-center gap-2 flex-shrink-0 admin-only">
-                    <button onclick='showBusModal(${societeJson})' class="p-1 text-blue-600 rounded-full hover:bg-blue-100" title="Modifier ${s.nom}">
-                      <i data-lucide="pencil" class="w-4 h-4"></i>
-                    </button>
-                    <button onclick="deleteBus(${s.id}, '${s.nom}')" class="p-1 text-red-600 rounded-full hover:bg-red-100" title="Supprimer ${s.nom}">
-                      <i data-lucide="trash-2" class="w-4 h-4"></i>
-                    </button>
+                  <div class="flex items-center gap-1 flex-shrink-0">
+                    ${favoriteButton}
+                    <div class="flex items-center gap-2 admin-only">
+                      <button onclick='showBusModal(${societeJson})' class="p-1 text-blue-600 rounded-full hover:bg-blue-100" title="Modifier ${s.nom}">
+                        <i data-lucide="pencil" class="w-4 h-4"></i>
+                      </button>
+                      <button onclick="deleteBus(${s.id}, '${s.nom}')" class="p-1 text-red-600 rounded-full hover:bg-red-100" title="Supprimer ${s.nom}">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                      </button>
+                    </div>
                   </div>
                 </div>`;
               }).join('') +
@@ -230,7 +315,7 @@
         lucide.createIcons();
       }
 
-      // --- FONCTION 2 : AFFICHER CONTACTS/CHAUFFEURS (DESIGN CORRIGÉ) ---
+      // --- FONCTION 2 : AFFICHER CONTACTS/CHAUFFEURS (Inchangée) ---
       async function updateChauffeursDisplay() {
         const societesSelectionneesIds = Array.from(document.querySelectorAll('#societeCheckboxes input:checked'))
           .map(cb => cb.value);
@@ -259,10 +344,9 @@
           return;
         }
         
-        // --- CORRECTION : suppression de 'max-w-2xl' ---
         contactsContainer.innerHTML = contactList.length === 0 ? '' :
           '<h3 class="text-2xl font-semibold text-gray-800 mb-4">Contacts de la société :</h3>' +
-          '<ul class="list-none p-0 grid grid-cols-1 md:grid-cols-2 gap-3">' + // max-w-2xl supprimé
+          '<ul class="list-none p-0 grid grid-cols-1 md:grid-cols-2 gap-3">' +
           contactList.map(c => 
             `<li class="bg-gray-50 rounded-lg border border-gray-200 p-3 flex items-center justify-between">
               <span class="flex items-center gap-2 text-sm font-medium text-gray-900">
@@ -276,10 +360,9 @@
             </li>`
           ).join('') + '</ul>';
 
-        // --- CORRECTION : suppression de 'max-w-2xl' ---
         chauffeursContainer.innerHTML = chauffeursList.length === 0 ? '' :
           '<h3 class="text-2xl font-semibold text-gray-800 mb-4 mt-8">Chauffeurs à contacter :</h3>' +
-          '<ul class="list-none p-0 grid grid-cols-1 md:grid-cols-2 gap-3">' + // max-w-2xl supprimé
+          '<ul class="list-none p-0 grid grid-cols-1 md:grid-cols-2 gap-3">' +
           chauffeursList.map(c => 
             `<li class="bg-gray-50 rounded-lg border border-gray-200 p-3 flex items-center justify-between">
               <span class="flex items-center gap-2 text-sm font-medium text-gray-900">
@@ -296,8 +379,7 @@
         lucide.createIcons();
       }
 
-      // --- FONCTIONS DU MODAL (INCHANGÉES) ---
-
+      // --- FONCTIONS DU MODAL (Inchangées) ---
       async function showBusModal(societe = null) {
         const isEdit = societe !== null;
         busForm.reset();
@@ -318,7 +400,7 @@
             .single();
 
           if (error) {
-            alert("Erreur lors du chargement des détails: " + error.message);
+            notyf.error("Erreur chargement détails: " + error.message);
             return;
           }
 
@@ -373,9 +455,9 @@
         submitButton.textContent = 'Enregistrer';
 
         if (error) {
-          alert("Erreur lors de l'opération: " + error.message);
+          notyf.error("Erreur: " + error.message);
         } else {
-          alert(busId ? "Société mise à jour !" : "Société ajoutée !");
+          notyf.success(busId ? "Société mise à jour !" : "Société ajoutée !");
           hideBusModal();
           updateSocieteDisplay();
         }
@@ -386,12 +468,18 @@
           return;
         }
 
+        try {
+          await supabaseClient.from('favoris').delete().match({ id_contenu: id, type_contenu: 'bus' });
+        } catch (favError) {
+           console.warn("Erreur suppression favori:", favError.message);
+        }
+
         const { error } = await supabaseClient.rpc('delete_societe_bus', { societe_id_to_delete: id });
         
         if (error) {
-          alert("Erreur lors de la suppression: " + error.message);
+          notyf.error("Erreur: " + error.message);
         } else {
-          alert("Société supprimée avec succès !");
+          notyf.success("Société supprimée !");
           updateSocieteDisplay();
         }
       }

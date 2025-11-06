@@ -199,20 +199,23 @@
               <p class="col-span-full text-sm text-gray-600 dark:text-gray-400 italic">
                 Vous n'avez pas encore de favoris. Cliquez sur l'étoile 
                 <i data-lucide="star" class="w-4 h-4 inline-block -mt-1"></i> 
-                sur un contact, une procédure ou un client PMR pour l'ajouter ici.
+                sur un contact, client PMR, taxi ou société de bus pour l'ajouter ici.
               </p>`;
             container.style.display = 'block';
             lucide.createIcons();
             return;
           }
 
+          // ======================= MODIFICATION =======================
+          // Ajout de 'Bus' et 'Taxi' à la map des icônes
           const iconMap = {
             'Contact': 'book-user',
-            'Procédure': 'shield',
-            'Client PMR': 'users'
+            'Client PMR': 'users',
+            'Taxi': 'car',
+            'Bus': 'bus'
           };
+          // ==========================================================
           
-          // ======================= MODIFICATION : Nouveau style de carte =======================
           list.innerHTML = favorites.map(fav => `
             <a href="${fav.url}" 
                class="block p-4 bg-white dark:bg-gray-900 
@@ -237,7 +240,6 @@
               </div>
             </a>
           `).join('');
-          // =================================================================================
           
           container.style.display = 'block'; 
           lucide.createIcons();

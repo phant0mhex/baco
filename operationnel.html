@@ -159,9 +159,6 @@
     let hideProcedureModal;
     let handleFormSubmit;
     let deleteProcedure;
-    
-    let currentUserId;
-    let favoritedProcedureIds = new Set();
 
     document.addEventListener('DOMContentLoaded', () => {
     
@@ -203,56 +200,6 @@
         console.error("Erreur initialisation EasyMDE:", e);
         notyf.error("Erreur: L'éditeur de texte n'a pas pu charger.");
       }
-      
-      /**
-       * Gère l'ajout ou la suppression d'un favori
-       */
-      async function toggleFavorite(element, type, id, isFavorited) {
-        if (!currentUserId) {
-          notyf.error("Erreur: Utilisateur non identifié.");
-          return;
-        }
-        
-        element.disabled = true;
-        element.classList.add('opacity-50', 'cursor-wait');
-        
-        // ======================= CORRECTION =======================
-        const icon = element.querySelector('i');
-        if (!icon) return;
-        // ==========================================================
-
-        try {
-          if (isFavorited) {
-            const { error } = await supabaseClient.from('favoris').delete()
-              .match({ user_id: currentUserId, id_contenu: id, type_contenu: type });
-            if (error) throw error;
-            
-            favoritedProcedureIds.delete(id);
-            // ======================= CORRECTION =======================
-            icon.classList.remove('fill-yellow-400', 'text-yellow-400');
-            icon.classList.add('text-gray-400');
-            // ==========================================================
-            element.setAttribute('onclick', `toggleFavorite(this, '${type}', ${id}, false)`);
-            
-          } else {
-            const { error } = await supabaseClient.from('favoris')
-              .insert({ user_id: currentUserId, id_contenu: id, type_contenu: type });
-            if (error) throw error;
-            
-            favoritedProcedureIds.add(id);
-            // ======================= CORRECTION =======================
-            icon.classList.add('fill-yellow-400', 'text-yellow-400');
-            icon.classList.remove('text-gray-400');
-            // ==========================================================
-            element.setAttribute('onclick', `toggleFavorite(this, '${type}', ${id}, true)`);
-          }
-        } catch (error) {
-          notyf.error("Erreur: " + error.message);
-        } finally {
-          element.disabled = false;
-          element.classList.remove('opacity-50', 'cursor-wait');
-        }
-      }
 
       /**
        * Surligne le terme de recherche dans un texte
@@ -275,7 +222,6 @@
        * Charge les catégories uniques et les affiche dans la sidebar
        */
       async function loadCategories() {
-        // ... (code inchangé) ...
         try {
           const { data, error } = await supabaseClient
             .from('procedures')
@@ -305,7 +251,6 @@
        * Fonction appelée par les boutons de catégorie
        */
       window.filterByCategory = (category, element) => {
-        // ... (code inchangé) ...
         selectedCategory = category;
         document.querySelectorAll('#categories-list button').forEach(btn => {
           btn.classList.remove('bg-blue-100', 'text-blue-700');
@@ -314,7 +259,7 @@
         element.classList.add('bg-blue-100', 'text-blue-700');
         element.classList.remove('text-gray-600', 'hover:bg-gray-200');
         
-        loadProcedures();
+        loadProcedures(); // Recharger les procédures
       }
 
       /**
@@ -323,28 +268,6 @@
       loadProcedures = async () => {
         proceduresList.innerHTML = '<div class="flex justify-center items-center py-20"><i data-lucide="loader-2" class="w-10 h-10 text-blue-600 animate-spin"></i></div>';
         lucide.createIcons();
-        
-        // Récupérer l'ID utilisateur et les favoris
-        try {
-          if (!currentUserId) {
-            const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-            if (authError || !user) throw new Error("Utilisateur non connecté");
-            currentUserId = user.id;
-          }
-          
-          const { data: favs, error: favError } = await supabaseClient
-            .from('favoris')
-            .select('id_contenu')
-            .eq('user_id', currentUserId)
-            .eq('type_contenu', 'procedure');
-          
-          if (favError) throw favError;
-          favoritedProcedureIds = new Set(favs.map(f => f.id_contenu));
-          
-        } catch (error) {
-          proceduresList.innerHTML = `<p class="col-span-full text-red-600 text-center">Erreur (auth/favs): ${error.message}</p>`;
-          return;
-        }
         
         try {
           let query = supabaseClient
@@ -382,14 +305,6 @@
             const displayTitle = highlightText(entry.titre, searchTerm);
             const displayCategory = highlightText(entry.categorie, searchTerm);
             
-            const isFavorited = favoritedProcedureIds.has(entry.id);
-            const starClass = isFavorited ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400';
-            const favoriteButton = `
-              <button onclick="toggleFavorite(this, 'procedure', ${entry.id}, ${isFavorited})" class="p-2 rounded-full hover:bg-yellow-100" title="Mettre en favori">
-                <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
-              </button>
-            `;
-            
             return `
               <div class="bg-white border border-gray-200 rounded-lg shadow-sm flex flex-col">
                 <div class="flex justify-between items-center p-4 border-b">
@@ -397,18 +312,15 @@
                     <h3 class="text-xl font-bold text-blue-700">${displayTitle}</h3>
                     <span class="text-sm font-medium text-gray-500">${displayCategory}</span>
                   </div>
-                  <div class="flex items-center flex-shrink-0 gap-1">
-                    ${favoriteButton}
-                    <div class="admin-only flex items-center gap-2">
-                      <button onclick="deleteProcedure(${entry.id}, '${entry.titre}')" class="p-2 text-red-600 rounded-full hover:bg-red-100" title="Supprimer">
-                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                      </button>
-                      <button onclick="showProcedureModal(${entryJson})" class="p-2 text-blue-600 rounded-full hover:bg-blue-100" title="Modifier">
-                        <i data-lucide="pencil" class="w-4 h-4"></i>
-                      </button>
-                    </div>
+                  <div class="admin-only flex items-center flex-shrink-0 gap-2">
+                    <button onclick="deleteProcedure(${entry.id}, '${entry.titre}')" class="p-2 text-red-600 rounded-full hover:bg-red-100" title="Supprimer">
+                      <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="showProcedureModal(${entryJson})" class="p-2 text-blue-600 rounded-full hover:bg-blue-100" title="Modifier">
+                      <i data-lucide="pencil" class="w-4 h-4"></i>
+                    </button>
                   </div>
-                </div>
+                  </div>
                 
                 <div class="p-4 prose prose-sm max-w-none">
                   ${contentHtml}
@@ -430,21 +342,25 @@
        * Ouvre et pré-remplit le modal
        */
       showProcedureModal = (entry = null) => {
-        // ... (code inchangé) ...
         procedureForm.reset();
         const isEdit = entry !== null;
+        
         modalTitle.textContent = isEdit ? `Modifier: ${entry.titre}` : 'Ajouter une procédure';
         procedureIdInput.value = isEdit ? entry.id : '';
+        
         document.getElementById('modal-titre').value = isEdit ? entry.titre : '';
         document.getElementById('modal-categorie').value = isEdit ? entry.categorie : '';
+        
         if (easyMDE) {
           easyMDE.value(isEdit ? entry.contenu : '');
         } else {
           document.getElementById('modal-contenu').value = isEdit ? entry.contenu : '';
         }
+        
         modal.classList.remove('invisible');
         modal.classList.remove('opacity-0');
         modalPanel.classList.remove('scale-95');
+        
         lucide.createIcons();
       }
       
@@ -452,7 +368,6 @@
        * Cache le modal
        */
       hideProcedureModal = () => {
-        // ... (code inchangé) ...
         modal.classList.add('opacity-0');
         modalPanel.classList.add('scale-95');
         setTimeout(() => {
@@ -464,17 +379,20 @@
        * Gère la soumission du formulaire (Ajout/Modification)
        */
       handleFormSubmit = async (event) => {
-        // ... (code inchangé) ...
         event.preventDefault();
+        
         const procedureId = procedureIdInput.value;
         const isEdit = procedureId !== '';
+        
         const entryData = {
           titre: document.getElementById('modal-titre').value,
           categorie: document.getElementById('modal-categorie').value,
           contenu: easyMDE ? easyMDE.value() : document.getElementById('modal-contenu').value,
         };
+        
         submitButton.disabled = true;
         submitButton.textContent = 'Enregistrement...';
+
         try {
           let error;
           if (isEdit) {
@@ -485,11 +403,15 @@
             error = insertError;
           }
           if (error) throw error;
+          
           notyf.success(isEdit ? "Procédure mise à jour !" : "Procédure ajoutée !");
           hideProcedureModal();
+          
           proceduresChannel.send({ type: 'broadcast', event: 'data-change' });
+          
           loadCategories(); 
           loadProcedures(); 
+          
         } catch (error) {
           notyf.error("Erreur: " + error.message);
         } finally {
@@ -497,6 +419,7 @@
           submitButton.textContent = 'Enregistrer';
         }
       }
+
 
      // Configurer Marked.js (Code inchangé)
       if (window.marked) {
@@ -520,16 +443,20 @@
        * Supprime une procédure
        */
       deleteProcedure = async (id, titre) => {
-        // ... (code inchangé) ...
         if (!confirm(`Êtes-vous sûr de vouloir supprimer la procédure "${titre}" ?`)) {
           return;
         }
         try {
           const { error } = await supabaseClient.from('procedures').delete().eq('id', id);
           if (error) throw error;
+          
           notyf.success("Procédure supprimée !");
-          await supabaseClient.from('favoris').delete().match({ id_contenu: id, type_contenu: 'procedure' });
+          
+          // Supprimer aussi des favoris (cette ligne est maintenant supprimée de la table favoris)
+          // await supabaseClient.from('favoris').delete().match({ id_contenu: id, type_contenu: 'procedure' });
+          
           proceduresChannel.send({ type: 'broadcast', event: 'data-change' });
+          
           loadCategories();
           loadProcedures();
         } catch (error) {
