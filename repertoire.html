@@ -149,8 +149,8 @@
  <script>
     let currentSortOrder = 'az';
     
-    let currentUserId; // Pour stocker l'ID de l'utilisateur
-    let favoritedContactIds = new Set(); // Pour un lookup rapide
+    let currentUserId;
+    let favoritedContactIds = new Set();
     
     const notyf = (typeof Notyf !== 'undefined') 
         ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
@@ -167,6 +167,12 @@
       
       element.disabled = true;
       element.classList.add('opacity-50', 'cursor-wait');
+      
+      // ======================= CORRECTION =======================
+      // CIBLER L'ICÔNE À L'INTÉRIEUR DU BOUTON
+      const icon = element.querySelector('i');
+      if (!icon) return; // Sécurité
+      // ==========================================================
 
       try {
         if (isFavorited) {
@@ -176,8 +182,12 @@
           if (error) throw error;
           
           favoritedContactIds.delete(id);
-          element.classList.remove('fill-yellow-400', 'text-yellow-400');
-          element.classList.add('text-gray-400');
+          
+          // ======================= CORRECTION =======================
+          icon.classList.remove('fill-yellow-400', 'text-yellow-400');
+          icon.classList.add('text-gray-400');
+          // ==========================================================
+          
           element.setAttribute('onclick', `toggleFavorite(this, '${type}', ${id}, false)`);
           
         } else {
@@ -187,8 +197,12 @@
           if (error) throw error;
           
           favoritedContactIds.add(id);
-          element.classList.add('fill-yellow-400', 'text-yellow-400');
-          element.classList.remove('text-gray-400');
+          
+          // ======================= CORRECTION =======================
+          icon.classList.add('fill-yellow-400', 'text-yellow-400');
+          icon.classList.remove('text-gray-400');
+          // ==========================================================
+          
           element.setAttribute('onclick', `toggleFavorite(this, '${type}', ${id}, true)`);
         }
       } catch (error) {
@@ -203,6 +217,7 @@
      * Charge dynamiquement les catégories principales depuis Supabase
      */
     async function loadMainCategories() {
+      // ... (code inchangé) ...
       const categoriesContainer = document.getElementById('mainCategories');
       try {
         const { data, error } = await supabaseClient
@@ -232,6 +247,7 @@
      * Peuple dynamiquement les filtres de zone en fonction des catégories principales sélectionnées
      */
     async function populateZoneFilters(selectedMainCategories) {
+        // ... (code inchangé) ...
         const zoneCheckboxContainer = document.getElementById('zoneSubCategories');
         zoneCheckboxContainer.innerHTML = '<p class="text-gray-600">Chargement des zones...</p>';
         
@@ -239,7 +255,7 @@
         const relevantCategories = selectedMainCategories.filter(cat => zonableCategories.includes(cat));
 
         if (relevantCategories.length === 0) {
-            zoneCheckboxContainer.innerHTML = ''; // Pas de catégories zonables sélectionnées
+            zoneCheckboxContainer.innerHTML = '';
             return;
         }
 
@@ -274,6 +290,7 @@
      * Met à jour l'affichage des sous-catégories (zones)
      */
     async function updateSubCategories() {
+      // ... (code inchangé) ...
       const mainChecked = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
       const zonableCategories = ['MIA', 'DSE']; 
       
@@ -290,7 +307,7 @@
           zoneCheckboxContainer.innerHTML = '';
       }
       
-      updateDisplay(); // Mettre à jour les résultats
+      updateDisplay();
     }
 
     /**
@@ -301,13 +318,12 @@
         return text;
       }
       try {
-        // Échapper les caractères spéciaux pour la RegExp
         const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const regex = new RegExp(`(${escapedTerm})`, 'gi');
         return text.replace(regex, '<mark class="bg-yellow-200 rounded px-0.5">$1</mark>');
       } catch (e) {
         console.error("Erreur de surlignage:", e);
-        return text; // Retourner le texte original en cas d'erreur
+        return text;
       }
     }
 
@@ -317,7 +333,6 @@
       container.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
       lucide.createIcons();
 
-      // Récupérer l'ID utilisateur et les favoris
       try {
         if (!currentUserId) {
           const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
@@ -351,7 +366,6 @@
         .select('id, nom, tel, groupe, email, categorie_principale, zone')
         .order('nom', { ascending: (currentSortOrder === 'az') });
 
-      // Logique des filtres (inchangée)
       const orFilters = [];
       const categoriesWithZones = ['MIA', 'DSE'];
       const mainCategoriesWithZones = mainChecked.filter(cat => categoriesWithZones.includes(cat));
@@ -492,6 +506,7 @@
     }
     
     document.addEventListener('DOMContentLoaded', async () => { 
+      // ... (code des boutons de tri inchangé) ...
       const sortAzButton = document.getElementById('sort-az');
       const sortZaButton = document.getElementById('sort-za');
       function updateSortButtons() {
@@ -530,6 +545,8 @@
         notyf.error("Erreur: " + error.message);
       } else {
         notyf.success("Contact supprimé !");
+        // Supprimer aussi des favoris
+        await supabaseClient.from('favoris').delete().match({ id_contenu: id, type_contenu: 'contact' });
         updateDisplay();
         await loadMainCategories(); 
       }
@@ -542,6 +559,7 @@
     const contactIdInput = document.getElementById('modal-contact-id');
 
     function showContactModal(contact = null) {
+      // ... (code inchangé) ...
       const isEdit = contact !== null;
       contactForm.reset();
       
@@ -568,6 +586,7 @@
     }
 
     async function handleFormSubmit(event) {
+      // ... (code inchangé) ...
       event.preventDefault();
       
       const contactId = contactIdInput.value;

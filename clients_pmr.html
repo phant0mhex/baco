@@ -30,13 +30,11 @@
       },
     }
   </script>
-  
   <style>
-    /* Style pour le surlignage */
     mark {
-      background-color: #fef08a; /* yellow-200 */
-      border-radius: 0.125rem; /* rounded */
-      padding: 0 0.125rem; /* px-0.5 */
+      background-color: #fef08a;
+      border-radius: 0.125rem;
+      padding: 0 0.125rem;
     }
   </style>
 </head>
@@ -92,7 +90,6 @@
             <i data-lucide="x" class="w-5 h-5"></i>
           </button>
         </div>
-        
         <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -119,7 +116,6 @@
             <textarea id="modal-remarques" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
           </div>
         </div>
-        
         <div class="flex justify-end items-center p-4 bg-gray-50 border-t rounded-b-lg">
           <button type="button" onclick="hidePmrClientModal()" class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none">
             Annuler
@@ -141,11 +137,11 @@
     let hidePmrClientModal;
     let handleFormSubmit;
     let deletePmrClient;
-    let debouncePmrSearch; // Renommé pour éviter conflit
+    let debouncePmrSearch;
     
     let searchTimer;
-    let currentUserId; // Pour stocker l'ID de l'utilisateur
-    let favoritedClientIds = new Set(); // Pour un lookup rapide
+    let currentUserId;
+    let favoritedClientIds = new Set();
 
     document.addEventListener('DOMContentLoaded', () => {
     
@@ -174,6 +170,11 @@
         
         element.disabled = true;
         element.classList.add('opacity-50', 'cursor-wait');
+        
+        // ======================= CORRECTION =======================
+        const icon = element.querySelector('i');
+        if (!icon) return;
+        // ==========================================================
 
         try {
           if (isFavorited) {
@@ -182,8 +183,10 @@
             if (error) throw error;
             
             favoritedClientIds.delete(id);
-            element.classList.remove('fill-yellow-400', 'text-yellow-400');
-            element.classList.add('text-gray-400');
+            // ======================= CORRECTION =======================
+            icon.classList.remove('fill-yellow-400', 'text-yellow-400');
+            icon.classList.add('text-gray-400');
+            // ==========================================================
             element.setAttribute('onclick', `toggleFavorite(this, '${type}', ${id}, false)`);
             
           } else {
@@ -192,8 +195,10 @@
             if (error) throw error;
             
             favoritedClientIds.add(id);
-            element.classList.add('fill-yellow-400', 'text-yellow-400');
-            element.classList.remove('text-gray-400');
+            // ======================= CORRECTION =======================
+            icon.classList.add('fill-yellow-400', 'text-yellow-400');
+            icon.classList.remove('text-gray-400');
+            // ==========================================================
             element.setAttribute('onclick', `toggleFavorite(this, '${type}', ${id}, true)`);
           }
         } catch (error) {
@@ -223,7 +228,7 @@
       /**
        * Attend 300ms après la dernière frappe avant de lancer la recherche
        */
-      debouncePmrSearch = () => { // Fonction renommée
+      debouncePmrSearch = () => { // Renommé
         clearTimeout(searchTimer);
         searchTimer = setTimeout(() => {
           loadData();
@@ -266,7 +271,7 @@
           let query = supabaseClient
             .from('pmr_clients')
             .select('*')
-            .order('nom', { ascending: true }); // Trier par nom de famille
+            .order('nom', { ascending: true });
 
           if (searchTerm) {
             query = query.or(
@@ -282,7 +287,7 @@
           const { data, error } = await query;
           if (error) throw error;
           
-          statusMsg.innerHTML = ''; // Vider le spinner
+          statusMsg.innerHTML = '';
 
          if (data.length === 0) {
             statusMsg.innerHTML = `
@@ -322,12 +327,10 @@
 
         const hasRemarques = client.remarques && client.remarques.trim() !== '';
         
-        // Surlignage
         const displayName = highlightText(`${client.prenom || ''} ${client.nom}`, searchTerm);
         const displayType = highlightText(client.type, searchTerm);
         const displayTel = highlightText(client.telephone, searchTerm);
         
-        // Favori
         const isFavorited = favoritedClientIds.has(client.id);
         const starClass = isFavorited ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400';
         const favoriteButton = `
@@ -344,7 +347,8 @@
                 ${client.type ? `<span class="mt-1 inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full ${typeClass}">${displayType}</span>` : ''}
               </div>
 
-              <div class="flex items-center flex-shrink-0 gap-0"> ${favoriteButton}
+              <div class="flex items-center flex-shrink-0 gap-0">
+                ${favoriteButton}
                 <button onclick="showPmrClientModal(${clientJson})" class="p-2 text-blue-600 rounded-full hover:bg-blue-100" title="Modifier">
                   <i data-lucide="pencil" class="w-4 h-4"></i>
                 </button>
@@ -375,11 +379,10 @@
        * Gère la soumission du formulaire (Ajout/Modification)
        */
       handleFormSubmit = async (event) => {
+        // ... (code inchangé) ...
         event.preventDefault();
-        
         const clientId = modalClientId.value;
         const isEdit = clientId !== '';
-        
         const entryData = {
           prenom: document.getElementById('modal-prenom').value || null,
           nom: document.getElementById('modal-nom').value,
@@ -387,10 +390,8 @@
           type: document.getElementById('modal-type').value || null,
           remarques: document.getElementById('modal-remarques').value || null,
         };
-        
         modalSubmitButton.disabled = true;
         modalSubmitButton.textContent = 'Enregistrement...';
-
         try {
           let error;
           if (isEdit) {
@@ -406,11 +407,9 @@
             error = insertError;
           }
           if (error) throw error;
-          
           notyf.success(isEdit ? "Client mis à jour !" : "Client ajouté !");
           hidePmrClientModal();
           loadData();
-          
         } catch (error) {
           notyf.error("Erreur: " + error.message);
         } finally {
@@ -423,6 +422,7 @@
        * Supprime un client
        */
       deletePmrClient = async (id, nom) => {
+        // ... (code inchangé) ...
         if (!confirm(`Êtes-vous sûr de vouloir supprimer le client "${nom}" ?`)) {
           return;
         }
@@ -432,9 +432,7 @@
             .delete()
             .eq('id', id);
           if (error) throw error;
-          
           notyf.success("Client supprimé !");
-          // Supprimer aussi des favoris
           await supabaseClient.from('favoris').delete().match({ id_contenu: id, type_contenu: 'client_pmr' });
           loadData();
         } catch (error) {
@@ -446,23 +444,22 @@
        * Fonctions du Modal
        */
       showPmrClientModal = (client = null) => {
+        // ... (code inchangé) ...
         modalForm.reset();
         const isEdit = client !== null;
-        
         modalTitle.textContent = isEdit ? `Modifier: ${client.prenom || ''} ${client.nom}` : 'Ajouter un client';
         modalClientId.value = isEdit ? client.id : '';
-        
         document.getElementById('modal-prenom').value = isEdit ? client.prenom : '';
         document.getElementById('modal-nom').value = isEdit ? client.nom : '';
         document.getElementById('modal-telephone').value = isEdit ? client.telephone : '';
         document.getElementById('modal-type').value = isEdit ? client.type : '';
         document.getElementById('modal-remarques').value = isEdit ? client.remarques : '';
-        
         modal.style.display = 'flex';
         lucide.createIcons();
       }
       
       hidePmrClientModal = () => {
+        // ... (code inchangé) ...
         modal.style.display = 'none';
       }
 
