@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-gray-100">
+<head>
+  <meta charset="UTF-8">
+  <title>Clients PMR - Portail BACO</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/variable/geist-sans.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-mono/variable/geist-mono.css" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest" defer></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/auth.js"></script> 
+  
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+
+  <script src="js/layout.js" defer></script> 
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Geist Sans', 'sans-serif'],
+            mono: ['Geist Mono', 'monospace'],
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="flex flex-col min-h-screen">
+
+  <div id="nav-placeholder"></div>
+
+  <div class="flex-grow">
+    
+    <header class="bg-white shadow-sm border-b border-gray-200">
+      <div class="container mx-auto p-6 md:flex md:justify-between md:items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-800">Clients PMR</h1>
+          <p class="mt-1 text-sm text-gray-500">Répertoire des clients à mobilité réduite.</p>
+        </div>
+        <div class="mt-4 md:mt-0 admin-only">
+          <button onclick="showPmrClientModal()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
+            <i data-lucide="plus" class="w-5 h-5"></i>
+            <span>Ajouter un client</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="container mx-auto p-8">
+      
+      <div class="mb-8 max-w-lg">
+        <label for="search-bar" class="block text-sm font-medium text-gray-700">Rechercher</label>
+        <div class="relative mt-1 rounded-md shadow-sm">
+          <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+            <i data-lucide="search" class="w-5 h-5 text-gray-400"></i>
+          </div>
+          <input type="search" id="search-bar" onkeyup="debounceSearch()" placeholder="Nom, Prénom, Tél, Type (ex: CRP)..." class="block w-full rounded-md border-gray-300 pl-10 px-4 py-2 focus:border-blue-500 focus:ring-blue-500">
+        </div>
+      </div>
+
+      <div id="result-display" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        </div>
+      
+      <div id="status-message" class="py-10"></div>
+      
+    </div>
+  </div>
+  
+  <div id="client-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50" style="display: none;">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-lg">
+      <form id="client-form" onsubmit="handleFormSubmit(event)">
+        <input type="hidden" id="modal-client-id">
+        <div class="flex justify-between items-center p-4 border-b">
+          <h3 id="modal-title" class="text-xl font-semibold text-gray-800">Ajouter un client</h3>
+          <button type="button" onclick="hidePmrClientModal()" class="p-1 rounded-full text-gray-500 hover:bg-gray-200">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+        
+        <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="modal-prenom" class="block text-sm font-medium text-gray-700">Prénom</label>
+              <input type="text" id="modal-prenom" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+              <label for="modal-nom" class="block text-sm font-medium text-gray-700">Nom</label>
+              <input type="text" id="modal-nom" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="modal-telephone" class="block text-sm font-medium text-gray-700">Téléphone</label>
+              <input type="text" id="modal-telephone" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+              <label for="modal-type" class="block text-sm font-medium text-gray-700">Type</label>
+              <input type="text" id="modal-type" placeholder="NV, CRE, CRP, CRF..." class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            </div>
+          </div>
+          <div>
+            <label for="modal-remarques" class="block text-sm font-medium text-gray-700">Remarques</label>
+            <textarea id="modal-remarques" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+          </div>
+        </div>
+        
+        <div class="flex justify-end items-center p-4 bg-gray-50 border-t rounded-b-lg">
+          <button type="button" onclick="hidePmrClientModal()" class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none">
+            Annuler
+          </button>
+          <button type="submit" id="modal-submit-button" class="ml-3 px-4 py-2 bg-blue-600 text-white border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none">
+            Enregistrer
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <div id="footer-placeholder"></div>
+
+  <script>
+    // Fonctions globales
+    let showPmrClientModal;
+    let hidePmrClientModal;
+    let handleFormSubmit;
+    let deletePmrClient;
+    let debounceSearch;
+    
+    let searchTimer;
+
+    document.addEventListener('DOMContentLoaded', () => {
+    
+      const notyf = (typeof Notyf !== 'undefined') 
+        ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
+        : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
+
+      const resultDisplay = document.getElementById('result-display');
+      const statusMsg = document.getElementById('status-message');
+      const searchBar = document.getElementById('search-bar');
+      
+      const modal = document.getElementById('client-modal');
+      const modalForm = document.getElementById('client-form');
+      const modalTitle = document.getElementById('modal-title');
+      const modalClientId = document.getElementById('modal-client-id');
+      const modalSubmitButton = document.getElementById('modal-submit-button');
+      
+      /**
+       * Attend 300ms après la dernière frappe avant de lancer la recherche
+       */
+      debounceSearch = () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+          loadData();
+        }, 300);
+      }
+      
+      /**
+       * Charge les données depuis Supabase
+       */
+      async function loadData() {
+        resultDisplay.innerHTML = '';
+        statusMsg.innerHTML = '<div class="flex justify-center items-center py-20"><i data-lucide="loader-2" class="w-10 h-10 text-blue-600 animate-spin"></i></div>';
+        lucide.createIcons();
+        
+        const searchTerm = searchBar.value.trim();
+
+        try {
+          let query = supabaseClient
+            .from('pmr_clients')
+            .select('*')
+            .order('nom', { ascending: true }); // Trier par nom de famille
+
+          if (searchTerm) {
+            // Créer un filtre de recherche "OR"
+            query = query.or(
+              `nom.ilike.*${searchTerm}*`,
+              `prenom.ilike.*${searchTerm}*`,
+              `telephone.ilike.*${searchTerm}*`,
+              `type.ilike.*${searchTerm}*`
+            );
+          }
+          
+          query = query.limit(100); // Limiter à 100 résultats pour la performance
+
+          const { data, error } = await query;
+          if (error) throw error;
+          
+          statusMsg.innerHTML = ''; // Vider le spinner
+
+         if (data.length === 0) {
+            statusMsg.innerHTML = `
+              <div class="flex flex-col items-center justify-center text-center py-16 px-6 bg-white rounded-lg border border-dashed border-gray-300">
+                <i data-lucide="user-x" class="w-16 h-16 text-gray-300"></i>
+                <h3 class="mt-4 text-xl font-semibold text-gray-800">Aucun client trouvé</h3>
+                <p class="mt-2 text-sm text-gray-500">Aucun client ne correspond à votre recherche.</p>
+              </div>
+            `;
+            lucide.createIcons();
+            return;
+          }
+
+          resultDisplay.innerHTML = data.map(client => renderClientCard(client)).join('');
+          
+          lucide.createIcons();
+          if (window.hideAdminElements) window.hideAdminElements();
+          
+        } catch (error) {
+          statusMsg.innerHTML = `<p class="text-red-600 text-center">Erreur: ${error.message}</p>`;
+          notyf.error('Erreur lors du chargement des clients.');
+        }
+      }
+      
+      /**
+       * Génère le HTML pour une carte client
+       */
+      function renderClientCard(client) {
+        const clientJson = JSON.stringify(client).replace(/"/g, "&quot;");
+        
+        // Classes pour le badge
+        let typeClass = 'bg-gray-100 text-gray-800';
+        if (client.type === 'CRP' || client.type === 'CRF') {
+          typeClass = 'bg-red-100 text-red-800';
+        } else if (client.type === 'CRE') {
+          typeClass = 'bg-yellow-100 text-yellow-800';
+        }
+
+        const hasRemarques = client.remarques && client.remarques.trim() !== '';
+        
+        return `
+          <div class="bg-white border border-gray-200 rounded-lg shadow-sm flex flex-col">
+            <div class="flex justify-between items-start p-4 border-b">
+              <div>
+                <h3 class="text-xl font-bold text-blue-700">${client.prenom || ''} ${client.nom}</h3>
+                ${client.type ? `<span class="mt-1 inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full ${typeClass}">${client.type}</span>` : ''}
+              </div>
+              <div class="admin-only flex items-center flex-shrink-0 gap-1">
+                <button onclick="deletePmrClient(${client.id}, '${client.prenom} ${client.nom}')" class="p-2 text-red-600 rounded-full hover:bg-red-100" title="Supprimer">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+                <button onclick="showPmrClientModal(${clientJson})" class="p-2 text-blue-600 rounded-full hover:bg-blue-100" title="Modifier">
+                  <i data-lucide="pencil" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+            
+            <div class="p-4 space-y-3">
+              ${client.telephone ? `
+              <a href="etrali:${client.telephone}" class="flex items-center gap-3">
+                <i data-lucide="phone" class="w-4 h-4 text-gray-500 flex-shrink-0"></i>
+                <span class="text-sm font-medium text-gray-800 hover:text-blue-600">${client.telephone}</span>
+              </a>` : ''}
+              
+              ${hasRemarques ? `
+              <div class="flex items-start gap-3 pt-3 border-t border-gray-100">
+                <i data-lucide="info" class="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5"></i>
+                <p class="text-sm text-gray-700">${client.remarques}</p>
+              </div>` : ''}
+            </div>
+          </div>
+        `;
+      }
+      
+      /**
+       * Gère la soumission du formulaire (Ajout/Modification)
+       */
+      handleFormSubmit = async (event) => {
+        event.preventDefault();
+        
+        const clientId = modalClientId.value;
+        const isEdit = clientId !== '';
+        
+        const entryData = {
+          prenom: document.getElementById('modal-prenom').value || null,
+          nom: document.getElementById('modal-nom').value,
+          telephone: document.getElementById('modal-telephone').value || null,
+          type: document.getElementById('modal-type').value || null,
+          remarques: document.getElementById('modal-remarques').value || null,
+        };
+        
+        modalSubmitButton.disabled = true;
+        modalSubmitButton.textContent = 'Enregistrement...';
+
+        try {
+          let error;
+          if (isEdit) {
+            const { error: updateError } = await supabaseClient
+              .from('pmr_clients')
+              .update(entryData)
+              .eq('id', clientId);
+            error = updateError;
+          } else {
+            const { error: insertError } = await supabaseClient
+              .from('pmr_clients')
+              .insert([entryData]);
+            error = insertError;
+          }
+          if (error) throw error;
+          
+          notyf.success(isEdit ? "Client mis à jour !" : "Client ajouté !");
+          hidePmrClientModal();
+          loadData(); // Rafraîchir
+          
+        } catch (error) {
+          notyf.error("Erreur: " + error.message);
+        } finally {
+          modalSubmitButton.disabled = false;
+          modalSubmitButton.textContent = 'Enregistrer';
+        }
+      }
+      
+      /**
+       * Supprime un client
+       */
+      deletePmrClient = async (id, nom) => {
+        if (!confirm(`Êtes-vous sûr de vouloir supprimer le client "${nom}" ?`)) {
+          return;
+        }
+        try {
+          const { error } = await supabaseClient
+            .from('pmr_clients')
+            .delete()
+            .eq('id', id);
+          if (error) throw error;
+          
+          notyf.success("Client supprimé !");
+          loadData(); // Rafraîchir
+        } catch (error) {
+           notyf.error("Erreur: " + error.message);
+        }
+      }
+      
+      /**
+       * Fonctions du Modal
+       */
+      showPmrClientModal = (client = null) => {
+        modalForm.reset();
+        const isEdit = client !== null;
+        
+        modalTitle.textContent = isEdit ? `Modifier: ${client.prenom} ${client.nom}` : 'Ajouter un client';
+        modalClientId.value = isEdit ? client.id : '';
+        
+        document.getElementById('modal-prenom').value = isEdit ? client.prenom : '';
+        document.getElementById('modal-nom').value = isEdit ? client.nom : '';
+        document.getElementById('modal-telephone').value = isEdit ? client.telephone : '';
+        document.getElementById('modal-type').value = isEdit ? client.type : '';
+        document.getElementById('modal-remarques').value = isEdit ? client.remarques : '';
+        
+        modal.style.display = 'flex';
+        lucide.createIcons();
+      }
+      
+      hidePmrClientModal = () => {
+        modal.style.display = 'none';
+      }
+
+      // --- Lancement ---
+      loadData();
+
+    }); // Fin de DOMContentLoaded
+  </script>
+
+</body>
+</html>
