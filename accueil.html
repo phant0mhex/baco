@@ -61,6 +61,7 @@
       <div id="favorites-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         </div>
     </div>
+
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
       <a href="application.html" class="block h-full p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
@@ -152,7 +153,7 @@
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
-      let currentUserId = null; // Stocker l'ID utilisateur
+      let currentUserId = null;
       
       async function loadUserGreeting() {
         const greetingElement = document.getElementById('user-greeting');
@@ -161,7 +162,7 @@
           const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
           if (authError || !user) throw authError || new Error('Utilisateur non connecté');
           
-          currentUserId = user.id; // Stocker l'ID
+          currentUserId = user.id;
           
           const { data, error } = await supabaseClient.from('profiles').select('full_name').eq('id', user.id).single();
           if (error) throw error;
@@ -176,10 +177,10 @@
         }
       }
       
-      // ======================= NOUVELLE FONCTION =======================
+      
       async function loadFavorites() {
-        await loadUserGreeting(); // S'assurer que currentUserId est défini
-        if (!currentUserId) return; // Ne rien faire si pas connecté
+        await loadUserGreeting(); 
+        if (!currentUserId) return; 
 
         const container = document.getElementById('favorites-container');
         const list = document.getElementById('favorites-list');
@@ -187,7 +188,6 @@
         lucide.createIcons();
 
         try {
-          // 1. Appeler la nouvelle fonction SQL
           const { data: favorites, error } = await supabaseClient.rpc('get_user_favorites', {
             p_user_id: currentUserId
           });
@@ -206,28 +206,40 @@
             return;
           }
 
-          // 2. Mapper les types à des icônes
           const iconMap = {
             'Contact': 'book-user',
             'Procédure': 'shield',
             'Client PMR': 'users'
           };
           
-          // 3. Afficher les résultats
+          // ======================= MODIFICATION : Nouveau style de carte =======================
           list.innerHTML = favorites.map(fav => `
-            <a href="${fav.url}" class="block p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
+            <a href="${fav.url}" 
+               class="block p-4 bg-white dark:bg-gray-900 
+                      border border-gray-200 dark:border-gray-700 
+                      rounded-lg shadow-sm 
+                      hover:shadow-md transition-all 
+                      border-l-4 border-l-blue-500 dark:border-l-blue-400">
+              
               <div class="flex justify-between items-start">
-                <h3 class="flex items-center gap-3 text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                  <i data-lucide="${iconMap[fav.type] || 'file'}" class="w-5 h-5 text-blue-600"></i>
-                  <span>${fav.title}</span>
-                </h3>
-                <span class="text-xs font-medium text-gray-500 dark:text-gray-400">${fav.type}</span>
+                <div class="flex items-center gap-3">
+                  <i data-lucide="${iconMap[fav.type] || 'file'}" class="w-5 h-5 text-gray-500 dark:text-gray-400"></i>
+                  <div class_ ="overflow-hidden">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate" title="${fav.title}">${fav.title}</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${fav.snippet || '&nbsp;'}</p>
+                  </div>
+                </div>
+                
+                <div class="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
+                   <i data-lucide="star" class="w-4 h-4 text-yellow-500 fill-yellow-500"></i>
+                   <span class="text-xs font-medium text-gray-400">${fav.type}</span>
+                </div>
               </div>
-              <p class="text-sm text-gray-600 dark:text-gray-400 pl-8">${fav.snippet || '&nbsp;'}</p>
             </a>
           `).join('');
+          // =================================================================================
           
-          container.style.display = 'block'; // Afficher le conteneur
+          container.style.display = 'block'; 
           lucide.createIcons();
 
         } catch (error) {
@@ -236,8 +248,7 @@
         }
       }
       
-      loadFavorites(); // Lancer le chargement des favoris
-      // ==========================================================
+      loadFavorites();
       
     });
   </script>
