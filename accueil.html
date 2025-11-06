@@ -9,7 +9,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/variable/geist-sans.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-mono/variable/geist-mono.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://npmcdn.com/flatpickr/dist/l10n/fr.js"></script>
 
@@ -61,10 +61,7 @@
     </header>
 
 
-    <div class="mb-10 flex justify-center">
-      <div id="baco-calendar" class="bg-white rounded-lg shadow border border-gray-200">
-        </div>
-    </div>
+  
 
 
     <div id="favorites-container" class="mb-12" style="display: none;">
@@ -256,13 +253,6 @@
       loadFavorites();
       
 
-      // --- NOUVEAU: Initialisation du Calendrier ---
-      flatpickr("#baco-calendar", {
-          inline: true,        // Affiche le calendrier en permanence
-          weekNumbers: true,   // Affiche les numéros de semaine
-          locale: "fr"         // Utilise la traduction française (chargée via CDN)
-      });
-      // --- Fin du Calendrier ---
 
 
     });

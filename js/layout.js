@@ -408,6 +408,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadNavAvatar();
     setupRealtimePresence(); 
 
+
+// --- AJOUTER LA LOGIQUE DU CALENDRIER ICI ---
+    const calendarButton = document.getElementById('calendar-toggle-button');
+    if (calendarButton) {
+      // Vérifier si flatpickr et la traduction sont bien chargés
+      if (typeof flatpickr !== 'undefined' && flatpickr.l10ns.fr) {
+        flatpickr(calendarButton, {
+          weekNumbers: true,  // On garde les numéros de semaine
+          locale: "fr",       // On garde la traduction
+          static: true,       // Fait apparaître le calendrier sous le bouton
+          appendTo: document.body // S'assure qu'il s'affiche par-dessus tout
+        });
+      } else {
+        console.warn('Flatpickr (ou sa traduction FR) n\'est pas chargé. Le calendrier de la nav ne s\'affichera pas.');
+      }
+    }
+    // --- FIN DE L'AJOUT ---
+
+
     // Logique du menu burger
     const menuButton = document.getElementById('mobile-menu-button');
     const menuContent = document.getElementById('nav-content');
