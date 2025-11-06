@@ -66,7 +66,12 @@
     <div class="container mx-auto p-8 max-w-3xl">
       <div id="changelog-feed" class="space-y-8">
         </div>
-    </div>
+      
+      <div id="status-message" class="py-10"></div>
+      
+      <div id="pagination-container" class="flex justify-between items-center mt-8 pt-4 border-t border-gray-200">
+        </div>
+      </div>
   </div>
   
   <div id="changelog-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50" style="display: none;">
@@ -131,6 +136,9 @@
         : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
 
       const feed = document.getElementById('changelog-feed');
+      const statusMsg = document.getElementById('status-message'); // NOUVEAU
+      const paginationContainer = document.getElementById('pagination-container'); // NOUVEAU
+      
       const modal = document.getElementById('changelog-modal');
       const modalForm = document.getElementById('changelog-form');
       const modalTitle = document.getElementById('modal-title');
@@ -139,6 +147,12 @@
       const submitButton = document.getElementById('modal-submit-button');
       
       let currentUserId = null;
+      
+      // ======================= NOUVELLES VARIABLES D'ÉTAT =======================
+      let currentPage = 1;
+      const rowsPerPage = 5; // 5 entrées par page
+      // ========================================================================
+
 
       // Initialiser l'éditeur Markdown
       const easyMDE = new EasyMDE({
@@ -149,9 +163,6 @@
             minHeight: "150px"
       });
       
-      /**
-       * Formate la date (ex: "03 novembre 2025")
-       */
       function formatLogDate(dateString) {
         const date = new Date(dateString);
         return date.toLocaleDateString('fr-FR', {
@@ -161,9 +172,6 @@
         });
       }
       
-      /**
-       * Retourne les classes Tailwind pour un badge de type
-       */
       function getTypeBadge(type) {
         switch (type) {
           case 'Nouveau':
@@ -177,21 +185,35 @@
       }
 
       /**
-       * Charge et affiche le fil des modifications
+       * Charge et affiche le fil des modifications (MIS À JOUR POUR PAGINATION)
        */
       async function loadChangelog() {
-        feed.innerHTML = '<div class="flex justify-center items-center py-20"><i data-lucide="loader-2" class="w-10 h-10 text-blue-600 animate-spin"></i></div>';
+        feed.innerHTML = ''; // Vider les anciennes entrées
+        statusMsg.innerHTML = '<div class="flex justify-center items-center py-20"><i data-lucide="loader-2" class="w-10 h-10 text-blue-600 animate-spin"></i></div>';
+        paginationContainer.innerHTML = '';
         lucide.createIcons();
         
         try {
-          // On récupère les entrées ET le profil de l'auteur
+          // --- 1. Requête de comptage ---
+          const { count, error: countError } = await supabaseClient
+            .from('changelog')
+            .select('*', { count: 'exact', head: true });
+            
+          if (countError) throw countError;
+          
+          const totalPages = Math.ceil(count / rowsPerPage);
+          const from = (currentPage - 1) * rowsPerPage;
+          const to = from + rowsPerPage - 1;
+
+          // --- 2. Requête de données (paginée) ---
           const { data, error } = await supabaseClient
             .from('changelog')
             .select(`
               *,
               profiles ( full_name, avatar_url )
             `)
-            .order('created_at', { ascending: false }); // Le plus récent en haut
+            .order('created_at', { ascending: false })
+            .range(from, to); // On ne prend que la plage nécessaire
 
           if (error) throw error;
           
@@ -199,9 +221,11 @@
              const { data: { user } } = await supabaseClient.auth.getUser();
              if (user) currentUserId = user.id;
           }
+          
+          statusMsg.innerHTML = ''; // Vider le spinner
 
          if (data.length === 0) {
-            feed.innerHTML = `
+            statusMsg.innerHTML = `
               <div class="flex flex-col items-center justify-center text-center py-16 px-6 bg-white rounded-lg border border-dashed border-gray-300">
                 <i data-lucide="list-checks" class="w-16 h-16 text-gray-300"></i>
                 <h3 class="mt-4 text-xl font-semibold text-gray-800">Aucune entrée</h3>
@@ -220,7 +244,6 @@
             const authorName = author ? author.full_name : 'Utilisateur';
             const authorAvatar = author ? author.avatar_url : 'https://api.dicebear.com/9.x/micah/svg?seed=deleted';
             
-            // Convertir le Markdown du contenu en HTML
             const contentHtml = window.marked.parse(entry.content || '');
             
             return `
@@ -257,8 +280,11 @@
           lucide.createIcons();
           if (window.hideAdminElements) window.hideAdminElements();
           
+          // --- 3. Afficher la pagination ---
+          renderPagination(totalPages, count, from, to);
+          
         } catch (error) {
-          feed.innerHTML = `<p class="text-red-600 text-center">Erreur: ${error.message}</p>`;
+          statusMsg.innerHTML = `<p class="text-red-600 text-center">Erreur: ${error.message}</p>`;
           notyf.error('Erreur lors du chargement du changelog.');
         }
       }
@@ -278,14 +304,13 @@
           title: modalTitleInput.value,
           type: modalTypeSelect.value,
           content: easyMDE.value(),
-          user_id: currentUserId // Associer l'entrée à l'utilisateur
+          user_id: currentUserId
         };
         
         submitButton.disabled = true;
         submitButton.textContent = 'Enregistrement...';
         
         try {
-          // 'upsert' gère l'ajout (nous n'utilisons pas l'édition ici, mais upsert est sûr)
           const { error } = await supabaseClient
             .from('changelog')
             .insert(entryData);
@@ -294,6 +319,9 @@
           
           notyf.success('Entrée ajoutée !');
           hideChangelogModal();
+          
+          // NOUVEAU : Forcer le retour à la page 1 pour voir la nouvelle entrée
+          currentPage = 1; 
           loadChangelog(); // Recharger le fil
           
           // Mettre à jour le footer (via layout.js) si cette fonction existe
@@ -324,9 +352,10 @@
           if (error) throw error;
           
           notyf.success('Entrée supprimée.');
-          loadChangelog(); // Recharger
+          // Recharger la page actuelle (pourrait devenir vide, c'est ok)
+          loadChangelog(); 
           
-          // Mettre à jour le footer (via layout.js) si cette fonction existe
+          // Mettre à jour le footer
           if (window.loadLatestChangelog) {
             window.loadLatestChangelog();
           }
@@ -349,14 +378,77 @@
       hideChangelogModal = () => {
         modal.style.display = 'none';
       }
+      
+      // ======================= NOUVELLES FONCTIONS DE PAGINATION =======================
+      
+      /**
+       * Change la page actuelle et recharge les données
+       */
+      function changePage(page) {
+        if (page === currentPage) return;
+        currentPage = page;
+        loadChangelog();
+        // Fait remonter l'utilisateur en haut du feed
+        document.getElementById('changelog-feed').scrollIntoView({ behavior: 'smooth' });
+      }
+      
+      /**
+       * Construit les contrôles de pagination (style de ptcar)
+       */
+      function renderPagination(totalPages, totalRows, from, to) {
+        const container = document.getElementById('pagination-container');
+        
+        if (totalPages <= 1) {
+          container.innerHTML = ''; // Pas de pagination
+          return;
+        }
+        
+        const toRow = Math.min(to + 1, totalRows);
+        
+        // Info "Résultats X à Y sur Z"
+        const infoHtml = `
+          <p class="text-sm text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm px-3 py-1.5">
+            Entrées <span class="font-bold text-gray-900">${from + 1}</span> à <span class="font-bold text-gray-900">${toRow}</span> sur
+            <span class="font-bold text-gray-900">${totalRows}</span>
+          </p>
+        `;
+        
+        // Boutons "Précédent" et "Suivant"
+        const prevDisabled = currentPage === 1;
+        const nextDisabled = currentPage === totalPages;
+        
+        const buttonsHtml = `
+          <div class="flex gap-2">
+            <button 
+              onclick="changePage(${currentPage - 1})" 
+              ${prevDisabled ? 'disabled' : ''}
+              class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm 
+                     hover:bg-gray-50 
+                     disabled:opacity-50 disabled:cursor-not-allowed">
+              <i data-lucide="arrow-left" class="w-4 h-4"></i>
+              <span>Précédent</span>
+            </button>
+            
+            <button 
+              onclick="changePage(${currentPage + 1})" 
+              ${nextDisabled ? 'disabled' : ''}
+              class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm 
+                     hover:bg-gray-50 
+                     disabled:opacity-50 disabled:cursor-not-allowed">
+              <span>Suivant</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+        `;
+        
+        container.innerHTML = infoHtml + buttonsHtml;
+        lucide.createIcons();
+      }
+      // =========================================================================
 
       // --- Lancement ---
       loadChangelog();
-      
-      // ======================= MODIFICATION =======================
-      // Suppression de l'écouteur d'événement redondant
-      // modalForm.addEventListener('submit', handleFormSubmit); // <-- CETTE LIGNE EST SUPPRIMÉE
-      // ==========================================================
+      // (Le addEventListener a été supprimé pour fixer le bug de double-submit)
 
     }); // Fin de DOMContentLoaded
   </script>
