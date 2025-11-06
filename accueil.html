@@ -9,6 +9,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/variable/geist-sans.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-mono/variable/geist-mono.css" rel="stylesheet">
+
+  <script src="https://npmcdn.com/flatpickr/dist/l10n/fr.js"></script>
+
   <script src="https://unpkg.com/lucide@latest" defer></script>
 
   <script>
@@ -55,6 +58,13 @@
       <h1 class="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2">Bienvenue sur le portail de données</h1>
       <p class="text-lg text-gray-600 dark:text-gray-400">Choisissez votre domaine :</p>
     </header>
+
+
+    <div class="mb-10 flex justify-center">
+      <div id="baco-calendar" class="bg-white rounded-lg shadow border border-gray-200">
+        </div>
+    </div>
+
 
     <div id="favorites-container" class="mb-12" style="display: none;">
       <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-4">Mes Favoris</h2>
@@ -243,6 +253,16 @@
       }
       
       loadFavorites();
+      
+
+      // --- NOUVEAU: Initialisation du Calendrier ---
+      flatpickr("#baco-calendar", {
+          inline: true,        // Affiche le calendrier en permanence
+          weekNumbers: true,   // Affiche les numéros de semaine
+          locale: "fr"         // Utilise la traduction française (chargée via CDN)
+      });
+      // --- Fin du Calendrier ---
+
       
     });
   </script>
