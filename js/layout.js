@@ -193,91 +193,98 @@ function injectCalendarStyles() {
   // bg-gray-800 (#1F2937), border-gray-700 (#374151), hover:bg-gray-700 (#374151)
   // text-gray-100 (#F9FAFB), text-gray-300 (#D1D5DB), accent-blue-600 (#2563EB)
   style.innerHTML = `
-    .flatpickr-calendar {
+    /* Utilise notre nom de thème pour augmenter la spécificité */
+    .flatpickr-calendar.baco-theme {
       background: #1F2937; /* bg-gray-800 */
       border: 1px solid #374151; /* border-gray-700 */
       border-radius: 0.5rem; /* rounded-lg */
       box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-xl */
-      width: 320px; /* Largeur fixe pour un look propre */
+      width: auto;
+      min-width: 320px;
       padding: 0.5rem; /* p-2 */
       color: #D1D5DB; /* text-gray-300 */
     }
     
     /* En-tête (Mois, Année) */
-    .flatpickr-months {
+    .baco-theme .flatpickr-months {
       background: transparent;
       padding: 0.25rem 0.5rem 0.75rem; /* px-2 pt-1 pb-3 */
       border-bottom: 1px solid #374151; /* border-gray-700 */
     }
-    .flatpickr-months .flatpickr-month,
-    .flatpickr-current-month .numInputWrapper {
+    .baco-theme .flatpickr-months .flatpickr-month,
+    .baco-theme .flatpickr-current-month .numInputWrapper {
       color: #F9FAFB; /* text-gray-100 */
       font-weight: 600; /* font-semibold */
       height: 2.5rem; /* h-10 */
     }
-    .flatpickr-current-month input.cur-year {
+    .baco-theme .flatpickr-current-month input.cur-year {
         font-weight: 600;
+        color: #F9FAFB;
     }
-    .flatpickr-months .flatpickr-prev-month,
-    .flatpickr-months .flatpickr-next-month {
+    .baco-theme .flatpickr-months .flatpickr-prev-month,
+    .baco-theme .flatpickr-months .flatpickr-next-month {
       fill: #D1D5DB; /* text-gray-300 */
       padding: 0.25rem; /* p-1 */
       border-radius: 0.375rem; /* rounded-md */
     }
-    .flatpickr-months .flatpickr-prev-month:hover,
-    .flatpickr-months .flatpickr-next-month:hover {
+    .baco-theme .flatpickr-months .flatpickr-prev-month:hover,
+    .baco-theme .flatpickr-months .flatpickr-next-month:hover {
       fill: #F9FAFB; /* text-gray-100 */
       background: #374151; /* hover:bg-gray-700 */
     }
 
     /* Wrapper Jours (Sem, lun, mar...) */
-    .flatpickr-weekwrapper {
+    .baco-theme .flatpickr-weekwrapper {
       border-right: 1px solid #374151; /* border-gray-700 */
     }
-    .flatpickr-weekdaycontainer {
+    .baco-theme .flatpickr-weekdaycontainer {
       padding: 0.5rem 0; /* py-2 */
     }
-    .flatpickr-weekday, .flatpickr-weekwrapper .flatpickr-weeks {
+    .baco-theme .flatpickr-weekday, 
+    .baco-theme .flatpickr-weekwrapper .flatpickr-weeks {
       color: #9CA3AF; /* text-gray-400 */
       font-weight: 500; /* font-medium */
       font-size: 0.75rem; /* text-xs */
       text-transform: uppercase;
+      background: transparent;
     }
-    .flatpickr-weekwrapper .flatpickr-weeks {
+    .baco-theme .flatpickr-weekwrapper .flatpickr-weeks {
       padding-top: 0.6rem; /* Alignement vertical */
     }
     
     /* Jours (numéros) */
-    .flatpickr-day {
+    .baco-theme .flatpickr-day {
       color: #D1D5DB; /* text-gray-300 */
       border: 1px solid transparent;
       border-radius: 0.375rem; /* rounded-md */
       font-weight: 400;
     }
-    .flatpickr-day:hover {
+    .baco-theme .flatpickr-day:hover {
       background: #374151; /* hover:bg-gray-700 */
       color: #F9FAFB;
       border-color: #374151;
     }
-    .flatpickr-day.today {
-      background: #374151; /* bg-gray-700 (style "actif") */
+    .baco-theme .flatpickr-day.today {
+      background: transparent;
+      border-color: #374151; /* Un cercle gris discret pour "aujourd'hui" */
       color: #F9FAFB;
-      border-color: #374151;
     }
-    .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange {
-      background: #2563EB; /* bg-blue-600 */
+    .baco-theme .flatpickr-day.selected, 
+    .baco-theme .flatpickr-day.startRange, 
+    .baco-theme .flatpickr-day.endRange {
+      background: #2563EB; /* Le VRAI bleu du site (bg-blue-600) */
       border-color: #2563EB;
       color: #FFFFFF;
     }
     
     /* Jours désactivés (mois précédent/suivant) */
-    .flatpickr-day.flatpickr-disabled, 
-    .flatpickr-day.prevMonthDay, 
-    .flatpickr-day.nextMonthDay {
+    .baco-theme .flatpickr-day.flatpickr-disabled, 
+    .baco-theme .flatpickr-day.prevMonthDay, 
+    .baco-theme .flatpickr-day.nextMonthDay {
       color: #4B5563; /* text-gray-600 */
     }
-    .flatpickr-day.prevMonthDay:hover, 
-    .flatpickr-day.nextMonthDay:hover {
+    .baco-theme .flatpickr-day.prevMonthDay:hover, 
+    .baco-theme .flatpickr-day.nextMonthDay:hover {
       background: transparent;
       border-color: transparent;
     }
@@ -528,7 +535,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           weekNumbers: true,  // On garde les numéros de semaine
           locale: "fr",       // On garde la traduction
           static: true,       // Fait apparaître le calendrier sous le bouton
-          appendTo: document.body // S'assure qu'il s'affiche par-dessus tout
+          appendTo: document.body, // S'assure qu'il s'affiche par-dessus tout
+
+          theme: "baco-theme", // On lui donne un nom de thème
         });
       } else {
         console.warn('Flatpickr (ou sa traduction FR) n\'est pas chargé. Le calendrier de la nav ne s\'affichera pas.');
