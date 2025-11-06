@@ -149,12 +149,15 @@
  <script>
     let currentSortOrder = 'az';
     
-    let currentUserId;
+    let currentUserId; 
     let favoritedContactIds = new Set();
     
+    // ======================= CORRECTION =======================
+    // Notyf est défini globalement dans le script de la page
     const notyf = (typeof Notyf !== 'undefined') 
         ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
         : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
+    // ==========================================================
     
     /**
      * Gère l'ajout ou la suppression d'un favori
@@ -168,11 +171,8 @@
       element.disabled = true;
       element.classList.add('opacity-50', 'cursor-wait');
       
-      // ======================= CORRECTION =======================
-      // CIBLER L'ICÔNE À L'INTÉRIEUR DU BOUTON
       const icon = element.querySelector('i');
-      if (!icon) return; // Sécurité
-      // ==========================================================
+      if (!icon) return;
 
       try {
         if (isFavorited) {
@@ -182,12 +182,8 @@
           if (error) throw error;
           
           favoritedContactIds.delete(id);
-          
-          // ======================= CORRECTION =======================
           icon.classList.remove('fill-yellow-400', 'text-yellow-400');
           icon.classList.add('text-gray-400');
-          // ==========================================================
-          
           element.setAttribute('onclick', `toggleFavorite(this, '${type}', ${id}, false)`);
           
         } else {
@@ -197,12 +193,8 @@
           if (error) throw error;
           
           favoritedContactIds.add(id);
-          
-          // ======================= CORRECTION =======================
           icon.classList.add('fill-yellow-400', 'text-yellow-400');
           icon.classList.remove('text-gray-400');
-          // ==========================================================
-          
           element.setAttribute('onclick', `toggleFavorite(this, '${type}', ${id}, true)`);
         }
       } catch (error) {
@@ -217,7 +209,6 @@
      * Charge dynamiquement les catégories principales depuis Supabase
      */
     async function loadMainCategories() {
-      // ... (code inchangé) ...
       const categoriesContainer = document.getElementById('mainCategories');
       try {
         const { data, error } = await supabaseClient
@@ -247,7 +238,6 @@
      * Peuple dynamiquement les filtres de zone en fonction des catégories principales sélectionnées
      */
     async function populateZoneFilters(selectedMainCategories) {
-        // ... (code inchangé) ...
         const zoneCheckboxContainer = document.getElementById('zoneSubCategories');
         zoneCheckboxContainer.innerHTML = '<p class="text-gray-600">Chargement des zones...</p>';
         
@@ -290,7 +280,6 @@
      * Met à jour l'affichage des sous-catégories (zones)
      */
     async function updateSubCategories() {
-      // ... (code inchangé) ...
       const mainChecked = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
       const zonableCategories = ['MIA', 'DSE']; 
       
@@ -307,7 +296,7 @@
           zoneCheckboxContainer.innerHTML = '';
       }
       
-      updateDisplay();
+      updateDisplay(); // Mettre à jour les résultats
     }
 
     /**
@@ -323,7 +312,7 @@
         return text.replace(regex, '<mark class="bg-yellow-200 rounded px-0.5">$1</mark>');
       } catch (e) {
         console.error("Erreur de surlignage:", e);
-        return text;
+        return text; 
       }
     }
 
@@ -506,7 +495,6 @@
     }
     
     document.addEventListener('DOMContentLoaded', async () => { 
-      // ... (code des boutons de tri inchangé) ...
       const sortAzButton = document.getElementById('sort-az');
       const sortZaButton = document.getElementById('sort-za');
       function updateSortButtons() {
@@ -540,12 +528,11 @@
       if (!confirm(`Êtes-vous sûr de vouloir supprimer le contact "${nom}" ?`)) {
         return;
       }
-      const { error } = await supabaseClient.from('contacts_repertoire').delete().eq('id', id);
+      const { error }_ = await supabaseClient.from('contacts_repertoire').delete().eq('id', id);
       if (error) {
         notyf.error("Erreur: " + error.message);
       } else {
         notyf.success("Contact supprimé !");
-        // Supprimer aussi des favoris
         await supabaseClient.from('favoris').delete().match({ id_contenu: id, type_contenu: 'contact' });
         updateDisplay();
         await loadMainCategories(); 
@@ -559,7 +546,6 @@
     const contactIdInput = document.getElementById('modal-contact-id');
 
     function showContactModal(contact = null) {
-      // ... (code inchangé) ...
       const isEdit = contact !== null;
       contactForm.reset();
       
@@ -586,7 +572,6 @@
     }
 
     async function handleFormSubmit(event) {
-      // ... (code inchangé) ...
       event.preventDefault();
       
       const contactId = contactIdInput.value;
