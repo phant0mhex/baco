@@ -179,6 +179,81 @@ async function loadLatestChangelog() {
   }
 }
 
+
+// ===============================================================
+// ==              SECTION CALENDRIER PERSONNALISÉ              ==
+// ===============================================================
+
+/**
+ * Injecte les styles CSS personnalisés pour Flatpickr (thème "BACO")
+ */
+function injectCalendarStyles() {
+  const style = document.createElement('style');
+  // Couleurs basées sur votre _nav.html: 
+  // bg-gray-800 (#1F2937), border-gray-700 (#374151), hover:bg-gray-700 (#374151)
+  // text-gray-100 (#F9FAFB), text-gray-300 (#D1D5DB), accent-blue-600 (#2563EB)
+  style.innerHTML = `
+    .flatpickr-calendar {
+      background: #1F2937; /* bg-gray-800 */
+      border: 1px solid #374151; /* border-gray-700 */
+      border-radius: 0.5rem; /* rounded-lg */
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-xl */
+      width: auto;
+      max-width: 320px;
+    }
+    .flatpickr-months {
+      background: #1F2937; /* bg-gray-800 */
+      border-bottom: 1px solid #374151; /* border-gray-700 */
+    }
+    .flatpickr-months .flatpickr-month,
+    .flatpickr-current-month .numInputWrapper {
+      color: #F9FAFB; /* text-gray-100 */
+      font-weight: 600; /* font-semibold */
+    }
+    .flatpickr-months .flatpickr-prev-month,
+    .flatpickr-months .flatpickr-next-month {
+      fill: #D1D5DB; /* text-gray-300 */
+      padding: 0.5rem;
+    }
+    .flatpickr-months .flatpickr-prev-month:hover,
+    .flatpickr-months .flatpickr-next-month:hover {
+      fill: #F9FAFB; /* text-gray-100 */
+      background: #374151; /* hover:bg-gray-700 */
+    }
+    .flatpickr-weekday, .flatpickr-weekwrapper .flatpickr-weeks {
+      color: #9CA3AF; /* text-gray-400 */
+      font-weight: 500;
+      background: #1F2937; /* bg-gray-800 */
+    }
+    .flatpickr-weekwrapper .flatpickr-weeks {
+      border-right: 1px solid #374151; /* border-gray-700 */
+      padding-top: 0.25rem;
+    }
+    .flatpickr-day {
+      color: #D1D5DB; /* text-gray-300 */
+      border-color: transparent;
+    }
+    .flatpickr-day:hover {
+      background: #374151; /* hover:bg-gray-700 */
+      color: #F9FAFB;
+    }
+    .flatpickr-day.today {
+      border-color: #2563EB; /* border-blue-600 */
+      color: #F9FAFB;
+    }
+    .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange {
+      background: #2563EB; /* bg-blue-600 */
+      border-color: #2563EB;
+      color: #FFFFFF;
+    }
+    .flatpickr-day.flatpickr-disabled, .flatpickr-day.prevMonthDay, .flatpickr-day.nextMonthDay {
+      color: #4B5563; /* text-gray-600 */
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+
 // ===============================================================
 // ==              SECTION RECHERCHE GLOBALE (MISE À JOUR)      ==
 // ===============================================================
@@ -393,6 +468,9 @@ function globalKeyListener(e) {
 // --- Exécution principale au chargement du DOM ---
 
 document.addEventListener('DOMContentLoaded', async () => {
+
+
+  injectCalendarStyles();
   
   createSearchModal(); // Crée le HTML et le CSS de la modale
   window.addEventListener('keydown', globalKeyListener); // Attache l'écouteur de touches
