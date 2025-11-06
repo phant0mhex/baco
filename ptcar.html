@@ -65,7 +65,10 @@
     
     <div id="status-message" class="py-10"></div>
 
-  </div>
+    <div id="pagination-container" class="flex justify-between items-center mt-6">
+      </div>
+    
+    </div>
 </div>
   
   <script src="js/layout.js" defer></script>
@@ -73,9 +76,15 @@
   <script>
     let searchTimer;
     
+    // ======================= NOUVELLES VARIABLES D'ÉTAT =======================
+    let currentPage = 1;
+    const rowsPerPage = 15; // Nombre de résultats par page
+    // ========================================================================
+    
     // Fonction qui attend 300ms avant de lancer la recherche
     function debounceSearch() {
       clearTimeout(searchTimer); // Annule la recherche précédente
+      currentPage = 1; // Réinitialiser à la page 1 à chaque nouvelle recherche
       searchTimer = setTimeout(() => {
         loadData();
       }, 300); // Attend 300ms après la dernière frappe
@@ -85,39 +94,51 @@
       loadData(); // Charger les données au démarrage
     });
 
+    // ======================= loadData() MIS À JOUR =======================
     async function loadData() {
       const tbody = document.getElementById('result-tbody');
       const statusMsg = document.getElementById('status-message');
+      const paginationContainer = document.getElementById('pagination-container');
       const searchTerm = document.getElementById('search-bar').value.trim();
 
       tbody.innerHTML = '';
       statusMsg.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
+      paginationContainer.innerHTML = ''; // Vider la pagination pendant le chargement
       lucide.createIcons();
 
       try {
-        let query = supabaseClient
+        // --- 1. Préparer les requêtes ---
+        let countQuery = supabaseClient
+          .from('ptcar_abbreviations')
+          .select('*', { count: 'exact', head: true }); // Requête pour compter
+
+        let dataQuery = supabaseClient
           .from('ptcar_abbreviations')
           .select('ptcar_fr, ptcar_nl, abbr')
-          .order('abbr', { ascending: true }); 
+          .order('abbr', { ascending: true });
 
-        // Si un terme de recherche est entré
+        // Appliquer le filtre de recherche (identique pour les deux requêtes)
         if (searchTerm) {
-          
-          // ======================= CORRECTION APPLIQUÉE ICI =======================
-          // Remplacement de '%' par '*' pour la syntaxe de filtre Supabase
-          query = query.or(
-            `abbr.ilike.*${searchTerm}*`,
-            `ptcar_fr.ilike.*${searchTerm}*`,
-            `ptcar_nl.ilike.*${searchTerm}*`
-          );
-          // ======================================================================
+          const searchFilter = `abbr.ilike.*${searchTerm}*,ptcar_fr.ilike.*${searchTerm}*,ptcar_nl.ilike.*${searchTerm}*`;
+          countQuery = countQuery.or(searchFilter);
+          dataQuery = dataQuery.or(searchFilter);
         }
         
-        query = query.limit(100);
+        // --- 2. Exécuter la requête de comptage ---
+        const { count, error: countError } = await countQuery;
+        if (countError) throw countError;
 
-        const { data, error } = await query;
-        if (error) throw error;
+        const totalPages = Math.ceil(count / rowsPerPage);
+        
+        // --- 3. Exécuter la requête de données avec la plage de pagination ---
+        const from = (currentPage - 1) * rowsPerPage;
+        const to = from + rowsPerPage - 1;
+        dataQuery = dataQuery.range(from, to);
 
+        const { data, error: dataError } = await dataQuery;
+        if (dataError) throw dataError;
+
+        // --- 4. Affichage ---
         statusMsg.innerHTML = '';
 
         if (data.length === 0) {
@@ -143,10 +164,77 @@
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${row.ptcar_nl || 'N/A'}</td>
           </tr>
         `).join('');
+        
+        // --- 5. Afficher la pagination ---
+        renderPagination(totalPages, count, from, to);
 
       } catch (error) {
         statusMsg.innerHTML = `<p class="text-red-600 text-center">Erreur: ${error.message}</p>`;
       }
+    }
+    
+    // ======================= NOUVELLE FONCTION : changePage =======================
+    /**
+     * Change la page actuelle et recharge les données
+     */
+    function changePage(page) {
+      if (page === currentPage) return;
+      currentPage = page;
+      loadData();
+    }
+    
+    // ======================= NOUVELLE FONCTION : renderPagination =======================
+    /**
+     * Construit les contrôles de pagination
+     */
+    function renderPagination(totalPages, totalRows, from, to) {
+      const container = document.getElementById('pagination-container');
+      
+      if (totalPages <= 1) {
+        container.innerHTML = ''; // Pas besoin de pagination s'il n'y a qu'une page
+        return;
+      }
+      
+      const toRow = Math.min(to + 1, totalRows);
+      
+      // Info "Résultats X à Y sur Z"
+      const infoHtml = `
+        <p class="text-sm text-gray-700">
+          Résultats <span class="font-medium">${from + 1}</span> à <span class="font-medium">${toRow}</span> sur
+          <span class="font-medium">${totalRows}</span>
+        </p>
+      `;
+      
+      // Boutons "Précédent" et "Suivant"
+      const prevDisabled = currentPage === 1;
+      const nextDisabled = currentPage === totalPages;
+      
+      const buttonsHtml = `
+        <div class="flex gap-2">
+          <button 
+            onclick="changePage(${currentPage - 1})" 
+            ${prevDisabled ? 'disabled' : ''}
+            class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm 
+                   hover:bg-gray-50 
+                   disabled:opacity-50 disabled:cursor-not-allowed">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            <span>Précédent</span>
+          </button>
+          
+          <button 
+            onclick="changePage(${currentPage + 1})" 
+            ${nextDisabled ? 'disabled' : ''}
+            class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm 
+                   hover:bg-gray-50 
+                   disabled:opacity-50 disabled:cursor-not-allowed">
+            <span>Suivant</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+      `;
+      
+      container.innerHTML = infoHtml + buttonsHtml;
+      lucide.createIcons(); // Activer les icônes des boutons
     }
   </script>
   
