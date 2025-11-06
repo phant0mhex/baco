@@ -11,13 +11,13 @@
   <script src="https://unpkg.com/lucide@latest" defer></script>
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
   <script src="js/auth.js" defer></script> 
   
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
   <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
 
   <script src="js/layout.js" defer></script> 
+
   <script>
     tailwind.config = {
       theme: {
@@ -61,8 +61,8 @@
           <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
             <i data-lucide="search" class="w-5 h-5 text-gray-400"></i>
           </div>
-          <input type="search" id="search-bar" onkeyup="debounceSearch()" placeholder="Nom, Prénom, Tél, Type (ex: CRP)..." class="block w-full rounded-md border-gray-300 pl-10 px-4 py-2 focus:border-blue-500 focus:ring-blue-500">
-        </div>
+          <input type="search" id="search-bar" onkeyup="debouncePmrSearch()" placeholder="Nom, Prénom, Tél, Type (ex: CRP)..." class="block w-full rounded-md border-gray-300 pl-10 px-4 py-2 focus:border-blue-500 focus:ring-blue-500">
+          </div>
       </div>
 
       <div id="result-display" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -132,7 +132,10 @@
     let hidePmrClientModal;
     let handleFormSubmit;
     let deletePmrClient;
-    let debounceSearch;
+    
+    // ======================= MODIFICATION =======================
+    let debouncePmrSearch; // Renommage de la variable
+    // ==========================================================
     
     let searchTimer;
 
@@ -155,7 +158,9 @@
       /**
        * Attend 300ms après la dernière frappe avant de lancer la recherche
        */
-      debounceSearch = () => {
+      // ======================= MODIFICATION =======================
+      debouncePmrSearch = () => { // Renommage de la fonction
+      // ==========================================================
         clearTimeout(searchTimer);
         searchTimer = setTimeout(() => {
           loadData();
