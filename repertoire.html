@@ -368,9 +368,14 @@
           outputHTML += columns[col].map(p => {
             const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
 
+            const displayName = highlightText(p.nom, searchTerm);
+
+            const displayTel = p.tel ? highlightText(p.tel, searchTerm) : '(manquant)';
             const telHtml = (p.tel === '(manquant)' || !p.tel)
               ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500"><i data-lucide="phone-off" class="w-4 h-4"></i><span>(manquant)</span></span>`
               : `<a href="etrali:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors"><i data-lucide="phone" class="w-4 h-4"></i><span>${p.tel}</span></a>`;
+
+              const displayEmail = p.email ? highlightText(p.email, searchTerm) : '';
 
             const emailHtml = p.email
               ? `<a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800 transition-colors" title="${p.email}"><i data-lucide="mail" class="w-4 h-4"></i><span class="truncate" style="max-width: 200px;">${p.email}</span></a>`
@@ -381,7 +386,7 @@
                 <div class="flex items-center justify-between p-3 border-b border-gray-100">
                   <span class="flex items-center gap-2.5 text-sm font-medium text-gray-900">
                      <i data-lucide="user" class="w-4 h-4 text-gray-600"></i>
-                     <span>${p.nom}</span>
+                     <span>${displayName}</span>
                   </span>
                   <div class="flex items-center gap-2 admin-only">
                     <button onclick="showContactModal(${contactJson})" class="p-1 text-blue-600 rounded hover:bg-blue-100" title="Modifier">
@@ -472,6 +477,31 @@
         await updateSubCategories(); 
       }
     }
+
+
+    // ======================= NOUVEL AJOUT =======================
+      /**
+       * Surligne le terme de recherche dans un texte
+       * @param {string} text - Le texte à surligner
+       * @param {string} term - Le terme de recherche
+       * @returns {string} - Le HTML avec le surlignage
+       */
+      function highlightText(text, term) {
+        if (!term || !text) {
+          return text;
+        }
+        try {
+          // Échapper les caractères spéciaux pour la RegExp
+          const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const regex = new RegExp(`(${escapedTerm})`, 'gi');
+          return text.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-500 dark:text-black rounded px-0.5">$1</mark>');
+        } catch (e) {
+          console.error("Erreur de surlignage:", e);
+          return text; // Retourner le texte original en cas d'erreur
+        }
+      }
+      // ==========================================================
+
 
     
     // --- FONCTIONS POUR LE MODAL ---
