@@ -28,7 +28,6 @@
           <i data-lucide="book-copy" class="w-4 h-4"></i>
           <span>Journal</span>
         </a>
-        <a href="admin.html" class="admin-only flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 text-yellow-400"><i data-lucide="shield-check" class="w-4 h-4"></i><span>Admin</span></a>
       </div>
 
       <div class="flex flex-col md:flex-row items-start md:items-center gap-4 mt-4 md:mt-0 border-t border-gray-700 pt-4 md:border-none md:pt-0 md:flex-shrink-0">
@@ -65,6 +64,14 @@
                 <i data-lucide="user-cog" class="w-4 h-4"></i>
                 <span>Mon Profil</span>
               </a>
+
+              <div class="admin-only">
+                <hr class="border-gray-700 my-2"> <a href="admin.html" class="flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm font-medium text-yellow-400 hover:bg-gray-700 hover:text-yellow-400">
+                  <i data-lucide="shield-check" class="w-4 h-4"></i>
+                  <span>Admin</span>
+                </a>
+              </div>
+              
               <button id="logout-button" class="flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm font-medium text-red-400 hover:bg-red-700 hover:text-white">
                 <i data-lucide="log-out" class="w-4 h-4"></i>
                 <span>Déconnexion</span>
