@@ -147,6 +147,59 @@
       // ---------------------------------
       
       
+// --- Logique pour la gestion des rôles et du bannissement (RÉ-INTRODUITES) ---
+
+      window.handleRoleChange = async (userId, newRole) => {
+          if (!confirm(`Êtes-vous sûr de vouloir changer le rôle de cet utilisateur à "${newRole}"?`)) return;
+
+          try {
+              // 1. Mettre à jour le rôle dans la table 'profiles'
+              const { error } = await supabaseClient
+                  .from('profiles')
+                  .update({ role: newRole })
+                  .eq('id', userId);
+
+              if (error) throw error;
+
+              notyf.success(`Rôle mis à jour: ${newRole.toUpperCase()}.`);
+              loadUsers(); // Recharger la liste
+          } catch (error) {
+              console.error("Erreur de changement de rôle:", error);
+              notyf.error(`Échec du changement de rôle: ${error.message}`);
+          }
+      };
+
+      window.handleBanUser = async (userId, shouldBan) => {
+          const action = shouldBan ? 'Bannir' : 'Débannir';
+          if (!confirm(`Êtes-vous sûr de vouloir ${action} cet utilisateur ?`)) return;
+
+          // Pour un simple bannissement permanent, nous utilisons la date actuelle.
+          // Pour un débannissement, nous mettons les champs à null.
+          const bannedUntil = shouldBan ? new Date().toISOString() : null;
+          const bannedUntilStatus = shouldBan ? 'indefinite' : null;
+
+          try {
+              // 1. Mettre à jour le statut de bannissement dans la table 'profiles'
+              const { error } = await supabaseClient
+                  .from('profiles')
+                  .update({ 
+                      banned_until: bannedUntil, 
+                      banned_until_status: bannedUntilStatus 
+                  })
+                  .eq('id', userId);
+
+              if (error) throw error;
+
+              notyf.success(`Utilisateur ${action === 'Bannir' ? 'banni' : 'débanni'} avec succès.`);
+              loadUsers(); // Recharger la liste
+          } catch (error) {
+              console.error(`Erreur ${action}:`, error);
+              notyf.error(`Échec de l'opération ${action}: ${error.message}`);
+          }
+      };
+
+
+
       // --- Logique du formulaire de création (inchangée) ---
       const createUserForm = document.getElementById('create-user-form');
       const createUserButton = document.getElementById('create-user-button');
