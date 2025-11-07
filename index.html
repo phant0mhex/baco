@@ -6,8 +6,9 @@
       <link rel="icon" type="image/png" href="favicon.jpg">
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://unpkg.com/geist@1.0.0/dist/fonts/geist-sans/variable/geist-sans.css" rel="stylesheet">
-  <link href="https://unpkg.com/geist@1.0.0/dist/fonts/geist-mono/variable/geist-mono.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist&family=Geist+Mono&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest" defer></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
@@ -17,7 +18,7 @@
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Geist Sans', 'sans-serif'],
+            sans: ['Geist', 'sans-serif'],
             mono: ['Geist Mono', 'monospace'],
           },
         },
