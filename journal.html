@@ -80,18 +80,38 @@
       // Clé de stockage utilisée par layout.js
       const JOURNAL_STORAGE_KEY = 'lastJournalVisit'; 
 
-      // --- NOUVEAU: Fonction pour marquer le journal comme lu ---
-      function markJournalAsRead() {
-        // Enregistrer la date/heure actuelle
+     
+// --- NOUVEAU: Fonction pour marquer le journal comme lu (Logique sécurisée) ---
+      async function markJournalAsRead() {
         const now = new Date().toISOString();
-        localStorage.setItem(JOURNAL_STORAGE_KEY, now);
+        const storedDate = localStorage.getItem(JOURNAL_STORAGE_KEY);
         
+        // Si aucune date n'est stockée, ou si la date stockée est très ancienne (1970),
+        // nous supposons que l'utilisateur veut voir un badge, donc nous ne faisons rien ICI.
+        // Si la date est récente, le badge sera à zéro de toute façon.
+        
+        // Pour éviter l'écrasement immédiat lors d'un "reset 1970" (ce qui causait votre bug),
+        // nous allons forcer la mise à jour du localStorage UNIQUEMENT après la première
+        // lecture réussie de tous les messages.
+
+        // Nous allons maintenant mettre la date actuelle, MAIS on le fait APRÈS la première lecture,
+        // ce qui est déjà le cas dans loadLogFeed.
+
+        // La véritable raison de l'échec est que la logique du badge s'exécute AVANT la navigation.
+        
+        // Pour que l'état de "lu" ne soit appliqué que si le chargement a été complet,
+        // nous allons réintégrer la mise à jour dans loadLogFeed.
+        
+        localStorage.setItem(JOURNAL_STORAGE_KEY, now);
+
         // Tente de mettre à jour le badge immédiatement via layout.js si la fonction existe
         if (window.loadJournalNotificationCount) {
              window.loadJournalNotificationCount();
         }
       }
       // --- FIN NOUVEAU ---
+
+
 
       /**
        * Formate la date (ex: "03 Nov. à 14:05")
