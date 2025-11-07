@@ -59,7 +59,7 @@
 
   <div id="footer-placeholder"></div>
 
-  <script>
+ <script>
     document.addEventListener('DOMContentLoaded', () => {
     
       const notyf = (typeof Notyf !== 'undefined') 
@@ -76,6 +76,22 @@
       
       // --- Initialiser le canal Realtime (Broadcast) ---
       const logChannel = supabaseClient.channel('baco-main-courante');
+      
+      // Clé de stockage utilisée par layout.js
+      const JOURNAL_STORAGE_KEY = 'lastJournalVisit'; 
+
+      // --- NOUVEAU: Fonction pour marquer le journal comme lu ---
+      function markJournalAsRead() {
+        // Enregistrer la date/heure actuelle
+        const now = new Date().toISOString();
+        localStorage.setItem(JOURNAL_STORAGE_KEY, now);
+        
+        // Tente de mettre à jour le badge immédiatement via layout.js si la fonction existe
+        if (window.loadJournalNotificationCount) {
+             window.loadJournalNotificationCount();
+        }
+      }
+      // --- FIN NOUVEAU ---
 
       /**
        * Formate la date (ex: "03 Nov. à 14:05")
@@ -98,8 +114,7 @@
         lucide.createIcons();
         
         try {
-          // On récupère les messages ET le profil de l'auteur (full_name, avatar_url)
-          // grâce à la jointure automatique de Supabase
+          // On récupère les messages ET le profil de l'auteur
           const { data, error } = await supabaseClient
             .from('main_courante')
             .select(`
@@ -115,6 +130,9 @@
              const { data: { user } } = await supabaseClient.auth.getUser();
              if (user) currentUserId = user.id;
           }
+          
+          // NOUVEAU: Marquer comme lu APRÈS le chargement réussi des données
+          markJournalAsRead();
 
          if (data.length === 0) {
             logFeed.innerHTML = `
@@ -124,19 +142,17 @@
                 <p class="mt-2 text-sm text-gray-500">Aucune entrée n'a été enregistrée pour le moment. Soyez le premier !</p>
               </div>
             `;
-            lucide.createIcons(); // Appel pour l'icône
+            lucide.createIcons();
             return;
           }
 
           logFeed.innerHTML = data.map(entry => {
-            const author = entry.profiles; // Les données de l'auteur
+            const author = entry.profiles; 
             const timestamp = formatLogDate(entry.created_at);
             
-            // L'auteur peut être 'null' si le profil a été supprimé
             const authorName = author ? author.full_name : 'Utilisateur supprimé';
             const authorAvatar = author ? author.avatar_url : 'https://api.dicebear.com/9.x/micah/svg?seed=deleted';
             
-            // L'admin OU l'auteur peut supprimer
             const canDelete = adminRole || (currentUserId && currentUserId === entry.user_id);
             
             return `
@@ -176,7 +192,7 @@
       async function handlePostSubmit(event) {
         event.preventDefault();
         const message = logMessageInput.value;
-        if (!message.trim()) return; // Ne pas envoyer de message vide
+        if (!message.trim()) return; 
         
         if (!currentUserId) {
            notyf.error("Erreur: utilisateur non identifié.");
@@ -197,13 +213,13 @@
             
           if (error) throw error;
           
-          logMessageInput.value = ''; // Vider le champ
+          logMessageInput.value = ''; 
           notyf.success('Message publié !');
           
           // Envoyer un signal aux autres utilisateurs
           logChannel.send({ type: 'broadcast', event: 'new-post' });
           
-          // Recharger le fil (pour voir son propre message)
+          // Recharger le fil (ce qui appellera markJournalAsRead et mettra à jour le badge)
           loadLogFeed();
           
         } catch (error) {
@@ -232,7 +248,7 @@
           notyf.success('Message supprimé.');
           // Envoyer un signal aux autres
           logChannel.send({ type: 'broadcast', event: 'new-post' });
-          loadLogFeed(); // Recharger
+          loadLogFeed(); 
           
         } catch (error) {
           notyf.error("Erreur: " + error.message);
@@ -254,7 +270,7 @@
           { event: 'new-post' },
           (payload) => {
             console.log('Nouveau message reçu, rechargement...');
-            loadLogFeed(); // Recharger quand qqn d'autre poste
+            loadLogFeed(); 
           }
         )
         .subscribe((status) => {

@@ -730,6 +730,61 @@ document.addEventListener('DOMContentLoaded', async () => {
   } // <-- Ferme le if (navLoaded)
 
   
+// ===============================================================
+// ==              SECTION NOTIFICATIONS JOURNAL              ==
+// ===============================================================
+
+const JOURNAL_STORAGE_KEY = 'lastJournalVisit';
+
+/**
+ * Charge et affiche le nombre de messages du journal non lus.
+ */
+async function loadJournalNotificationCount() {
+    const badgeElement = document.getElementById('journal-badge');
+    if (!badgeElement) return;
+
+    // 1. Récupérer la date de dernière visite
+    const lastVisit = localStorage.getItem(JOURNAL_STORAGE_KEY);
+    
+    // Si l'utilisateur n'a jamais visité, on considère qu'il a tout lu (initialisation)
+    if (!lastVisit) {
+        badgeElement.classList.add('hidden');
+        return; 
+    }
+    
+    // 2. Compter les messages créés après la dernière visite
+    try {
+        // Sélectionne un count où created_at est POSTÉRIEUR à la dernière visite
+        const { count, error } = await supabaseClient
+            .from('main_courante')
+            .select('id', { count: 'exact', head: true })
+            .gt('created_at', lastVisit); // 'gt' for greater than
+
+        if (error) throw error;
+        
+        const newMessagesCount = count;
+
+        if (newMessagesCount > 0) {
+            badgeElement.textContent = newMessagesCount;
+            badgeElement.classList.remove('hidden');
+        } else {
+            badgeElement.classList.add('hidden');
+            badgeElement.textContent = '';
+        }
+
+    } catch (error) {
+        console.error("Erreur chargement notifications journal:", error.message);
+        badgeElement.classList.add('hidden');
+    }
+}
+
+// On expose la fonction pour qu'elle puisse être appelée depuis journal.html (markJournalAsRead)
+window.loadJournalNotificationCount = loadJournalNotificationCount;
+
+
+
+
+
   // Charger le footer
   const footerLoaded = await loadComponent('footer-placeholder', '_footer.html');
   if (footerLoaded) {
