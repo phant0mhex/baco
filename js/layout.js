@@ -370,6 +370,7 @@ let globalSearchModal;
 let globalSearchInput;
 let globalSearchResults;
 let globalSearchSpinner;
+let globalSearchSelectedIndex = -1;
 
 /**
  * Crée et injecte la modale de recherche globale et ses styles
@@ -437,13 +438,43 @@ function createSearchModal() {
       hideGlobalSearch();
     }
   });
-  globalSearchInput.addEventListener('keyup', (e) => {
-    if (e.key === 'Escape') {
+ 
+
+// MODIFICATION: Remplacement de l'ancien listener 'keyup'
+  globalSearchInput.addEventListener('keydown', (e) => {
+    const results = globalSearchResults.querySelectorAll('.search-result-item');
+    
+    if (e.key === 'ArrowDown') {
+      e.preventDefault(); // Empêcher le curseur de bouger
+      if (results.length > 0) {
+        globalSearchSelectedIndex = (globalSearchSelectedIndex + 1) % results.length;
+        updateSelectedResult(results);
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault(); // Empêcher le curseur de bouger
+      if (results.length > 0) {
+        globalSearchSelectedIndex = (globalSearchSelectedIndex - 1 + results.length) % results.length;
+        updateSelectedResult(results);
+      }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (globalSearchSelectedIndex > -1 && results[globalSearchSelectedIndex]) {
+        results[globalSearchSelectedIndex].click(); // Simuler un clic sur le lien <a>
+      }
+    } else if (e.key === 'Escape') {
       hideGlobalSearch();
-    } else {
+    }
+  });
+
+  // AJOUT: Un listener séparé pour keyup pour le debounce
+  globalSearchInput.addEventListener('keyup', (e) => {
+    // On ne lance la recherche que si ce n'est PAS une touche de navigation ou Escape
+    const navKeys = ['ArrowDown', 'ArrowUp', 'Enter', 'Escape'];
+    if (!navKeys.includes(e.key)) {
       debounceSearch();
     }
   });
+
 }
 
 /**
@@ -508,9 +539,32 @@ async function executeSearch() {
 }
 
 /**
+ * NOUVELLE FONCTION
+ * Met à jour la surbrillance visuelle de l'élément sélectionné dans la recherche
+ */
+function updateSelectedResult(results) {
+  // S'assure d'avoir la liste des résultats
+  results = results || globalSearchResults.querySelectorAll('.search-result-item');
+  
+  results.forEach((item, index) => {
+    if (index === globalSearchSelectedIndex) {
+      // La classe 'selected' est déjà définie dans votre CSS (gray-700)
+      item.classList.add('selected'); 
+      // Fait défiler pour garder l'élément visible
+      item.scrollIntoView({ block: 'nearest' });
+    } else {
+      item.classList.remove('selected');
+    }
+  });
+}
+
+
+
+/**
  * Affiche les résultats dans la modale (MISE À JOUR)
  */
 function renderSearchResults(results) {
+  globalSearchSelectedIndex = -1; // <-- AJOUTEZ/MODIFIEZ CETTE LIGNE
   if (!results || results.length === 0) {
     globalSearchResults.innerHTML = '<p class="text-center text-gray-500 p-6">Aucun résultat trouvé.</p>';
     return;
