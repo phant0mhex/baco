@@ -69,6 +69,10 @@
         <span>Connexion</span>
       </button>
       
+<a href="#" id="reset-link" class="text-sm text-blue-400 hover:text-blue-300 text-center block pt-2">
+        Mot de passe oublié ?
+      </a>
+
     </form>
   </div>
 
@@ -85,6 +89,11 @@
     const loginButton = document.getElementById('login-button');
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
+
+
+    // AJOUT: Récupérer le nouveau lien
+    const resetLink = document.getElementById('reset-link');
+
 
     // Fonction de connexion (mise à jour pour gérer le bouton)
     async function validerConnexion() {
@@ -116,12 +125,53 @@
       }
     }
 
+// NOUVELLE FONCTION: Gérer la demande de réinitialisation
+    async function handlePasswordReset(event) {
+      event.preventDefault();
+      const email = emailInput.value;
+
+      if (!email) {
+        errorDiv.textContent = "Veuillez d'abord saisir votre email.";
+        return;
+      }
+      
+      errorDiv.textContent = '';
+      loginButton.disabled = true;
+      loginButton.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> <span>Envoi...</span>';
+      lucide.createIcons();
+
+      try {
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
+        
+        if (error) throw error;
+
+        // Afficher un message de succès
+        errorDiv.className = 'text-green-400 text-sm h-5';
+        errorDiv.textContent = 'Email de réinitialisation envoyé !';
+
+      } catch (error) {
+        console.error("Erreur reset MDP:", error.message);
+        errorDiv.className = 'text-red-400 text-sm h-5';
+        errorDiv.textContent = "Erreur lors de l'envoi de l'email.";
+      } finally {
+        // Réactiver le bouton après un délai
+        setTimeout(() => {
+          loginButton.disabled = false;
+          loginButton.innerHTML = '<i data-lucide="log-in" class="w-5 h-5"></i> <span>Connexion</span>';
+          lucide.createIcons();
+        }, 3000); // Laisse le message de succès visible 3s
+      }
+    }
+
     // Gérer la soumission du formulaire
     loginForm.addEventListener('submit', (e) => {
       e.preventDefault(); // Empêche la page de se recharger
       validerConnexion();
     });
     
+// AJOUT: Gérer le clic sur le nouveau lien
+    resetLink.addEventListener('click', handlePasswordReset);
+
     // Activer Lucide au chargement initial
     document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
