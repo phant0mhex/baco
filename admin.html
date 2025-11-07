@@ -315,9 +315,10 @@
         const avatarSrc = user.avatar_url || 'https://via.placeholder.com/40';
         const currentRole = user.role || 'user';
         const isSelf = (user.user_id === currentAdminId);
-       // CORRECTION FINALE: Vérifie si le statut est explicitement 'indefinite',
-        // ce qui est la seule indication fiable de bannissement dans ce schéma.
-        const isBanned = user.banned_until_status === 'indefinite';
+       // CORRECTION FINALE: La vérification la plus robuste est de confirmer
+        // que la colonne de statut de bannissement contient la chaîne 'indefinite'.
+        // On utilise .includes() pour plus de sécurité et on vérifie que le champ n'est pas null.
+        const isBanned = user.banned_until_status && user.banned_until_status.includes('indefinite');
         
         const lastLogin = formatAdminDate(user.last_sign_in_at);
 
