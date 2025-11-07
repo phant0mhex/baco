@@ -157,19 +157,21 @@
 
 
 
-      createUserForm.addEventListener('submit', async (event) => {
-  
+    createUserForm.addEventListener('submit', async (event) => {
         event.preventDefault();
 
         const email = newUserEmail.value;
         const password = newUserPassword.value;
         const role = newUserRole.value;
 
+        // NOUVEAU: Extraction d'un nom d'utilisateur par défaut à partir de l'e-mail
+        const defaultName = email.split('@')[0];
+
         createUserButton.disabled = true;
         createUserButton.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> <span>Création...</span>';
         lucide.createIcons();
 
-        // NOUVEAU: 1. Sauvegarder la session de l'administrateur actuel
+        // 1. Sauvegarder la session de l'administrateur actuel
         const { data: { session: adminSession }, error: sessionError } = await supabaseClient.auth.getSession();
         if (sessionError || !adminSession) {
             notyf.error("Erreur critique: Session admin perdue.");
@@ -180,13 +182,15 @@
         }
 
         try {
-          // 2. Créer l'utilisateur dans Supabase Auth (cela change la session)
+          // 2. Créer l'utilisateur en fournissant les données minimales requises (rôle, nom complet, username)
           const { error: authError } = await supabaseClient.auth.signUp({
             email: email,
             password: password,
             options: {
               data: { 
                 role: role, 
+                full_name: defaultName, // Ajout du nom complet
+                username: defaultName   // Ajout du nom d'utilisateur
               }
             }
           });
@@ -204,7 +208,6 @@
           notyf.success(`Utilisateur ${email} créé et rôle '${role}' attribué !`);
           createUserForm.reset();
           
-          // Recharger la liste des utilisateurs pour voir le nouvel utilisateur
           loadUsers(); 
 
         } catch (error) {
@@ -223,9 +226,6 @@
           lucide.createIcons();
         }
       });
-
-
-
 
       // NOUVEAU: Helper pour formater la date
       function formatAdminDate(dateString) {
