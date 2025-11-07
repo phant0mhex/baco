@@ -654,7 +654,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         flatpickr(calendarButton, {
           weekNumbers: true,  // On garde les numéros de semaine
           locale: "fr",       // On garde la traduction
-          static: true,       // Fait apparaître le calendrier sous le bouton
+          position: 'auto right',      // Fait apparaître le calendrier sous le bouton
           appendTo: document.body, // S'assure qu'il s'affiche par-dessus tout
          
           
