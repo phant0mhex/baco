@@ -155,88 +155,25 @@
         // ... (code de création d'utilisateur inchangé)
       });
       // [...] (fonctions handleRoleChange et handleBanUser inchangées)
-
-      // --- NOUVELLE LOGIQUE DE RÉINITIALISATION DE MOT DE PASSE ---
-
-      function generateRandomPassword(length = 12) {
-          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+';
-          let password = '';
-          for (let i = 0; i < length; i++) {
-              password += chars.charAt(Math.floor(Math.random() * chars.length));
-          }
-          return password;
-      }
       
-      window.showResetPasswordModal = (userId, email) => {
-          targetUserId = userId;
-          generatedPassword = generateRandomPassword();
-          
-          resetUserEmail.textContent = email;
-          newRandomPassword.value = generatedPassword;
-          resetStatusMessage.textContent = '';
-          
-          resetModal.style.display = 'flex';
-          lucide.createIcons();
-          newRandomPassword.select(); // Sélectionner le champ pour copier facilement
+      // NOUVEAU: Helper pour formater la date
+      function formatAdminDate(dateString) {
+        if (!dateString) {
+          return '<span class="text-gray-400">Jamais</span>';
+        }
+        const date = new Date(dateString);
+        return date.toLocaleDateString('fr-FR', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }).replace('.', '');
       }
 
-      window.hideResetPasswordModal = () => {
-          resetModal.style.display = 'none';
-      }
-
-      async function handleResetPassword() {
-          if (!targetUserId || !generatedPassword) return;
-
-          confirmResetButton.disabled = true;
-          confirmResetButton.textContent = 'Réinitialisation en cours...';
-          resetStatusMessage.textContent = 'Envoi de la requête...';
-
-          try {
-              // AVERTISSEMENT SÉCURITÉ: Cette fonction est un placeholder.
-              // Dans une architecture réelle, elle doit appeler une FONCTION EDGE/RPC 
-              // côté serveur utilisant la clé Service Role pour exécuter :
-              // supabase.auth.admin.updateUserById(targetUserId, { password: generatedPassword });
-
-              const { error } = await supabaseClient.rpc('admin_reset_user_password', {
-                  user_id_to_reset: targetUserId,
-                  new_password: generatedPassword
-              });
-              
-              // NOTE: La RPC 'admin_reset_user_password' doit être créée par l'utilisateur.
-
-              if (error) {
-                  throw error;
-              }
-
-              resetStatusMessage.className = 'text-green-600 text-sm';
-              resetStatusMessage.innerHTML = '✅ **Succès !** Le mot de passe a été réinitialisé (utilisez le bouton Copier).';
-              notyf.success("Mot de passe réinitialisé pour l'utilisateur.");
-              
-          } catch (error) {
-              resetStatusMessage.className = 'text-red-600 text-sm';
-              resetStatusMessage.textContent = `❌ Échec: ${error.message}. Vérifiez la RPC/RLS.`;
-              notyf.error("Échec de la réinitialisation.");
-          } finally {
-              confirmResetButton.disabled = false;
-              confirmResetButton.textContent = 'Confirmer la réinitialisation';
-          }
-      }
-
-      // --- Écouteurs pour le Modal ---
-      confirmResetButton.addEventListener('click', handleResetPassword);
-      
-      copyPasswordButton.addEventListener('click', async () => {
-          try {
-              await navigator.clipboard.writeText(newRandomPassword.value);
-              notyf.success('Mot de passe copié !');
-          } catch (err) {
-              console.error('Impossible de copier le mot de passe:', err);
-              notyf.error('Échec de la copie (copiez manuellement).');
-          }
-      });
-      // -------------------------------
-      
-      // --- Mise à jour de renderUserRow pour ajouter le bouton ---
+      /**
+       * Génère le HTML pour une seule ligne d'utilisateur
+       */
       function renderUserRow(user, currentAdminId) {
         const avatarSrc = user.avatar_url || 'https://via.placeholder.com/40';
         const currentRole = user.role || 'user';
@@ -287,13 +224,13 @@
                   onclick="window.handleRoleChange('${user.user_id}', '${currentRole === 'admin' ? 'user' : 'admin'}')"
                   class="p-2 rounded-md ${currentRole === 'admin' ? 'text-yellow-600 hover:bg-yellow-100' : 'text-blue-600 hover:bg-blue-100'}"
                   title="${currentRole === 'admin' ? 'Rétrograder' : 'Promouvoir'}">
-                  <i data-lucide="${currentRole === 'admin' ? 'user-minus' : 'user-plus'}" class="w-4 h-4"></i>
+                  <i data-lucide="user-minus" class="w-4 h-4"></i>
                 </button>
                 <button 
                   onclick="window.handleBanUser('${user.user_id}', ${!isBanned})"
                   class="p-2 rounded-md ${isBanned ? 'text-green-600 hover:bg-green-100' : 'text-red-600 hover:bg-red-100'}"
                   title="${isBanned ? 'Débannir' : 'Bannir'}">
-                  <i data-lucide="${isBanned ? 'user-check' : 'user-x'}" class="w-4 h-4"></i>
+                  <i data-lucide="user-x" class="w-4 h-4"></i>
                 </button>
                 `
               }
@@ -301,9 +238,123 @@
           </tr>
         `;
       }
+      
+      /**
+       * Charge et affiche la liste de tous les utilisateurs (FIXED SCOPE)
+       */
+      async function loadUsers() {
+        userListContainer.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
+        lucide.createIcons();
+        try {
+          const { data: { user: adminUser }, error: adminError } = await supabaseClient.auth.getUser();
+          if (adminError || !adminUser) throw adminError || new Error("Impossible d'identifier l'administrateur.");
+          const currentAdminId = adminUser.id;
+          
+          // Appelle la fonction SQL
+          const { data, error } = await supabaseClient.rpc('get_all_users');
+          if (error) throw error;
+          if (!data || data.length === 0) { userListContainer.innerHTML = '<p class="text-gray-600">Aucun utilisateur trouvé.</p>'; return; }
+          
+          userListContainer.innerHTML = `
+            <div class="overflow-x-auto border rounded-lg">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilisateur</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rôle</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dernière Connexion</th>
+                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  ${data.map(user => renderUserRow(user, currentAdminId)).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+          lucide.createIcons();
+        } catch (error) {
+          userListContainer.innerHTML = `<p class="text-red-500">Erreur critique : ${error.message}</p>`;
+          notyf.error("Impossible de charger les utilisateurs. " + error.message);
+        }
+      }
 
+      // --- NOUVELLE LOGIQUE DE RÉINITIALISATION DE MOT DE PASSE (suite) ---
 
-      // Lancement initial
+      function generateRandomPassword(length = 12) {
+          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+';
+          let password = '';
+          for (let i = 0; i < length; i++) {
+              password += chars.charAt(Math.floor(Math.random() * chars.length));
+          }
+          return password;
+      }
+      
+      window.showResetPasswordModal = (userId, email) => {
+          targetUserId = userId;
+          generatedPassword = generateRandomPassword();
+          
+          resetUserEmail.textContent = email;
+          newRandomPassword.value = generatedPassword;
+          resetStatusMessage.textContent = '';
+          
+          resetModal.style.display = 'flex';
+          lucide.createIcons();
+          newRandomPassword.select(); 
+      }
+
+      window.hideResetPasswordModal = () => {
+          resetModal.style.display = 'none';
+      }
+
+      async function handleResetPassword() {
+          if (!targetUserId || !generatedPassword) return;
+
+          confirmResetButton.disabled = true;
+          confirmResetButton.textContent = 'Réinitialisation en cours...';
+          resetStatusMessage.textContent = 'Envoi de la requête...';
+
+          try {
+              // Simule un appel RPC pour réinitialiser le mot de passe
+              const { error } = await supabaseClient.rpc('admin_reset_user_password', {
+                  user_id_to_reset: targetUserId,
+                  new_password: generatedPassword
+              });
+              
+              if (error) {
+                  throw error;
+              }
+
+              resetStatusMessage.className = 'text-green-600 text-sm';
+              resetStatusMessage.innerHTML = '✅ **Succès !** Le mot de passe a été réinitialisé (utilisez le bouton Copier).';
+              notyf.success("Mot de passe réinitialisé pour l'utilisateur.");
+              
+          } catch (error) {
+              resetStatusMessage.className = 'text-red-600 text-sm';
+              resetStatusMessage.textContent = `❌ Échec: ${error.message}. Vérifiez la RPC/RLS.`;
+              notyf.error("Échec de la réinitialisation.");
+          } finally {
+              confirmResetButton.disabled = false;
+              confirmResetButton.textContent = 'Confirmer la réinitialisation';
+          }
+      }
+
+      // --- Écouteurs pour le Modal ---
+      confirmResetButton.addEventListener('click', handleResetPassword);
+      
+      copyPasswordButton.addEventListener('click', async () => {
+          try {
+              await navigator.clipboard.writeText(newRandomPassword.value);
+              notyf.success('Mot de passe copié !');
+          } catch (err) {
+              console.error('Impossible de copier le mot de passe:', err);
+              notyf.error('Échec de la copie (copiez manuellement).');
+          }
+      });
+      // -------------------------------
+
+      // Lancement initial (Doit être la dernière ligne avant la fermeture du listener)
       loadUsers();
 
     }); // Fin de DOMContentLoaded
