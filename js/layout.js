@@ -572,67 +572,6 @@ function globalKeyListener(e) {
 
 
 
-// ===============================================================
-// ==              SECTION NOTIFICATIONS JOURNAL              ==
-// ===============================================================
-
-const JOURNAL_STORAGE_KEY = 'lastJournalVisit';
-
-/**
- * Charge et affiche le nombre de messages du journal non lus.
- */
-async function loadJournalNotificationCount() {
-    const badgeElement = document.getElementById('journal-badge');
-    if (!badgeElement) return;
-
-    let lastVisit = localStorage.getItem(JOURNAL_STORAGE_KEY);
-
-    // Si aucune date de dernière visite n'est trouvée, on utilise la date d'initialisation du système (Epoch)
-    if (!lastVisit) {
-        lastVisit = '1970-01-01T00:00:00Z'; 
-    }
-    
-    // --- DIAGNOSTIC LOG CRITIQUE ---
-    console.warn(`[Journal Badge Diagnostic] Horodatage de la requête (gt): ${lastVisit}`);
-    // -------------------------------
-
-    // 2. Compter les messages créés après la dernière visite
-    try {
-        const { count, error } = await supabaseClient
-            .from('main_courante')
-            .select('id', { count: 'exact', head: true })
-            .gt('created_at', lastVisit); // 'gt' for greater than
-
-        if (error) {
-             console.error("[Journal Badge Diagnostic] Erreur de comptage Supabase:", error.message);
-             throw error;
-        }
-        
-        const newMessagesCount = count;
-        
-        // --- DIAGNOSTIC LOG CRITIQUE ---
-        console.warn(`[Journal Badge Diagnostic] Résultat du COUNT Supabase: ${newMessagesCount}`);
-        // -------------------------------
-
-
-        if (newMessagesCount > 0) {
-            badgeElement.textContent = newMessagesCount;
-            badgeElement.classList.remove('hidden'); 
-        } else {
-            badgeElement.classList.add('hidden');
-            badgeElement.textContent = '';
-        }
-
-    } catch (error) {
-        console.error("[Journal Badge] Erreur critique:", error.message);
-        badgeElement.classList.add('hidden');
-    }
-}
-
-// On expose la fonction pour qu'elle puisse être appelée depuis journal.html (markJournalAsRead)
-window.loadJournalNotificationCount = loadJournalNotificationCount; 
-
-
 // --- Exécution principale au chargement du DOM ---
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -654,90 +593,132 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadNavAvatar();
     setupRealtimePresence(); 
 
-    // --- Appel du badge Journal APRES le chargement de la NAV ---
-    loadJournalNotificationCount();
+    // --- NOUVEAU: Initialisation du Calendrier ---
+    const calendarButton = document.getElementById('calendar-toggle-button');
+    if (calendarButton) {
+      // Vérifier si flatpickr et la traduction sont bien chargés
+      if (typeof flatpickr !== 'undefined' && flatpickr.l10ns.fr) {
+        flatpickr(calendarButton, {
+          weekNumbers: true,  // On garde les numéros de semaine
+          locale: "fr",       // On garde la traduction
+          static: true,       // Fait apparaître le calendrier sous le bouton
+          appendTo: document.body, // S'assure qu'il s'affiche par-dessus tout
+         
+          
+          onReady: function(selectedDates, dateStr, instance) {
+            // On ajoute la classe 'font-sans' de Tailwind au conteneur du calendrier
+            instance.calendarContainer.classList.add('font-sans');
+            instance.calendarContainer.classList.add('baco-theme'); // <-- ON AJOUTE LE THÈME ICI
+          }
+        });
+      } else {
+        console.warn('Flatpickr (ou sa traduction FR) n\'est pas chargé. Le calendrier de la nav ne s\'affichera pas.');
+      }
+    }
+    // --- FIN NOUVEAU CALENDRIER ---
 
-    // Connexion au canal Realtime pour Mettre à Jour le badge
-    const logChannel = supabaseClient.channel('baco-main-courante-badge'); 
-    logChannel
-      .on(
-        'broadcast', 
-        { event: 'new-post' },
-        (payload) => {
-          loadJournalNotificationCount(); // Mise à jour à chaque nouveau message
-        }
-      )
-      .subscribe((status) => {
-         if (status === 'SUBSCRIBED') {
-            console.log('[Journal Realtime] Connecté pour les mises à jour du badge.');
-         }
-      });
-      // -----------------------------------------------------------
+    // Logique du menu burger
+    const menuButton = document.getElementById('mobile-menu-button');
+    const menuContent = document.getElementById('nav-content');
+    const menuIcon = document.getElementById('mobile-menu-icon');
+    if (menuButton && menuContent && menuIcon) {
+      menuButton.onclick = () => {
+        menuContent.classList.toggle('hidden');
+        const isHidden = menuContent.classList.contains('hidden');
+        menuIcon.setAttribute('data-lucide', isHidden ? 'menu' : 'x');
+        lucide.createIcons();
+      };
+    }
+
+    // Logique de déconnexion
+    const logoutButton = document.getElementById('logout-button');
+    if (logoutButton) {
+      logoutButton.onclick = async () => {
+        sessionStorage.removeItem('userRole');
+        const { error } = await supabaseClient.auth.signOut();
+        if (error) console.error('Erreur de déconnexion:', error);
+        else window.location.href = 'index.html';
+      };
+    }
     
-    // ... (Logique des dropdowns inchangée)
+    // --- Définition des variables de dropdown ---
     const presenceContainer = document.getElementById('presence-container');
     const presenceDropdown = document.getElementById('presence-dropdown');
     const profileContainer = document.getElementById('profile-dropdown-container');
     const profileDropdown = document.getElementById('profile-dropdown');
     
+    // NOUVEAU: Logique du dropdown PMR
     const pmrContainer = document.getElementById('pmr-dropdown-container');
     const pmrButton = document.getElementById('pmr-toggle-button');
     const pmrDropdown = document.getElementById('pmr-dropdown');
     const pmrChevron = document.getElementById('pmr-chevron-icon');
 
 
+// Logique du dropdown de présence
     const presenceButton = document.getElementById('presence-toggle-button');
     if (presenceContainer && presenceButton && presenceDropdown) {
         presenceButton.onclick = (e) => {
             e.stopPropagation(); 
             presenceDropdown.classList.toggle('hidden');
+            // Fermer les autres dropdowns
             profileDropdown?.classList.add('hidden');
             pmrDropdown?.classList.add('hidden');
             pmrChevron?.setAttribute('data-lucide', 'chevron-down');
             lucide.createIcons();
         };
+        // Empêche la fermeture du menu si on clique sur un élément à l'intérieur qui n'est pas le bouton
         presenceDropdown.addEventListener('click', (e) => {
             e.stopPropagation();
         });
     }
 
+// Logique du dropdown de profil
     const profileButton = document.getElementById('profile-toggle-button');
     if (profileContainer && profileButton && profileDropdown) {
         profileButton.onclick = (e) => {
             e.stopPropagation();
             profileDropdown.classList.toggle('hidden');
+            // Fermer les autres dropdowns
             presenceDropdown?.classList.add('hidden');
             pmrDropdown?.classList.add('hidden');
             pmrChevron?.setAttribute('data-lucide', 'chevron-down');
             lucide.createIcons();
         };
+        // Empêche la fermeture du menu si on clique sur un élément à l'intérieur
         profileDropdown.addEventListener('click', (e) => {
             e.stopPropagation();
         });
     }
 
+// NOUVEAU: Logique du dropdown PMR
     if (pmrContainer && pmrButton && pmrDropdown) {
         pmrButton.onclick = (e) => {
             e.stopPropagation();
             pmrDropdown.classList.toggle('hidden');
             pmrChevron.setAttribute('data-lucide', pmrDropdown.classList.contains('hidden') ? 'chevron-down' : 'chevron-up');
+            // Fermer les autres dropdowns
             presenceDropdown?.classList.add('hidden');
             profileDropdown?.classList.add('hidden');
             lucide.createIcons();
         };
+        // Empêche la fermeture du menu si on clique sur un lien à l'intérieur
         pmrDropdown.addEventListener('click', (e) => {
             e.stopPropagation();
         });
     }
 
 
+// Logique de fermeture "Click-away"
     window.addEventListener('click', (e) => {
+        // Fermer présence
         if (presenceContainer && !presenceContainer.contains(e.target)) {
             presenceDropdown?.classList.add('hidden');
         }
+        // Fermer profil
         if (profileContainer && !profileContainer.contains(e.target)) {
             profileDropdown?.classList.add('hidden');
         }
+        // Fermer PMR
         if (pmrContainer && !pmrContainer.contains(e.target)) {
             if (pmrDropdown && !pmrDropdown.classList.contains('hidden')) {
               pmrDropdown.classList.add('hidden');
@@ -749,6 +730,67 @@ document.addEventListener('DOMContentLoaded', async () => {
   } // <-- Ferme le if (navLoaded)
 
   
+// ===============================================================
+// ==              SECTION NOTIFICATIONS JOURNAL              ==
+// ===============================================================
+
+const JOURNAL_STORAGE_KEY = 'lastJournalVisit';
+
+/**
+ * Charge et affiche le nombre de messages du journal non lus.
+ */
+async function loadJournalNotificationCount() {
+    const badgeElement = document.getElementById('journal-badge');
+    if (!badgeElement) return;
+
+    let lastVisit = localStorage.getItem(JOURNAL_STORAGE_KEY);
+
+    // Si aucune date de dernière visite n'est trouvée (première exécution),
+    // on utilise la date d'initialisation du système (Epoch) pour forcer le comptage.
+    if (!lastVisit) {
+        lastVisit = '1970-01-01T00:00:00.000Z';
+    }
+    
+   // --- NOUVEAU LOG DE DIAGNOSTIC CRITIQUE ---
+    console.warn(`[Journal Badge Diagnostic] Horodatage de la requête (gt): ${lastVisit}`);
+    // ------------------------------------------
+
+    // 2. Compter les messages créés après la dernière visite
+    try {
+        const { count, error } = await supabaseClient
+            .from('main_courante')
+            .select('id', { count: 'exact', head: true })
+            .gt('created_at', lastVisit); // 'gt' for greater than
+
+        if (error) {
+             console.error("[Journal Badge] Erreur de comptage Supabase:", error.message);
+             throw error;
+        }
+        
+        const newMessagesCount = count;
+        
+        // --- DIAGNOSTIC LOG ---
+        console.log(`[Journal Badge] Nouveaux messages trouvés: ${newMessagesCount}`);
+        // ----------------------
+
+        if (newMessagesCount > 0) {
+            badgeElement.textContent = newMessagesCount;
+            badgeElement.classList.remove('hidden'); 
+        } else {
+            badgeElement.classList.add('hidden');
+            badgeElement.textContent = '';
+        }
+
+    } catch (error) {
+        console.error("[Journal Badge] Erreur critique:", error.message);
+        badgeElement.classList.add('hidden');
+    }
+}
+
+// On expose la fonction pour qu'elle puisse être appelée depuis journal.html (markJournalAsRead)
+window.loadJournalNotificationCount = loadJournalNotificationCount;
+
+
   // Charger le footer
   const footerLoaded = await loadComponent('footer-placeholder', '_footer.html');
   if (footerLoaded) {
