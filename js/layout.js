@@ -751,9 +751,9 @@ async function loadJournalNotificationCount() {
         lastVisit = '1970-01-01T00:00:00Z'; 
     }
     
-    // --- DIAGNOSTIC LOG ---
-    console.log(`[Journal Badge] Dernière visite enregistrée: ${lastVisit}`);
-    // ----------------------
+   // --- NOUVEAU LOG DE DIAGNOSTIC CRITIQUE ---
+    console.warn(`[Journal Badge Diagnostic] Horodatage de la requête (gt): ${lastVisit}`);
+    // ------------------------------------------
 
     // 2. Compter les messages créés après la dernière visite
     try {
