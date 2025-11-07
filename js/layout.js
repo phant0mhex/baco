@@ -654,11 +654,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const pmrChevron = document.getElementById('pmr-chevron-icon');
 
 
-   // Logique du dropdown de présence
+// Logique du dropdown de présence
     const presenceButton = document.getElementById('presence-toggle-button');
     if (presenceContainer && presenceButton && presenceDropdown) {
         presenceButton.onclick = (e) => {
-            e.stopPropagation(); // <-- AJOUTÉ: Empêche la fermeture immédiate
+            e.stopPropagation(); 
             presenceDropdown.classList.toggle('hidden');
             // Fermer les autres dropdowns
             profileDropdown?.classList.add('hidden');
@@ -666,13 +666,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             pmrChevron?.setAttribute('data-lucide', 'chevron-down');
             lucide.createIcons();
         };
+        // Empêche la fermeture du menu si on clique sur un élément à l'intérieur qui n'est pas le bouton
+        presenceDropdown.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
     }
 
 // Logique du dropdown de profil
     const profileButton = document.getElementById('profile-toggle-button');
     if (profileContainer && profileButton && profileDropdown) {
         profileButton.onclick = (e) => {
-            e.stopPropagation(); // <-- AJOUTÉ: Empêche la fermeture immédiate
+            e.stopPropagation();
             profileDropdown.classList.toggle('hidden');
             // Fermer les autres dropdowns
             presenceDropdown?.classList.add('hidden');
@@ -680,12 +684,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             pmrChevron?.setAttribute('data-lucide', 'chevron-down');
             lucide.createIcons();
         };
+        // Empêche la fermeture du menu si on clique sur un élément à l'intérieur
+        profileDropdown.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
     }
 
 // NOUVEAU: Logique du dropdown PMR
     if (pmrContainer && pmrButton && pmrDropdown) {
         pmrButton.onclick = (e) => {
-            e.stopPropagation(); // <-- AJOUTÉ: Empêche la fermeture immédiate
+            e.stopPropagation();
             pmrDropdown.classList.toggle('hidden');
             pmrChevron.setAttribute('data-lucide', pmrDropdown.classList.contains('hidden') ? 'chevron-down' : 'chevron-up');
             // Fermer les autres dropdowns
@@ -693,10 +701,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             profileDropdown?.classList.add('hidden');
             lucide.createIcons();
         };
+        // Empêche la fermeture du menu si on clique sur un lien à l'intérieur
+        pmrDropdown.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
     }
 
-
-    
 // Logique de fermeture "Click-away" (inchangée)
     window.addEventListener('click', (e) => {
         if (presenceContainer && !presenceContainer.contains(e.target)) {
@@ -705,7 +715,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (profileContainer && !profileContainer.contains(e.target)) {
             profileDropdown?.classList.add('hidden');
         }
-        // NOUVEAU: Click-away pour PMR
+        // Click-away pour PMR (Le test !pmrContainer.contains(e.target) est maintenant valide car le clic sur le dropdown lui-même est bloqué)
         if (pmrContainer && !pmrContainer.contains(e.target)) {
             if (pmrDropdown && !pmrDropdown.classList.contains('hidden')) {
               pmrDropdown.classList.add('hidden');
@@ -714,8 +724,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     });
-  }
-
+  } 
   // Charger le footer
   const footerLoaded = await loadComponent('footer-placeholder', '_footer.html');
   if (footerLoaded) {
