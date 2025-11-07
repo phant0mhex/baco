@@ -84,6 +84,15 @@
       
     </div>
   </div>
+
+<div id="status-message" class="py-10"></div>
+      
+      <div id="pagination-container" class="flex justify-between items-center mt-8 pt-4 border-t border-gray-200">
+        </div>
+      
+    </div>
+  </div>
+
   
   <div id="client-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50" style="display: none;">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-lg">
@@ -138,17 +147,23 @@
 
   <div id="footer-placeholder"></div>
 
-  <script>
+ <script>
     // Fonctions globales
     let showPmrClientModal;
     let hidePmrClientModal;
     let handleFormSubmit;
     let deletePmrClient;
     let debouncePmrSearch;
+    let changePage; // Rendre global
     
     let searchTimer;
     let currentUserId;
     let favoritedClientIds = new Set();
+    
+    // --- NOUVELLES VARIABLES D'ÉTAT POUR LA PAGINATION ---
+    let currentPage = 1;
+    const rowsPerPage = 12; // 12 cartes par page (s'aligne bien sur la grille de 3)
+    // ----------------------------------------------------
 
     document.addEventListener('DOMContentLoaded', () => {
     
@@ -159,6 +174,7 @@
       const resultDisplay = document.getElementById('result-display');
       const statusMsg = document.getElementById('status-message');
       const searchBar = document.getElementById('search-bar');
+      const paginationContainer = document.getElementById('pagination-container');
       
       const modal = document.getElementById('client-modal');
       const modalForm = document.getElementById('client-form');
@@ -170,6 +186,7 @@
        * Gère l'ajout ou la suppression d'un favori
        */
       window.toggleFavorite = async function(element, type, id, isFavorited) {
+        // ... (votre fonction toggleFavorite existante, inchangée)
         if (!currentUserId) {
           notyf.error("Erreur: Utilisateur non identifié.");
           return;
@@ -213,6 +230,7 @@
        * Surligne le terme de recherche dans un texte
        */
       function highlightText(text, term) {
+        // ... (votre fonction highlightText existante, inchangée)
         if (!term || !text) {
           return text;
         }
@@ -229,6 +247,7 @@
        * Formate la date de traçabilité
        */
       function formatTraceabilityDate(dateString) {
+        // ... (votre fonction formatTraceabilityDate existante, inchangée)
         if (!dateString) return '';
         const date = new Date(dateString);
         return date.toLocaleDateString('fr-FR', {
@@ -242,19 +261,21 @@
       /**
        * Attend 300ms après la dernière frappe avant de lancer la recherche
        */
-      debouncePmrSearch = () => { // Renommé
+      debouncePmrSearch = () => {
         clearTimeout(searchTimer);
+        currentPage = 1; // --- MODIFIÉ: Réinitialiser à la page 1
         searchTimer = setTimeout(() => {
           loadData();
         }, 300);
       }
       
       /**
-       * Charge les données depuis Supabase
+       * Charge les données depuis Supabase (MODIFIÉ POUR PAGINATION)
        */
       async function loadData() {
         resultDisplay.innerHTML = '';
         statusMsg.innerHTML = '<div class="flex justify-center items-center py-20"><i data-lucide="loader-2" class="w-10 h-10 text-blue-600 animate-spin"></i></div>';
+        paginationContainer.innerHTML = ''; // Vider la pagination
         lucide.createIcons();
         
         try {
@@ -279,36 +300,48 @@
         }
         
         const searchTerm = searchBar.value.trim();
+        const from = (currentPage - 1) * rowsPerPage;
+        const to = from + rowsPerPage - 1;
 
         try {
-          // ======================= MODIFICATION : Requête SELECT =======================
-          let query = supabaseClient
+          // 1. Construire le filtre de recherche
+          const searchFilter = `nom.ilike.*${searchTerm}*,prenom.ilike.*${searchTerm}*,telephone.ilike.*${searchTerm}*,type.ilike.*${searchTerm}*`;
+
+          // 2. Requête de COMPTAGE
+          let countQuery = supabaseClient
+            .from('pmr_clients')
+            .select('*', { count: 'exact', head: true });
+
+          if (searchTerm) {
+            countQuery = countQuery.or(searchFilter);
+          }
+          
+          const { count, error: countError } = await countQuery;
+          if (countError) throw countError;
+          
+          const totalPages = Math.ceil(count / rowsPerPage);
+
+          // 3. Requête de DONNÉES (paginée)
+          let dataQuery = supabaseClient
             .from('pmr_clients')
             .select(`
               *,
               updated_at,
               profiles ( full_name )
             `)
-            .order('nom', { ascending: true });
-          // =========================================================================
+            .order('nom', { ascending: true })
+            .range(from, to); // <-- La pagination est appliquée ici
 
           if (searchTerm) {
-            query = query.or(
-              `nom.ilike.*${searchTerm}*`,
-              `prenom.ilike.*${searchTerm}*`,
-              `telephone.ilike.*${searchTerm}*`,
-              `type.ilike.*${searchTerm}*`
-            );
+            dataQuery = dataQuery.or(searchFilter);
           }
-          
-          query = query.limit(100);
 
-          const { data, error } = await query;
+          const { data, error } = await dataQuery;
           if (error) throw error;
           
           statusMsg.innerHTML = '';
 
-         if (data.length === 0) {
+          if (data.length === 0) {
             statusMsg.innerHTML = `
               <div class="flex flex-col items-center justify-center text-center py-16 px-6 bg-white rounded-lg border border-dashed border-gray-300">
                 <i data-lucide="user-x" class="w-16 h-16 text-gray-300"></i>
@@ -320,7 +353,11 @@
             return;
           }
 
+          // 4. Rendu des cartes
           resultDisplay.innerHTML = data.map(client => renderClientCard(client, searchTerm)).join('');
+          
+          // 5. Rendu de la pagination
+          renderPagination(totalPages, count, from, to);
           
           lucide.createIcons();
           if (window.hideAdminElements) window.hideAdminElements();
@@ -335,6 +372,7 @@
        * Génère le HTML pour une carte client
        */
       function renderClientCard(client, searchTerm) {
+        // ... (votre fonction renderClientCard existante, inchangée)
         const clientJson = JSON.stringify(client).replace(/"/g, "&quot;");
         
         let typeClass = 'bg-gray-100 text-gray-800';
@@ -358,7 +396,6 @@
           </button>
         `;
         
-        // ======================= NOUVEL AJOUT : Logique de traçabilité =======================
         let traceabilityHtml = '';
         if (client.updated_at && client.profiles) {
             const date = formatTraceabilityDate(client.updated_at);
@@ -380,7 +417,6 @@
               </div>
             `;
         }
-        // ===================================================================================
         
         return `
           <div class="bg-white border border-gray-200 rounded-lg shadow-sm flex flex-col">
@@ -425,11 +461,10 @@
        * Gère la soumission du formulaire (Ajout/Modification)
        */
       handleFormSubmit = async (event) => {
+        // ... (votre fonction handleFormSubmit existante, inchangée)
         event.preventDefault();
-        
         const clientId = modalClientId.value;
         const isEdit = clientId !== '';
-        
         const entryData = {
           prenom: document.getElementById('modal-prenom').value || null,
           nom: document.getElementById('modal-nom').value,
@@ -437,10 +472,8 @@
           type: document.getElementById('modal-type').value || null,
           remarques: document.getElementById('modal-remarques').value || null,
         };
-        
         modalSubmitButton.disabled = true;
         modalSubmitButton.textContent = 'Enregistrement...';
-
         try {
           let error;
           if (isEdit) {
@@ -456,11 +489,9 @@
             error = insertError;
           }
           if (error) throw error;
-          
           notyf.success(isEdit ? "Client mis à jour !" : "Client ajouté !");
           hidePmrClientModal();
           loadData();
-          
         } catch (error) {
           notyf.error("Erreur: " + error.message);
         } finally {
@@ -473,20 +504,17 @@
        * Supprime un client
        */
       deletePmrClient = async (id, nom) => {
+        // ... (votre fonction deletePmrClient existante, inchangée)
         if (!confirm(`Êtes-vous sûr de vouloir supprimer le client "${nom}" ?`)) {
           return;
         }
         try {
-          // Supprimer d'abord des favoris
           await supabaseClient.from('favoris').delete().match({ id_contenu: id, type_contenu: 'client_pmr' });
-          
-          // Puis supprimer le client
           const { error } = await supabaseClient
             .from('pmr_clients')
             .delete()
             .eq('id', id);
           if (error) throw error;
-          
           notyf.success("Client supprimé !");
           loadData();
         } catch (error) {
@@ -498,25 +526,91 @@
        * Fonctions du Modal
        */
       showPmrClientModal = (client = null) => {
+        // ... (votre fonction showPmrClientModal existante, inchangée)
         modalForm.reset();
         const isEdit = client !== null;
-        
         modalTitle.textContent = isEdit ? `Modifier: ${client.prenom || ''} ${client.nom}` : 'Ajouter un client';
         modalClientId.value = isEdit ? client.id : '';
-        
         document.getElementById('modal-prenom').value = isEdit ? client.prenom : '';
         document.getElementById('modal-nom').value = isEdit ? client.nom : '';
         document.getElementById('modal-telephone').value = isEdit ? client.telephone : '';
         document.getElementById('modal-type').value = isEdit ? client.type : '';
         document.getElementById('modal-remarques').value = isEdit ? client.remarques : '';
-        
         modal.style.display = 'flex';
         lucide.createIcons();
       }
       
       hidePmrClientModal = () => {
+        // ... (votre fonction hidePmrClientModal existante, inchangée)
         modal.style.display = 'none';
       }
+
+      // --- NOUVELLES FONCTIONS DE PAGINATION (copiées de changelog.html) ---
+
+      /**
+       * Change la page actuelle et recharge les données
+       */
+      changePage = (page) => { // Assignée à la variable globale
+        if (page === currentPage) return;
+        currentPage = page;
+        loadData();
+        // Fait remonter l'utilisateur en haut du feed
+        resultDisplay.scrollIntoView({ behavior: 'smooth' });
+      }
+      
+      /**
+       * Construit les contrôles de pagination
+       */
+      function renderPagination(totalPages, totalRows, from, to) {
+        const container = document.getElementById('pagination-container');
+        
+        if (totalPages <= 1) {
+          container.innerHTML = ''; // Pas de pagination
+          return;
+        }
+        
+        const toRow = Math.min(to + 1, totalRows);
+        
+        // Info "Résultats X à Y sur Z"
+        const infoHtml = `
+          <p class="text-sm text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm px-3 py-1.5">
+            Clients <span class="font-bold text-gray-900">${from + 1}</span> à <span class="font-bold text-gray-900">${toRow}</span> sur
+            <span class="font-bold text-gray-900">${totalRows}</span>
+          </p>
+        `;
+        
+        // Boutons "Précédent" et "Suivant"
+        const prevDisabled = currentPage === 1;
+        const nextDisabled = currentPage === totalPages;
+        
+        const buttonsHtml = `
+          <div class="flex gap-2">
+            <button 
+              onclick="changePage(${currentPage - 1})" 
+              ${prevDisabled ? 'disabled' : ''}
+              class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm 
+                     hover:bg-gray-50 
+                     disabled:opacity-50 disabled:cursor-not-allowed">
+              <i data-lucide="arrow-left" class="w-4 h-4"></i>
+              <span>Précédent</span>
+            </button>
+            
+            <button 
+              onclick="changePage(${currentPage + 1})" 
+              ${nextDisabled ? 'disabled' : ''}
+              class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm 
+                     hover:bg-gray-50 
+                     disabled:opacity-50 disabled:cursor-not-allowed">
+              <span>Suivant</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+        `;
+        
+        container.innerHTML = infoHtml + buttonsHtml;
+        lucide.createIcons();
+      }
+      // --- FIN DES NOUVELLES FONCTIONS ---
 
       // --- Lancement ---
       loadData();
