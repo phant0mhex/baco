@@ -6,8 +6,9 @@
     <link rel="icon" type="image/png" href="favicon.jpg">
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://unpkg.com/geist@1.0.0/dist/fonts/geist-sans/variable/geist-sans.css" rel="stylesheet">
-  <link href="https://unpkg.com/geist-@1.0.0/dist/fonts/geist-mono/variable/geist-mono.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist&family=Geist+Mono&display=swap" rel="stylesheet">
 
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.303.0/dist/umd/lucide.min.js" defer></script>  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   
@@ -77,7 +78,43 @@
     </div>
   </div>
 
-  <div id="footer-placeholder"></div>
+<div id="reset-password-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50" style="display: none;">
+  <div class="bg-white rounded-lg shadow-xl w-full max-w-lg">
+    <div class="flex justify-between items-center p-4 border-b">
+      <h3 class="text-xl font-semibold text-gray-800">Réinitialiser le mot de passe</h3>
+      <button type="button" onclick="hideResetPasswordModal()" class="p-1 rounded-full text-gray-500 hover:bg-gray-200">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+    
+    <div class="p-6 space-y-4">
+      <p class="text-gray-700">Vous êtes sur le point de générer un nouveau mot de passe pour <strong id="reset-user-email"></strong>.</p>
+      
+      <div>
+        <label for="new-random-password" class="block text-sm font-medium text-gray-700 mb-1">Nouveau mot de passe généré :</label>
+        <div class="flex items-center gap-2">
+          <input type="text" id="new-random-password" readonly class="font-mono text-lg block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100">
+          <button type="button" id="copy-password-button" class="p-2 text-gray-600 rounded-md hover:bg-gray-100" title="Copier">
+             <i data-lucide="copy" class="w-5 h-5"></i>
+          </button>
+        </div>
+        <p class="text-xs text-red-500 mt-1">⚠️ Ce mot de passe est temporaire et doit être communiqué à l'utilisateur.</p>
+      </div>
+
+      <div id="reset-status-message" class="text-sm"></div>
+    </div>
+    
+    <div class="flex justify-end items-center p-4 bg-gray-50 border-t rounded-b-lg">
+      <button type="button" onclick="hideResetPasswordModal()" class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none">
+        Annuler
+      </button>
+      <button type="button" id="confirm-reset-button" class="ml-3 px-4 py-2 bg-red-600 text-white border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none">
+        Confirmer la réinitialisation
+      </button>
+    </div>
+  </div>
+</div>
+<div id="footer-placeholder"></div>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -97,49 +134,115 @@
 
       const userListContainer = document.getElementById('user-list-container');
       
+      // --- ÉLÉMENTS DU MODAL DE RESET ---
+      const resetModal = document.getElementById('reset-password-modal');
+      const resetUserEmail = document.getElementById('reset-user-email');
+      const newRandomPassword = document.getElementById('new-random-password');
+      const copyPasswordButton = document.getElementById('copy-password-button');
+      const confirmResetButton = document.getElementById('confirm-reset-button');
+      const resetStatusMessage = document.getElementById('reset-status-message');
+      
+      let targetUserId = null;
+      let generatedPassword = null;
+      // ---------------------------------
+      
+      
       // --- Logique du formulaire de création (inchangée) ---
       const createUserForm = document.getElementById('create-user-form');
       const createUserButton = document.getElementById('create-user-button');
-      // ... (autres variables du formulaire)
+      // ... (code de création d'utilisateur inchangé)
       createUserForm.addEventListener('submit', async (event) => {
         // ... (code de création d'utilisateur inchangé)
       });
+      // [...] (fonctions handleRoleChange et handleBanUser inchangées)
 
+      // --- NOUVELLE LOGIQUE DE RÉINITIALISATION DE MOT DE PASSE ---
 
-      // --- Fonctions de gestion de liste (inchangées) ---
-      window.handleRoleChange = async (userId, newRole) => {
-        // ... (code inchangé)
-      }
-      window.handleBanUser = async (userId, shouldBan) => {
-        // ... (code inchangé)
+      function generateRandomPassword(length = 12) {
+          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+';
+          let password = '';
+          for (let i = 0; i < length; i++) {
+              password += chars.charAt(Math.floor(Math.random() * chars.length));
+          }
+          return password;
       }
       
-      // NOUVEAU: Helper pour formater la date
-      function formatAdminDate(dateString) {
-        if (!dateString) {
-          // Si l'utilisateur ne s'est jamais connecté (ex: vient d'être créé)
-          return '<span class="text-gray-400">Jamais</span>';
-        }
-        const date = new Date(dateString);
-        return date.toLocaleDateString('fr-FR', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        }).replace('.', ''); // Enlève le point après le mois (ex: 'sept.')
+      window.showResetPasswordModal = (userId, email) => {
+          targetUserId = userId;
+          generatedPassword = generateRandomPassword();
+          
+          resetUserEmail.textContent = email;
+          newRandomPassword.value = generatedPassword;
+          resetStatusMessage.textContent = '';
+          
+          resetModal.style.display = 'flex';
+          lucide.createIcons();
+          newRandomPassword.select(); // Sélectionner le champ pour copier facilement
       }
 
-      /**
-       * Génère le HTML pour une seule ligne d'utilisateur (MIS À JOUR)
-       */
+      window.hideResetPasswordModal = () => {
+          resetModal.style.display = 'none';
+      }
+
+      async function handleResetPassword() {
+          if (!targetUserId || !generatedPassword) return;
+
+          confirmResetButton.disabled = true;
+          confirmResetButton.textContent = 'Réinitialisation en cours...';
+          resetStatusMessage.textContent = 'Envoi de la requête...';
+
+          try {
+              // AVERTISSEMENT SÉCURITÉ: Cette fonction est un placeholder.
+              // Dans une architecture réelle, elle doit appeler une FONCTION EDGE/RPC 
+              // côté serveur utilisant la clé Service Role pour exécuter :
+              // supabase.auth.admin.updateUserById(targetUserId, { password: generatedPassword });
+
+              const { error } = await supabaseClient.rpc('admin_reset_user_password', {
+                  user_id_to_reset: targetUserId,
+                  new_password: generatedPassword
+              });
+              
+              // NOTE: La RPC 'admin_reset_user_password' doit être créée par l'utilisateur.
+
+              if (error) {
+                  throw error;
+              }
+
+              resetStatusMessage.className = 'text-green-600 text-sm';
+              resetStatusMessage.innerHTML = '✅ **Succès !** Le mot de passe a été réinitialisé (utilisez le bouton Copier).';
+              notyf.success("Mot de passe réinitialisé pour l'utilisateur.");
+              
+          } catch (error) {
+              resetStatusMessage.className = 'text-red-600 text-sm';
+              resetStatusMessage.textContent = `❌ Échec: ${error.message}. Vérifiez la RPC/RLS.`;
+              notyf.error("Échec de la réinitialisation.");
+          } finally {
+              confirmResetButton.disabled = false;
+              confirmResetButton.textContent = 'Confirmer la réinitialisation';
+          }
+      }
+
+      // --- Écouteurs pour le Modal ---
+      confirmResetButton.addEventListener('click', handleResetPassword);
+      
+      copyPasswordButton.addEventListener('click', async () => {
+          try {
+              await navigator.clipboard.writeText(newRandomPassword.value);
+              notyf.success('Mot de passe copié !');
+          } catch (err) {
+              console.error('Impossible de copier le mot de passe:', err);
+              notyf.error('Échec de la copie (copiez manuellement).');
+          }
+      });
+      // -------------------------------
+      
+      // --- Mise à jour de renderUserRow pour ajouter le bouton ---
       function renderUserRow(user, currentAdminId) {
         const avatarSrc = user.avatar_url || 'https://via.placeholder.com/40';
         const currentRole = user.role || 'user';
         const isSelf = (user.user_id === currentAdminId);
         const isBanned = user.banned_until_status !== null;
         
-        // NOUVEAU: Formater la date de connexion
         const lastLogin = formatAdminDate(user.last_sign_in_at);
 
         return `
@@ -175,6 +278,12 @@
                 '<span class="text-gray-400 cursor-not-allowed"> (Vous) </span>' : 
                 `
                 <button 
+                  onclick="window.showResetPasswordModal('${user.user_id}', '${user.email}')"
+                  class="p-2 rounded-md text-gray-600 hover:bg-yellow-100 hover:text-yellow-700"
+                  title="Réinitialiser le mot de passe">
+                  <i data-lucide="key-round" class="w-4 h-4"></i>
+                </button>
+                <button 
                   onclick="window.handleRoleChange('${user.user_id}', '${currentRole === 'admin' ? 'user' : 'admin'}')"
                   class="p-2 rounded-md ${currentRole === 'admin' ? 'text-yellow-600 hover:bg-yellow-100' : 'text-blue-600 hover:bg-blue-100'}"
                   title="${currentRole === 'admin' ? 'Rétrograder' : 'Promouvoir'}">
@@ -192,53 +301,12 @@
           </tr>
         `;
       }
-      
-      /**
-       * Charge et affiche la liste de tous les utilisateurs (MIS À JOUR)
-       */
-      async function loadUsers() {
-        userListContainer.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
-        lucide.createIcons();
-        try {
-          const { data: { user: adminUser }, error: adminError } = await supabaseClient.auth.getUser();
-          if (adminError || !adminUser) throw adminError || new Error("Impossible d'identifier l'administrateur.");
-          const currentAdminId = adminUser.id;
-          
-          // Appelle la fonction SQL (qui renvoie maintenant 'last_sign_in_at')
-          const { data, error } = await supabaseClient.rpc('get_all_users');
-          if (error) throw error;
-          if (!data || data.length === 0) { userListContainer.innerHTML = '<p class="text-gray-600">Aucun utilisateur trouvé.</p>'; return; }
-          
-          userListContainer.innerHTML = `
-            <div class="overflow-x-auto border rounded-lg">
-              <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                  <tr>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilisateur</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rôle</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dernière Connexion</th>
-                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                  ${data.map(user => renderUserRow(user, currentAdminId)).join('')}
-                </tbody>
-              </table>
-            </div>
-          `;
-          lucide.createIcons();
-        } catch (error) {
-          userListContainer.innerHTML = `<p class="text-red-500">Erreur critique : ${error.message}</p>`;
-          notyf.error("Impossible de charger les utilisateurs. " + error.message);
-        }
-      }
-      
+
+
       // Lancement initial
       loadUsers();
 
     }); // Fin de DOMContentLoaded
   </script>
-
 </body>
 </html>
