@@ -743,47 +743,52 @@ async function loadJournalNotificationCount() {
     const badgeElement = document.getElementById('journal-badge');
     if (!badgeElement) return;
 
-    // 1. Récupérer la date de dernière visite
-   let lastVisit = localStorage.getItem(JOURNAL_STORAGE_KEY);
-    
- // CORRECTION: Si aucune date de dernière visite n'est trouvée (première exécution),
-    // on utilise la date d'initialisation du système (Epoch) pour forcer le comptage
-    // de tous les messages existants.
+    let lastVisit = localStorage.getItem(JOURNAL_STORAGE_KEY);
+
+    // Si aucune date de dernière visite n'est trouvée (première exécution),
+    // on utilise la date d'initialisation du système (Epoch) pour forcer le comptage.
     if (!lastVisit) {
         lastVisit = '1970-01-01T00:00:00Z'; 
     }
     
+    // --- DIAGNOSTIC LOG ---
+    console.log(`[Journal Badge] Dernière visite enregistrée: ${lastVisit}`);
+    // ----------------------
+
     // 2. Compter les messages créés après la dernière visite
     try {
-        // Sélectionne un count où created_at est POSTÉRIEUR à la dernière visite
         const { count, error } = await supabaseClient
             .from('main_courante')
             .select('id', { count: 'exact', head: true })
             .gt('created_at', lastVisit); // 'gt' for greater than
 
-        if (error) throw error;
+        if (error) {
+             console.error("[Journal Badge] Erreur de comptage Supabase:", error.message);
+             throw error;
+        }
         
         const newMessagesCount = count;
+        
+        // --- DIAGNOSTIC LOG ---
+        console.log(`[Journal Badge] Nouveaux messages trouvés: ${newMessagesCount}`);
+        // ----------------------
 
         if (newMessagesCount > 0) {
             badgeElement.textContent = newMessagesCount;
-            badgeElement.classList.remove('hidden');
+            badgeElement.classList.remove('hidden'); 
         } else {
             badgeElement.classList.add('hidden');
             badgeElement.textContent = '';
         }
 
     } catch (error) {
-        console.error("Erreur chargement notifications journal:", error.message);
+        console.error("[Journal Badge] Erreur critique:", error.message);
         badgeElement.classList.add('hidden');
     }
 }
 
 // On expose la fonction pour qu'elle puisse être appelée depuis journal.html (markJournalAsRead)
 window.loadJournalNotificationCount = loadJournalNotificationCount;
-
-
-
 
 
   // Charger le footer
