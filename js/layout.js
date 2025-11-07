@@ -744,12 +744,13 @@ async function loadJournalNotificationCount() {
     if (!badgeElement) return;
 
     // 1. Récupérer la date de dernière visite
-    const lastVisit = localStorage.getItem(JOURNAL_STORAGE_KEY);
+   let lastVisit = localStorage.getItem(JOURNAL_STORAGE_KEY);
     
-    // Si l'utilisateur n'a jamais visité, on considère qu'il a tout lu (initialisation)
+ // CORRECTION: Si aucune date de dernière visite n'est trouvée (première exécution),
+    // on utilise la date d'initialisation du système (Epoch) pour forcer le comptage
+    // de tous les messages existants.
     if (!lastVisit) {
-        badgeElement.classList.add('hidden');
-        return; 
+        lastVisit = '1970-01-01T00:00:00Z'; 
     }
     
     // 2. Compter les messages créés après la dernière visite
