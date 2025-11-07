@@ -71,51 +71,53 @@
       const logSubmitButton = document.getElementById('log-submit-button');
       const logFeed = document.getElementById('log-feed');
       
+      // --- MODIFIÉ ---
+      // Nous définissons ces variables à un niveau supérieur
       let currentUserId = null;
+      let currentUserFullName = 'un utilisateur'; // Pour savoir qui *envoie* la mention
+      // --- FIN MODIF ---
+
       const adminRole = sessionStorage.getItem('userRole') === 'admin';
       
-      // --- Initialiser le canal Realtime (Broadcast) ---
       const logChannel = supabaseClient.channel('baco-main-courante');
       
-      // Clé de stockage utilisée par layout.js
       const JOURNAL_STORAGE_KEY = 'lastJournalVisit'; 
 
+      // --- NOUVEAU: Récupérer l'ID et le nom de l'utilisateur actuel au démarrage ---
+      (async () => {
+        try {
+          const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+          if (authError || !user) throw new Error("Utilisateur non identifié");
+          currentUserId = user.id;
+          
+          // Récupérer le profil pour connaître le nom de l'expéditeur
+          const { data: profile, error: profileError } = await supabaseClient
+            .from('profiles')
+            .select('full_name, username') // On prend le username au cas où full_name est vide
+            .eq('id', currentUserId)
+            .single();
+            
+          if (profile) {
+            currentUserFullName = profile.full_name || profile.username || 'un utilisateur';
+          }
+        } catch (error) {
+          console.error("Erreur init. utilisateur journal:", error.message);
+          notyf.error("Impossible d'identifier l'utilisateur pour les mentions.");
+        }
+      })();
+      // --- FIN NOUVEAU ---
+
      
-// --- NOUVEAU: Fonction pour marquer le journal comme lu (Logique sécurisée) ---
+      // ... (La fonction markJournalAsRead reste inchangée) ...
       async function markJournalAsRead() {
         const now = new Date().toISOString();
-        const storedDate = localStorage.getItem(JOURNAL_STORAGE_KEY);
-        
-        // Si aucune date n'est stockée, ou si la date stockée est très ancienne (1970),
-        // nous supposons que l'utilisateur veut voir un badge, donc nous ne faisons rien ICI.
-        // Si la date est récente, le badge sera à zéro de toute façon.
-        
-        // Pour éviter l'écrasement immédiat lors d'un "reset 1970" (ce qui causait votre bug),
-        // nous allons forcer la mise à jour du localStorage UNIQUEMENT après la première
-        // lecture réussie de tous les messages.
-
-        // Nous allons maintenant mettre la date actuelle, MAIS on le fait APRÈS la première lecture,
-        // ce qui est déjà le cas dans loadLogFeed.
-
-        // La véritable raison de l'échec est que la logique du badge s'exécute AVANT la navigation.
-        
-        // Pour que l'état de "lu" ne soit appliqué que si le chargement a été complet,
-        // nous allons réintégrer la mise à jour dans loadLogFeed.
-        
         localStorage.setItem(JOURNAL_STORAGE_KEY, now);
-
-        // Tente de mettre à jour le badge immédiatement via layout.js si la fonction existe
         if (window.loadJournalNotificationCount) {
              window.loadJournalNotificationCount();
         }
       }
-      // --- FIN NOUVEAU ---
 
-
-
-      /**
-       * Formate la date (ex: "03 Nov. à 14:05")
-       */
+      // ... (La fonction formatLogDate reste inchangée) ...
       function formatLogDate(dateString) {
         const date = new Date(dateString);
         return date.toLocaleDateString('fr-FR', {
@@ -123,7 +125,7 @@
           month: 'short',
           hour: '2-digit',
           minute: '2-digit'
-        }).replace('.', ''); // Enlève le point après le mois
+        }).replace('.', '');
       }
 
       /**
@@ -134,27 +136,24 @@
         lucide.createIcons();
         
         try {
-          // On récupère les messages ET le profil de l'auteur
           const { data, error } = await supabaseClient
             .from('main_courante')
             .select(`
               *,
               profiles ( full_name, avatar_url )
             `)
-            .order('created_at', { ascending: false }) // Le plus récent en haut
-            .limit(50); // On limite aux 50 derniers
+            .order('created_at', { ascending: false })
+            .limit(50); 
 
           if (error) throw error;
           
-          if (!currentUserId) {
-             const { data: { user } } = await supabaseClient.auth.getUser();
-             if (user) currentUserId = user.id;
-          }
+          // MODIFICATION: L'authentification est déjà faite au-dessus
+          // L'ancien bloc "if (!currentUserId)" est supprimé d'ici.
           
-          // NOUVEAU: Marquer comme lu APRÈS le chargement réussi des données
           markJournalAsRead();
 
-         if (data.length === 0) {
+          // ... (Le reste de la fonction loadLogFeed reste inchangé) ...
+          if (data.length === 0) {
             logFeed.innerHTML = `
               <div class="flex flex-col items-center justify-center text-center py-16 px-6 bg-white rounded-lg border border-dashed border-gray-300">
                 <i data-lucide="message-square-x" class="w-16 h-16 text-gray-300"></i>
@@ -165,14 +164,12 @@
             lucide.createIcons();
             return;
           }
-
+          
           logFeed.innerHTML = data.map(entry => {
             const author = entry.profiles; 
             const timestamp = formatLogDate(entry.created_at);
-            
             const authorName = author ? author.full_name : 'Utilisateur supprimé';
             const authorAvatar = author ? author.avatar_url : 'https://api.dicebear.com/9.x/micah/svg?seed=deleted';
-            
             const canDelete = adminRole || (currentUserId && currentUserId === entry.user_id);
             
             return `
@@ -215,7 +212,7 @@
         if (!message.trim()) return; 
         
         if (!currentUserId) {
-           notyf.error("Erreur: utilisateur non identifié.");
+           notyf.error("Erreur: utilisateur non identifié.Veuillez rafraîchir la page.");
            return;
         }
         
@@ -224,6 +221,31 @@
         lucide.createIcons();
         
         try {
+          // --- NOUVEAU: Analyse des mentions ---
+          // Cette regex simple trouve les @username (lettres, chiffres, underscore)
+          const regex = /@(\w+)/g;
+          const matches = [...message.matchAll(regex)];
+          const mentionedUsernames = matches.map(match => match[1]);
+          let mentionedUserIds = [];
+
+          if (mentionedUsernames.length > 0) {
+            // On va chercher les IDs des utilisateurs dont le 'username' correspond
+            // Note: On se base sur le champ 'username' de la table 'profiles'
+            const { data: users, error: userError } = await supabaseClient
+              .from('profiles')
+              .select('id')
+              .in('username', mentionedUsernames);
+              
+            if (userError) {
+              // On n'arrête pas l'envoi du message, on logue juste l'erreur
+              console.warn("Erreur lors de la recherche des mentions:", userError.message);
+            } else if (users) {
+              mentionedUserIds = users.map(u => u.id);
+            }
+          }
+          // --- FIN NOUVEAU ---
+
+          // Insertion du message (inchangé)
           const { error } = await supabaseClient
             .from('main_courante')
             .insert({
@@ -236,10 +258,23 @@
           logMessageInput.value = ''; 
           notyf.success('Message publié !');
           
-          // Envoyer un signal aux autres utilisateurs
+          // Envoyer un signal de "nouveau post" (inchangé)
           logChannel.send({ type: 'broadcast', event: 'new-post' });
           
-          // Recharger le fil (ce qui appellera markJournalAsRead et mettra à jour le badge)
+          // --- NOUVEAU: Envoyer le signal de "mention" ---
+          if (mentionedUserIds.length > 0) {
+            logChannel.send({ 
+              type: 'broadcast', 
+              event: 'mention', 
+              payload: { 
+                mentioned_ids: mentionedUserIds, // La liste des ID à notifier
+                author_name: currentUserFullName,  // Le nom de l'expéditeur (récupéré au chargement)
+                author_id: currentUserId         // L'ID de l'expéditeur (pour ne pas s'auto-notifier)
+              } 
+            });
+          }
+          // --- FIN NOUVEAU ---
+          
           loadLogFeed();
           
         } catch (error) {
@@ -251,25 +286,18 @@
         }
       }
       
-      /**
-       * Gère la suppression d'un message
-       */
+      // ... (La fonction deleteLogEntry reste inchangée) ...
       window.deleteLogEntry = async (id) => {
         if (!confirm("Êtes-vous sûr de vouloir supprimer cette entrée ?")) return;
-        
         try {
           const { error } = await supabaseClient
             .from('main_courante')
             .delete()
             .eq('id', id);
-            
           if (error) throw error;
-          
           notyf.success('Message supprimé.');
-          // Envoyer un signal aux autres
           logChannel.send({ type: 'broadcast', event: 'new-post' });
           loadLogFeed(); 
-          
         } catch (error) {
           notyf.error("Erreur: " + error.message);
         }
@@ -277,13 +305,10 @@
 
       // --- Lancement et Abonnements ---
       
-      // 1. Charger le fil au démarrage
       loadLogFeed();
-      
-      // 2. Attacher l'événement au formulaire
       logForm.addEventListener('submit', handlePostSubmit);
       
-      // 3. Écouter les signaux des autres
+      // --- MODIFICATION: Ajout du nouvel écouteur ---
       logChannel
         .on(
           'broadcast', 
@@ -293,9 +318,26 @@
             loadLogFeed(); 
           }
         )
+        // --- NOUVEL ÉCOUTEUR POUR LES MENTIONS ---
+        .on(
+          'broadcast',
+          { event: 'mention' },
+          (payload) => {
+            const { mentioned_ids, author_name, author_id } = payload.payload;
+            
+            // Vérifier si:
+            // 1. L'ID de l'utilisateur actuel est connu
+            // 2. L'ID de l'utilisateur actuel est dans la liste des mentionnés
+            // 3. L'auteur de la mention n'est pas l'utilisateur actuel (pas d'auto-notification)
+            if (currentUserId && mentioned_ids.includes(currentUserId) && author_id !== currentUserId) {
+              notyf.success(`Vous avez été mentionné par ${author_name} dans le journal !`);
+            }
+          }
+        )
+        // --- FIN NOUVEL ÉCOUTEUR ---
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') {
-            console.log('Connecté au canal temps réel du journal.');
+            console.log('Connecté au canal temps réel du journal (avec mentions).');
           }
         });
 
