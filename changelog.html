@@ -133,7 +133,7 @@
     let hideChangelogModal;
     let handleFormSubmit;
     let deleteEntry;
-
+    let changePage;
     document.addEventListener('DOMContentLoaded', () => {
     
       const notyf = (typeof Notyf !== 'undefined') 
@@ -386,17 +386,17 @@
       
       // ======================= NOUVELLES FONCTIONS DE PAGINATION =======================
       
-      /**
+    /**
        * Change la page actuelle et recharge les données
        */
-      function changePage(page) {
+      // MODIFICATION : On assigne à la variable globale
+      changePage = (page) => {
         if (page === currentPage) return;
         currentPage = page;
         loadChangelog();
         // Fait remonter l'utilisateur en haut du feed
         document.getElementById('changelog-feed').scrollIntoView({ behavior: 'smooth' });
       }
-      
       /**
        * Construit les contrôles de pagination (style de ptcar)
        */
