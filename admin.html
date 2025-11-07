@@ -317,7 +317,7 @@
         const isSelf = (user.user_id === currentAdminId);
      // CORRECTION FINALE: Le statut de bannissement est basé sur l'existence d'une date (truthiness de la colonne banned_until).
         // Cela est plus fiable que de vérifier une chaîne littérale comme 'indefinite'.
-        const isBanned = !!user.banned_until;
+        const isBanned = user.banned_until_status === 'indefinite';
         const lastLogin = formatAdminDate(user.last_sign_in_at);
 
         return `
