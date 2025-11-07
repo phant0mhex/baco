@@ -169,31 +169,37 @@
         createUserButton.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> <span>Création...</span>';
         lucide.createIcons();
 
+        // NOUVEAU: 1. Sauvegarder la session de l'administrateur actuel
+        const { data: { session: adminSession }, error: sessionError } = await supabaseClient.auth.getSession();
+        if (sessionError || !adminSession) {
+            notyf.error("Erreur critique: Session admin perdue.");
+            createUserButton.disabled = false;
+            createUserButton.innerHTML = '<i data-lucide="user-plus" class="w-4 h-4"></i> <span>Créer</span>';
+            lucide.createIcons();
+            return;
+        }
+
         try {
-          // 1. Créer l'utilisateur dans Supabase Auth
-          const { data, error: authError } = await supabaseClient.auth.signUp({
+          // 2. Créer l'utilisateur dans Supabase Auth (cela change la session)
+          const { error: authError } = await supabaseClient.auth.signUp({
             email: email,
             password: password,
-            // On peut passer des données pour le trigger de profil (username, full_name, etc.)
             options: {
               data: { 
                 role: role, 
-                // Pourrait ajouter d'autres champs ici si nécessaire
               }
             }
           });
 
           if (authError) throw authError;
-
-          // 2. Si l'auto-création de profil est désactivée, créer l'entrée dans la table 'profiles' manuellement
-          // On suppose que l'auto-création est gérée par un trigger dans Supabase,
-          // mais si ce n'est pas le cas, on doit le faire ici (la ligne ci-dessous est un garde-fou)
-          if (data.user && !data.user.user_metadata.role) { // Si le rôle n'a pas été défini par le trigger
-             await supabaseClient
-                .from('profiles')
-                .update({ role: role, username: email.split('@')[0], email: email })
-                .eq('id', data.user.id);
-          }
+          
+          // 3. Restaurer immédiatement la session de l'administrateur
+          const { error: restoreError } = await supabaseClient.auth.setSession({ 
+              access_token: adminSession.access_token,
+              refresh_token: adminSession.refresh_token
+          });
+          
+          if (restoreError) throw restoreError;
           
           notyf.success(`Utilisateur ${email} créé et rôle '${role}' attribué !`);
           createUserForm.reset();
@@ -204,6 +210,13 @@
         } catch (error) {
           console.error("Erreur création utilisateur:", error.message);
           notyf.error(`Erreur: ${error.message}`);
+          
+          // Tenter de restaurer la session admin en cas d'échec
+          await supabaseClient.auth.setSession({ 
+              access_token: adminSession.access_token,
+              refresh_token: adminSession.refresh_token
+          });
+          
         } finally {
           createUserButton.disabled = false;
           createUserButton.innerHTML = '<i data-lucide="user-plus" class="w-4 h-4"></i> <span>Créer</span>';
