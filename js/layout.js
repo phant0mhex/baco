@@ -626,27 +626,57 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
     }
 
-    // Logique du dropdown de présence
+
+   // --- Définition des variables de dropdown ---
     const presenceContainer = document.getElementById('presence-container');
-    const presenceButton = document.getElementById('presence-toggle-button');
     const presenceDropdown = document.getElementById('presence-dropdown');
+    const profileContainer = document.getElementById('profile-dropdown-container');
+    const profileDropdown = document.getElementById('profile-dropdown');
+    
+    // NOUVEAU: Logique du dropdown PMR
+    const pmrContainer = document.getElementById('pmr-dropdown-container');
+    const pmrButton = document.getElementById('pmr-toggle-button');
+    const pmrDropdown = document.getElementById('pmr-dropdown');
+    const pmrChevron = document.getElementById('pmr-chevron-icon');
+
+
+    // Logique du dropdown de présence
+    const presenceButton = document.getElementById('presence-toggle-button');
     if (presenceContainer && presenceButton && presenceDropdown) {
         presenceButton.onclick = (e) => {
             e.stopPropagation(); 
             presenceDropdown.classList.toggle('hidden');
-            document.getElementById('profile-dropdown')?.classList.add('hidden');
+            // Fermer les autres dropdowns
+            profileDropdown?.classList.add('hidden');
+            pmrDropdown?.classList.add('hidden');
+            pmrChevron?.setAttribute('data-lucide', 'chevron-down');
+            lucide.createIcons();
         };
     }
 
     // Logique du dropdown de profil
-    const profileContainer = document.getElementById('profile-dropdown-container');
-    const profileButton = document.getElementById('profile-toggle-button');
-    const profileDropdown = document.getElementById('profile-dropdown');
     if (profileContainer && profileButton && profileDropdown) {
         profileButton.onclick = (e) => {
             e.stopPropagation();
             profileDropdown.classList.toggle('hidden');
-            document.getElementById('presence-dropdown')?.classList.add('hidden');
+            // Fermer les autres dropdowns
+            presenceDropdown?.classList.add('hidden');
+            pmrDropdown?.classList.add('hidden');
+            pmrChevron?.setAttribute('data-lucide', 'chevron-down');
+            lucide.createIcons();
+        };
+    }
+    
+    // NOUVEAU: Logique du dropdown PMR
+    if (pmrContainer && pmrButton && pmrDropdown) {
+        pmrButton.onclick = (e) => {
+            e.stopPropagation();
+            pmrDropdown.classList.toggle('hidden');
+            pmrChevron.setAttribute('data-lucide', pmrDropdown.classList.contains('hidden') ? 'chevron-down' : 'chevron-up');
+            // Fermer les autres dropdowns
+            presenceDropdown?.classList.add('hidden');
+            profileDropdown?.classList.add('hidden');
+            lucide.createIcons();
         };
     }
 
@@ -658,9 +688,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (profileContainer && !profileContainer.contains(e.target)) {
             profileDropdown?.classList.add('hidden');
         }
+        // NOUVEAU: Click-away pour PMR
+        if (pmrContainer && !pmrContainer.contains(e.target)) {
+            if (pmrDropdown && !pmrDropdown.classList.contains('hidden')) {
+              pmrDropdown.classList.add('hidden');
+              pmrChevron?.setAttribute('data-lucide', 'chevron-down');
+              lucide.createIcons();
+            }
+        }
     });
   }
-
   // Charger le footer
   const footerLoaded = await loadComponent('footer-placeholder', '_footer.html');
   if (footerLoaded) {
