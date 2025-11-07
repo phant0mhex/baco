@@ -161,7 +161,35 @@
     document.addEventListener('DOMContentLoaded', () => {
 
 
-// ==========================================================
+
+      
+      lucide.createIcons();
+      let currentUserId = null;
+      
+      async function loadUserGreeting() {
+        const greetingElement = document.getElementById('user-greeting');
+        if (!greetingElement) return;
+        try {
+          const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+          if (authError || !user) throw authError || new Error('Utilisateur non connecté');
+          
+          currentUserId = user.id;
+          
+          const { data, error } = await supabaseClient.from('profiles').select('full_name').eq('id', user.id).single();
+          if (error) throw error;
+          if (data && data.full_name) {
+            greetingElement.textContent = `Bonjour, ${data.full_name}`;
+          } else {
+            greetingElement.textContent = `Bonjour !`;
+          }
+        } catch (error) {
+          console.error("Erreur chargement salut :", error.message);
+          greetingElement.textContent = 'Bonjour !';
+        }
+      }
+      
+      
+    // ==========================================================
       // == NOUVELLE FONCTION POUR LE WIDGET PMR
       // ==========================================================
       async function loadPmrIssuesWidget() {
@@ -236,34 +264,10 @@
         }
         lucide.createIcons();
       }
-
-      lucide.createIcons();
-      let currentUserId = null;
       
-      async function loadUserGreeting() {
-        const greetingElement = document.getElementById('user-greeting');
-        if (!greetingElement) return;
-        try {
-          const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-          if (authError || !user) throw authError || new Error('Utilisateur non connecté');
-          
-          currentUserId = user.id;
-          
-          const { data, error } = await supabaseClient.from('profiles').select('full_name').eq('id', user.id).single();
-          if (error) throw error;
-          if (data && data.full_name) {
-            greetingElement.textContent = `Bonjour, ${data.full_name}`;
-          } else {
-            greetingElement.textContent = `Bonjour !`;
-          }
-        } catch (error) {
-          console.error("Erreur chargement salut :", error.message);
-          greetingElement.textContent = 'Bonjour !';
-        }
-      }
-      
-      
-    
+      // --- Appel des fonctions au chargement ---
+      loadUserGreeting();
+      loadPmrIssuesWidget(); // <-- APPELEZ VOTRE NOUVELLE FONCTION ICI
 
 
 
