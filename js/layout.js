@@ -570,6 +570,65 @@ function globalKeyListener(e) {
 // ==                FIN DE LA SECTION RECHERCHE                ==
 // ===============================================================
 
+// ===============================================================
+// ==              SECTION NOTIFICATIONS JOURNAL              ==
+// ===============================================================
+
+const JOURNAL_STORAGE_KEY = 'lastJournalVisit';
+
+/**
+ * Charge et affiche le nombre de messages du journal non lus.
+ */
+async function loadJournalNotificationCount() {
+    const badgeElement = document.getElementById('journal-badge');
+    if (!badgeElement) return;
+
+    let lastVisit = localStorage.getItem(JOURNAL_STORAGE_KEY);
+
+    // Si aucune date de dernière visite n'est trouvée (première exécution),
+    // on utilise la date d'initialisation du système (Epoch) pour forcer le comptage.
+    if (!lastVisit) {
+        lastVisit = '1970-01-01T00:00:00.000Z';
+    }
+    
+   // --- NOUVEAU LOG DE DIAGNOSTIC CRITIQUE ---
+    console.warn(`[Journal Badge Diagnostic] Horodatage de la requête (gt): ${lastVisit}`);
+    // ------------------------------------------
+
+    // 2. Compter les messages créés après la dernière visite
+    try {
+        const { count, error } = await supabaseClient
+            .from('main_courante')
+            .select('id', { count: 'exact', head: true })
+            .gt('created_at', lastVisit); // 'gt' for greater than
+
+        if (error) {
+             console.error("[Journal Badge] Erreur de comptage Supabase:", error.message);
+             throw error;
+        }
+        
+        const newMessagesCount = count;
+        
+        // --- DIAGNOSTIC LOG ---
+        console.log(`[Journal Badge] Nouveaux messages trouvés: ${newMessagesCount}`);
+        // ----------------------
+
+        if (newMessagesCount > 0) {
+            badgeElement.textContent = newMessagesCount;
+            badgeElement.classList.remove('hidden'); 
+        } else {
+            badgeElement.classList.add('hidden');
+            badgeElement.textContent = '';
+        }
+
+    } catch (error) {
+        console.error("[Journal Badge] Erreur critique:", error.message);
+        badgeElement.classList.add('hidden');
+    }
+}
+
+// On expose la fonction pour qu'elle puisse être appelée depuis journal.html (markJournalAsRead)
+window.loadJournalNotificationCount = loadJournalNotificationCount;
 
 
 // --- Exécution principale au chargement du DOM ---
@@ -729,66 +788,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   } // <-- Ferme le if (navLoaded)
 
-  
-// ===============================================================
-// ==              SECTION NOTIFICATIONS JOURNAL              ==
-// ===============================================================
-
-const JOURNAL_STORAGE_KEY = 'lastJournalVisit';
-
-/**
- * Charge et affiche le nombre de messages du journal non lus.
- */
-async function loadJournalNotificationCount() {
-    const badgeElement = document.getElementById('journal-badge');
-    if (!badgeElement) return;
-
-    let lastVisit = localStorage.getItem(JOURNAL_STORAGE_KEY);
-
-    // Si aucune date de dernière visite n'est trouvée (première exécution),
-    // on utilise la date d'initialisation du système (Epoch) pour forcer le comptage.
-    if (!lastVisit) {
-        lastVisit = '1970-01-01T00:00:00.000Z';
-    }
-    
-   // --- NOUVEAU LOG DE DIAGNOSTIC CRITIQUE ---
-    console.warn(`[Journal Badge Diagnostic] Horodatage de la requête (gt): ${lastVisit}`);
-    // ------------------------------------------
-
-    // 2. Compter les messages créés après la dernière visite
-    try {
-        const { count, error } = await supabaseClient
-            .from('main_courante')
-            .select('id', { count: 'exact', head: true })
-            .gt('created_at', lastVisit); // 'gt' for greater than
-
-        if (error) {
-             console.error("[Journal Badge] Erreur de comptage Supabase:", error.message);
-             throw error;
-        }
-        
-        const newMessagesCount = count;
-        
-        // --- DIAGNOSTIC LOG ---
-        console.log(`[Journal Badge] Nouveaux messages trouvés: ${newMessagesCount}`);
-        // ----------------------
-
-        if (newMessagesCount > 0) {
-            badgeElement.textContent = newMessagesCount;
-            badgeElement.classList.remove('hidden'); 
-        } else {
-            badgeElement.classList.add('hidden');
-            badgeElement.textContent = '';
-        }
-
-    } catch (error) {
-        console.error("[Journal Badge] Erreur critique:", error.message);
-        badgeElement.classList.add('hidden');
-    }
-}
-
-// On expose la fonction pour qu'elle puisse être appelée depuis journal.html (markJournalAsRead)
-window.loadJournalNotificationCount = loadJournalNotificationCount;
 
 
   // Charger le footer
