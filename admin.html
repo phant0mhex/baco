@@ -300,7 +300,7 @@
               if (error) throw error;
 
               notyf.success(`Utilisateur ${action === 'Bannir' ? 'banni' : 'débanni'} avec succès.`);
-              loadUsers(); // Recharger la liste
+              setTimeout(loadUsers, 150);
           } catch (error) {
               console.error(`Erreur ${action}:`, error);
               notyf.error(`Échec de l'opération ${action}: ${error.message}`);
