@@ -654,17 +654,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const pmrChevron = document.getElementById('pmr-chevron-icon');
 
 
-    // Logique du dropdown de présence
+   // Logique du dropdown de présence
     const presenceButton = document.getElementById('presence-toggle-button');
     if (presenceContainer && presenceButton && presenceDropdown) {
         presenceButton.onclick = (e) => {
-            // e.stopPropagation(); // Retiré: Le listener global gère la fermeture
-            e.stopPropagation(); // Réintégré pour éviter l'effet d'ouverture/fermeture immédiat sur certaines plateformes.
-            // NOTE : La logique de fermeture au clic "à l'intérieur" (container.contains) dans le listener global fonctionne sans stopPropagation.
-            // Cependant, les autres dropdowns se ferment si on clique sur un autre, sans stopPropagation.
-            // MAJ: Je retire stopPropagation de tous pour garantir que le click-away global fonctionne pour tous les clicks externes, y compris ceux sur d'autres boutons.
-            
-            // Logique correcte avec stopPropagation retiré :
+            e.stopPropagation(); // <-- AJOUTÉ: Empêche la fermeture immédiate
             presenceDropdown.classList.toggle('hidden');
             // Fermer les autres dropdowns
             profileDropdown?.classList.add('hidden');
@@ -673,10 +667,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             lucide.createIcons();
         };
     }
+
 // Logique du dropdown de profil
+    const profileButton = document.getElementById('profile-toggle-button');
     if (profileContainer && profileButton && profileDropdown) {
         profileButton.onclick = (e) => {
-            // e.stopPropagation(); // Retiré
+            e.stopPropagation(); // <-- AJOUTÉ: Empêche la fermeture immédiate
             profileDropdown.classList.toggle('hidden');
             // Fermer les autres dropdowns
             presenceDropdown?.classList.add('hidden');
@@ -685,11 +681,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             lucide.createIcons();
         };
     }
-    
+
 // NOUVEAU: Logique du dropdown PMR
     if (pmrContainer && pmrButton && pmrDropdown) {
         pmrButton.onclick = (e) => {
-            // e.stopPropagation(); // Retiré
+            e.stopPropagation(); // <-- AJOUTÉ: Empêche la fermeture immédiate
             pmrDropdown.classList.toggle('hidden');
             pmrChevron.setAttribute('data-lucide', pmrDropdown.classList.contains('hidden') ? 'chevron-down' : 'chevron-up');
             // Fermer les autres dropdowns
@@ -699,7 +695,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
     }
 
-// Logique de fermeture "Click-away" (reste inchangée)
+
+    
+// Logique de fermeture "Click-away" (inchangée)
     window.addEventListener('click', (e) => {
         if (presenceContainer && !presenceContainer.contains(e.target)) {
             presenceDropdown?.classList.add('hidden');
