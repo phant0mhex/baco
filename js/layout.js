@@ -724,7 +724,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     });
-  } 
+  
   // Charger le footer
   const footerLoaded = await loadComponent('footer-placeholder', '_footer.html');
   if (footerLoaded) {
