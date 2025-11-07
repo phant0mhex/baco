@@ -315,8 +315,8 @@
         const avatarSrc = user.avatar_url || 'https://via.placeholder.com/40';
         const currentRole = user.role || 'user';
         const isSelf = (user.user_id === currentAdminId);
-      const isBanned = user.banned_until_status && 
-                         user.banned_until_status.trim().toLowerCase() === 'indefinite';
+      const bannedStatusValue = String(user.banned_until_status || '').trim().toLowerCase();
+        const isBanned = bannedStatusValue === 'indefinite';
         
         const lastLogin = formatAdminDate(user.last_sign_in_at);
 
