@@ -590,10 +590,7 @@ async function loadJournalNotificationCount() {
     if (!lastVisit) {
         lastVisit = '1970-01-01T00:00:00.000Z';
     }
-    
-   // --- NOUVEAU LOG DE DIAGNOSTIC CRITIQUE ---
-    console.warn(`[Journal Badge Diagnostic] Horodatage de la requête (gt): ${lastVisit}`);
-    // ------------------------------------------
+  
 
     // 2. Compter les messages créés après la dernière visite
     try {
@@ -609,9 +606,6 @@ async function loadJournalNotificationCount() {
         
         const newMessagesCount = count;
         
-        // --- DIAGNOSTIC LOG ---
-        console.log(`[Journal Badge] Nouveaux messages trouvés: ${newMessagesCount}`);
-        // ----------------------
 
         if (newMessagesCount > 0) {
             badgeElement.textContent = newMessagesCount;
