@@ -180,9 +180,10 @@ async function loadLatestChangelog() {
 // ===============================================================
 // ==              SECTION CALENDRIER PERSONNALISÉ              ==
 // ===============================================================
+
 /**
  * Injecte les styles CSS personnalisés pour Flatpickr (thème "BACO")
- * Version finale, épurée et alignée sur le design du site.
+ * Version finale, corrigée pour l'alignement de la grille.
  */
 function injectCalendarStyles() {
   const style = document.createElement('style');
@@ -212,14 +213,14 @@ function injectCalendarStyles() {
       height: 2.5rem !important; /* h-10 */
     }
     
-    /* === CORRECTION FLÈCHES === */
+    /* Style des flèches */
     .baco-theme .flatpickr-months .flatpickr-prev-month,
     .baco-theme .flatpickr-months .flatpickr-next-month {
+      fill: #D1D5DB !important; /* text-gray-300 */
       padding: 0.5rem !important; /* p-2 */
       border-radius: 0.375rem !important; /* rounded-md */
       top: 0.5rem !important;
     }
-    /* Cible le SVG à l'intérieur pour écraser le 'fill' rouge par défaut */
     .baco-theme .flatpickr-months .flatpickr-prev-month svg,
     .baco-theme .flatpickr-months .flatpickr-next-month svg {
        fill: #D1D5DB !important; /* text-gray-300 */
@@ -232,7 +233,6 @@ function injectCalendarStyles() {
     .baco-theme .flatpickr-months .flatpickr-next-month:hover svg {
       fill: #F9FAFB !important; /* text-gray-100 */
     }
-    /* === FIN CORRECTION FLÈCHES === */
     
     /* Style des menus déroulants (Mois & Année) */
     .baco-theme .flatpickr-current-month .flatpickr-monthDropdown-months,
@@ -285,9 +285,9 @@ function injectCalendarStyles() {
       line-height: 2.25rem !important;
     }
     
-    /* Jours (numéros) */
+    /* === CORRECTION ALIGNEMENT JOURS === */
     .baco-theme .dayContainer {
-        padding: 0 0.25rem !important; /* px-1 */
+        padding: 0 !important; /* On supprime le padding qui cassait la grille */
     }
     .baco-theme .flatpickr-day {
       color: #D1D5DB !important; /* text-gray-300 */
@@ -296,8 +296,10 @@ function injectCalendarStyles() {
       font-weight: 400 !important;
       height: 2.25rem !important; /* h-9 */
       line-height: 2.25rem !important; /* Centrage vertical */
-      max-width: 2.25rem !important;
+      /* SUPPRESSION de max-width pour laisser flatpickr.min.css gérer la grille */
     }
+    /* === FIN CORRECTION ALIGNEMENT === */
+    
     .baco-theme .flatpickr-day:hover {
       background: #374151 !important; /* hover:bg-gray-700 */
       color: #F9FAFB !important;
@@ -324,21 +326,25 @@ function injectCalendarStyles() {
       color: #FFFFFF !important;
     }
     
-    /* === CORRECTION CHIFFRES INVISIBLES === */
+    /* === CORRECTION CHIFFRES VISIBILITÉ === */
     .baco-theme .flatpickr-day.flatpickr-disabled, 
     .baco-theme .flatpickr-day.prevMonthDay, 
     .baco-theme .flatpickr-day.nextMonthDay {
-      /* On utilise la même couleur que les en-têtes (LUN, MAR...) */
-      color: #9CA3AF !important; /* text-gray-400 */
+      color: #4B5563 !important; /* text-gray-600 (plus visible que gray-500) */
+      background: transparent !important;
+      border-color: transparent !important;
     }
     .baco-theme .flatpickr-day.prevMonthDay:hover, 
     .baco-theme .flatpickr-day.nextMonthDay:hover {
       background: transparent !important;
       border-color: transparent !important;
+      color: #4B5563 !important; /* Reste sombre au survol */
     }
   `;
   document.head.appendChild(style);
 }
+
+
 
 // ===============================================================
 // ==              SECTION RECHERCHE GLOBALE (MISE À JOUR)      ==
