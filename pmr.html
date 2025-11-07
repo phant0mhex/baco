@@ -503,6 +503,21 @@
         }
       }
       
+
+// ... (vos autres fonctions : renderPmrCard, showPmrModal, etc.)
+      
+      // ==========================================================
+      // == AJOUT : GÉRER LE PARAMÈTRE DE RECHERCHE DANS L'URL
+      // ==========================================================
+      const urlParams = new URLSearchParams(window.location.search);
+      const searchParam = urlParams.get('search');
+      if (searchParam) {
+          searchInput.value = searchParam;
+      }
+      // ==========================================================
+
+
+
       // Lancement initial
       loadPmrData();
 
