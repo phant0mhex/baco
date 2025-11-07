@@ -33,6 +33,21 @@ function highlightActiveLink() {
   if (currentPage) {
     const navLinksContainer = document.getElementById('nav-links');
     if (navLinksContainer) {
+      // Pour le dropdown PMR, on active les liens enfants si la page est l'une des deux
+      const pmrLink = navLinksContainer.querySelector(`a[href="pmr.html"]`);
+      const clientsPmrLink = navLinksContainer.querySelector(`a[href="clients_pmr.html"]`);
+
+      if (pmrLink && clientsPmrLink) {
+        if (currentPage === 'pmr.html' || currentPage === 'clients_pmr.html') {
+          // On highlight le bouton du dropdown PMR s'il existe
+          const pmrButton = document.getElementById('pmr-toggle-button');
+          if (pmrButton) {
+            pmrButton.classList.add('bg-gray-700', 'font-bold');
+          }
+          // On gère l'highlight des liens à l'intérieur du dropdown plus tard/avec d'autres scripts.
+        }
+      }
+      
       const activeLink = navLinksContainer.querySelector(`a[href="${currentPage}"]`);
       if (activeLink) {
         activeLink.classList.add('bg-gray-700', 'font-bold');
@@ -625,9 +640,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         else window.location.href = 'index.html';
       };
     }
-
-
-   // --- Définition des variables de dropdown ---
+    
+    // --- Définition des variables de dropdown ---
     const presenceContainer = document.getElementById('presence-container');
     const presenceDropdown = document.getElementById('presence-dropdown');
     const profileContainer = document.getElementById('profile-dropdown-container');
@@ -698,6 +712,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
   }
+
   // Charger le footer
   const footerLoaded = await loadComponent('footer-placeholder', '_footer.html');
   if (footerLoaded) {
