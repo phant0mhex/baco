@@ -707,15 +707,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-// Logique de fermeture "Click-away" (inchangée)
+
+// Logique de fermeture "Click-away"
     window.addEventListener('click', (e) => {
+        // Fermer présence
         if (presenceContainer && !presenceContainer.contains(e.target)) {
             presenceDropdown?.classList.add('hidden');
         }
+        // Fermer profil
         if (profileContainer && !profileContainer.contains(e.target)) {
             profileDropdown?.classList.add('hidden');
         }
-        // Click-away pour PMR (Le test !pmrContainer.contains(e.target) est maintenant valide car le clic sur le dropdown lui-même est bloqué)
+        // Fermer PMR
         if (pmrContainer && !pmrContainer.contains(e.target)) {
             if (pmrDropdown && !pmrDropdown.classList.contains('hidden')) {
               pmrDropdown.classList.add('hidden');
@@ -724,6 +727,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     });
+  } // <-- Ferme le if (navLoaded)
+
   
   // Charger le footer
   const footerLoaded = await loadComponent('footer-placeholder', '_footer.html');
