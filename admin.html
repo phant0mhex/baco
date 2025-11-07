@@ -150,12 +150,70 @@
       // --- Logique du formulaire de création (inchangée) ---
       const createUserForm = document.getElementById('create-user-form');
       const createUserButton = document.getElementById('create-user-button');
-      // ... (code de création d'utilisateur inchangé)
+     const newUserEmail = document.getElementById('new-user-email');
+      const newUserPassword = document.getElementById('new-user-password');
+      const newUserRole = document.getElementById('new-user-role');
+
+
+
+
       createUserForm.addEventListener('submit', async (event) => {
-        // ... (code de création d'utilisateur inchangé)
+  
+        event.preventDefault();
+
+        const email = newUserEmail.value;
+        const password = newUserPassword.value;
+        const role = newUserRole.value;
+
+        createUserButton.disabled = true;
+        createUserButton.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> <span>Création...</span>';
+        lucide.createIcons();
+
+        try {
+          // 1. Créer l'utilisateur dans Supabase Auth
+          const { data, error: authError } = await supabaseClient.auth.signUp({
+            email: email,
+            password: password,
+            // On peut passer des données pour le trigger de profil (username, full_name, etc.)
+            options: {
+              data: { 
+                role: role, 
+                // Pourrait ajouter d'autres champs ici si nécessaire
+              }
+            }
+          });
+
+          if (authError) throw authError;
+
+          // 2. Si l'auto-création de profil est désactivée, créer l'entrée dans la table 'profiles' manuellement
+          // On suppose que l'auto-création est gérée par un trigger dans Supabase,
+          // mais si ce n'est pas le cas, on doit le faire ici (la ligne ci-dessous est un garde-fou)
+          if (data.user && !data.user.user_metadata.role) { // Si le rôle n'a pas été défini par le trigger
+             await supabaseClient
+                .from('profiles')
+                .update({ role: role, username: email.split('@')[0], email: email })
+                .eq('id', data.user.id);
+          }
+          
+          notyf.success(`Utilisateur ${email} créé et rôle '${role}' attribué !`);
+          createUserForm.reset();
+          
+          // Recharger la liste des utilisateurs pour voir le nouvel utilisateur
+          loadUsers(); 
+
+        } catch (error) {
+          console.error("Erreur création utilisateur:", error.message);
+          notyf.error(`Erreur: ${error.message}`);
+        } finally {
+          createUserButton.disabled = false;
+          createUserButton.innerHTML = '<i data-lucide="user-plus" class="w-4 h-4"></i> <span>Créer</span>';
+          lucide.createIcons();
+        }
       });
-      // [...] (fonctions handleRoleChange et handleBanUser inchangées)
-      
+
+
+
+
       // NOUVEAU: Helper pour formater la date
       function formatAdminDate(dateString) {
         if (!dateString) {
