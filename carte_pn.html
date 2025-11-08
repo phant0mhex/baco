@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-gray-100">
+<head>
+  <meta charset="UTF-8">
+  <title>Carte des PN - Portail BACO</title>
+  <link rel="icon" type="image/png" href="favicon.jpg">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist&family=Geist+Mono&display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.303.0/dist/umd/lucide.min.js" defer></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="js/auth.js" defer></script>
+  
+  <script src="https://unpkg.com/flatpickr"></script>
+  <script src="https://npmcdn.com/flatpickr/dist/l10n/fr.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/flatpickr/dist/flatpickr.min.css">
+  
+  <link rel="stylesheet" href="https://unpkg.com/notyf@3/notyf.min.css">
+  <script src="https://unpkg.com/notyf@3/notyf.min.js"></script>
+  
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <script src="js/layout.js" defer></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: { fontFamily: { sans: ['Geist', 'sans-serif'], mono: ['Geist Mono', 'monospace'] } }
+      }
+    }
+  </script>
+  <style>
+    /* S'assurer que la carte a une hauteur définie */
+    #map { height: 75vh; }
+    /* Personnaliser les popups Leaflet pour Tailwind */
+    .leaflet-popup-content-wrapper {
+      border-radius: 0.5rem; /* rounded-lg */
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+    }
+    .leaflet-popup-content {
+      font-family: 'Geist', sans-serif;
+      margin: 1rem; /* p-4 */
+      line-height: 1.6;
+    }
+    .leaflet-popup-content h4 {
+      font-size: 1.125rem; /* text-lg */
+      font-weight: 700; /* font-bold */
+      color: #1d4ed8; /* text-blue-700 */
+      margin-bottom: 0.5rem; /* mb-2 */
+    }
+    .leaflet-popup-content p {
+      margin: 0.25rem 0; /* my-1 */
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+  <div id="nav-placeholder"></div>
+
+  <div class="flex-grow">
+    
+    <header class="bg-white shadow-sm border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+      <div class="container mx-auto p-6">
+        <h1 class="text-3xl font-bold text-gray-800 dark:text-white">Carte Opérationnelle des PN</h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Visualisation des passages à niveau par ligne.</p>
+      </div>
+    </header>
+
+    <div class="container mx-auto p-8">
+      <div class="flex flex-col lg:flex-row gap-8">
+        
+        <aside class="w-full lg:w-1/4">
+          <div class="sticky top-8">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Filtres</h2>
+            
+            <div class="mb-6">
+              <label for="search-bar" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Rechercher par PN ou BK</label>
+              <div class="relative mt-1">
+                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <i data-lucide="search" class="w-5 h-5 text-gray-400"></i>
+                </div>
+                <input type="search" id="search-bar" placeholder="Ex: PN 121 ou 124.500" class="block w-full rounded-md border-gray-300 pl-10 px-4 py-2 focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+              </div>
+            </div>
+            
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-3">Lignes</h3>
+            <div id="filter-container" class="space-y-2 max-h-96 overflow-y-auto pr-2">
+              </div>
+          </div>
+        </aside>
+
+        <main class="w-full lg:w-3/4">
+          <div id="map-container" class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden dark:bg-gray-800 dark:border-gray-700">
+            <div id="map">
+              </div>
+          </div>
+          
+          <div id="list-container" class="mt-8">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Liste des PN</h2>
+            <div id="pn-list" class="space-y-4">
+              </div>
+          </div>
+        </main>
+        
+      </div>
+    </div>
+  </div>
+  
+  <div id="footer-placeholder"></div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+    
+      const notyf = (typeof Notyf !== 'undefined') 
+        ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
+        : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
+
+      const filterContainer = document.getElementById('filter-container');
+      const pnListContainer = document.getElementById('pn-list');
+      const searchBar = document.getElementById('search-bar');
+      
+      let allPnData = []; // Cache pour toutes les données
+      let map; // Variable globale pour la carte Leaflet
+      let markersLayer; // Groupe de marqueurs
+      
+      /**
+       * Initialise la carte Leaflet
+       */
+      function initMap() {
+        try {
+          map = L.map('map').setView([50.63, 4.47], 9); // Centre sur la Belgique
+
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          }).addTo(map);
+
+          markersLayer = L.layerGroup().addTo(map);
+        } catch(e) {
+          notyf.error("Erreur lors de l'initialisation de la carte.");
+          document.getElementById('map-container').innerHTML = 
+            '<p class="p-8 text-center text-red-600">Erreur: Impossible de charger la carte. Vérifiez votre connexion.</p>';
+        }
+      }
+
+      /**
+       * Charge les filtres de lignes
+       */
+      async function loadLineFilters() {
+        filterContainer.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Chargement...</p>';
+        try {
+          const { data, error } = await supabaseClient
+            .from('pn_data')
+            .select('ligne_nom');
+          
+          if (error) throw error;
+          
+          const lignes = [...new Set(data.map(item => item.ligne_nom).filter(Boolean))].sort();
+          
+          filterContainer.innerHTML = `
+            <label class="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
+              <input type="checkbox" value="all" checked 
+                     class="filter-checkbox h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+              <span class="font-bold text-sm text-gray-700 dark:text-gray-200">Afficher toutes les lignes</span>
+            </label>
+            ${lignes.map(ligne => `
+            <label class="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
+              <input type="checkbox" value="${ligne}" checked 
+                     class="filter-checkbox h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+              <span class="text-sm text-gray-700 dark:text-gray-300">${ligne}</span>
+            </label>
+            `).join('')}
+          `;
+
+        } catch (error) {
+          filterContainer.innerHTML = '<p class="text-sm text-red-600">Erreur chargement filtres.</p>';
+        }
+      }
+
+      /**
+       * Charge toutes les données PN depuis Supabase
+       */
+      async function loadAllPnData() {
+        try {
+          const { data, error } = await supabaseClient
+            .from('pn_data')
+            .select('ligne_nom, pn, bk, adresse, geo')
+            .not('geo', 'is', null); // Ne charger que les PN qui ont des coordonnées !
+            
+          if (error) throw error;
+          allPnData = data;
+          
+          // Une fois les données chargées, on filtre et on affiche
+          filterAndDisplayData();
+          
+        } catch (error) {
+          notyf.error('Erreur chargement données PN: ' + error.message);
+        }
+      }
+      
+      /**
+       * Fonction principale pour filtrer et afficher les données
+       */
+      function filterAndDisplayData() {
+        if (!allPnData.length) return;
+        
+        // 1. Obtenir les filtres de ligne
+        const checkedBoxes = filterContainer.querySelectorAll('.filter-checkbox:checked');
+        let selectedLignes = Array.from(checkedBoxes).map(cb => cb.value);
+        
+        // Gérer le "Tout afficher"
+        if (selectedLignes.includes('all')) {
+          selectedLignes = Array.from(filterContainer.querySelectorAll('.filter-checkbox')).map(cb => cb.value);
+        }
+
+        // 2. Obtenir le terme de recherche
+        const searchTerm = searchBar.value.toLowerCase().trim();
+
+        // 3. Filtrer les données
+        const filteredData = allPnData.filter(pn => {
+          const ligneMatch = selectedLignes.includes(pn.ligne_nom);
+          const searchMatch = !searchTerm || 
+                              (pn.pn && pn.pn.toLowerCase().includes(searchTerm)) ||
+                              (pn.bk && pn.bk.toLowerCase().includes(searchTerm));
+          return ligneMatch && searchMatch;
+        });
+
+        // 4. Mettre à jour la carte et la liste
+        updateMap(filteredData);
+        updateList(filteredData);
+      }
+      
+      /**
+       * Met à jour la carte Leaflet avec les données filtrées
+       */
+      function updateMap(data) {
+        if (!map || !markersLayer) return;
+        
+        markersLayer.clearLayers(); // Nettoyer les anciens marqueurs
+        
+        if (data.length === 0) return;
+        
+        const markers = [];
+        data.forEach(pn => {
+          if (!pn.geo) return;
+          
+          // Votre format est "lat, long"
+          const coords = pn.geo.split(',');
+          const lat = parseFloat(coords[0]);
+          const lon = parseFloat(coords[1]);
+          
+          if (!isNaN(lat) && !isNaN(lon)) {
+            const popupContent = `
+              <h4>${pn.pn || 'N/A'} - Ligne ${pn.ligne_nom || 'N/A'}</h4>
+              <p><strong>BK:</strong> ${pn.bk || 'N/A'}</p>
+              <p><strong>Adresse:</strong> ${pn.adresse || 'N/A'}</p>
+            `;
+            
+            const marker = L.marker([lat, lon]).bindPopup(popupContent);
+            markers.push(marker);
+          }
+        });
+        
+        markers.forEach(marker => markersLayer.addLayer(marker));
+        
+        // Ajuster le zoom de la carte pour voir tous les marqueurs
+        if (markers.length > 0) {
+          const group = L.featureGroup(markers);
+          map.fitBounds(group.getBounds().pad(0.1));
+        }
+      }
+
+      /**
+       * Met à jour la liste HTML avec les données filtrées
+       */
+      function updateList(data) {
+        if (data.length === 0) {
+          pnListContainer.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center">Aucun PN ne correspond aux filtres.</p>';
+          return;
+        }
+        
+        pnListContainer.innerHTML = data.map(pn => `
+          <div class="bg-white p-4 rounded-lg shadow border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+            <div class="flex justify-between items-center">
+              <h3 class="text-lg font-bold text-blue-700 dark:text-blue-400">${pn.pn || 'N/A'}</h3>
+              <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">${pn.ligne_nom || 'N/A'}</span>
+            </div>
+            <p class="text-sm text-gray-700 dark:text-gray-300 mt-2"><strong>BK:</strong> ${pn.bk || 'N/A'}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1"><strong>Adresse:</strong> ${pn.adresse || 'N/A'}</p>
+          </div>
+        `).join('');
+      }
+
+      // --- Écouteurs d'événements ---
+      filterContainer.addEventListener('change', filterAndDisplayData);
+      searchBar.addEventListener('input', filterAndDisplayData);
+      
+      // --- Lancement Initial ---
+      initMap();
+      loadLineFilters();
+      loadAllPnData();
+      
+    }); // Fin de DOMContentLoaded
+  </script>
+  
+</body>
+</html>
