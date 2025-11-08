@@ -24,8 +24,6 @@
   <link rel="stylesheet" href="https://unpkg.com/notyf@3/notyf.min.css">
   <script src="https://unpkg.com/notyf@3/notyf.min.js"></script>
   
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  
   <script src="js/layout.js" defer></script>
   
   <script>
@@ -36,27 +34,12 @@
     }
   </script>
   <style>
-    /* S'assurer que la carte a une hauteur définie */
+    /* ... (votre style CSS pour #map et .leaflet-popup reste inchangé) ... */
     #map { height: 75vh; }
-    /* Personnaliser les popups Leaflet pour Tailwind */
-    .leaflet-popup-content-wrapper {
-      border-radius: 0.5rem; /* rounded-lg */
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
-    }
-    .leaflet-popup-content {
-      font-family: 'Geist', sans-serif;
-      margin: 1rem; /* p-4 */
-      line-height: 1.6;
-    }
-    .leaflet-popup-content h4 {
-      font-size: 1.125rem; /* text-lg */
-      font-weight: 700; /* font-bold */
-      color: #1d4ed8; /* text-blue-700 */
-      margin-bottom: 0.5rem; /* mb-2 */
-    }
-    .leaflet-popup-content p {
-      margin: 0.25rem 0; /* my-1 */
-    }
+    .leaflet-popup-content-wrapper { border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+    .leaflet-popup-content { font-family: 'Geist', sans-serif; margin: 1rem; line-height: 1.6; }
+    .leaflet-popup-content h4 { font-size: 1.125rem; font-weight: 700; color: #1d4ed8; margin-bottom: 0.5rem; }
+    .leaflet-popup-content p { margin: 0.25rem 0; }
   </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -114,13 +97,19 @@
   
   <div id="footer-placeholder"></div>
   
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
   <script>
     document.addEventListener('DOMContentLoaded', () => {
     
+      // AJOUT : S'assurer que les icônes de la page (comme la loupe) se chargent
+      lucide.createIcons();
+
       const notyf = (typeof Notyf !== 'undefined') 
         ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
         : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
 
+      // ... (le reste de votre script est inchangé) ...
       const filterContainer = document.getElementById('filter-container');
       const pnListContainer = document.getElementById('pn-list');
       const searchBar = document.getElementById('search-bar');
