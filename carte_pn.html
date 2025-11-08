@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr" class="h-full bg-gray-100">
-<head>
+<html lang="fr" class="h-full bg-gray-100 dark:bg-gray-900"> <head>
   <meta charset="UTF-8">
   <title>Carte des PN - Portail BACO</title>
   <link rel="icon" type="image/png" href="favicon.jpg">
@@ -28,18 +27,35 @@
   
   <script>
     tailwind.config = {
+      darkMode: 'class', // S'assurer que le mode sombre est activé
       theme: {
         extend: { fontFamily: { sans: ['Geist', 'sans-serif'], mono: ['Geist Mono', 'monospace'] } }
       }
     }
   </script>
   <style>
-    /* ... (votre style CSS pour #map et .leaflet-popup reste inchangé) ... */
+    /* ... (Votre style CSS pour #map et .leaflet-popup reste inchangé) ... */
     #map { height: 75vh; }
     .leaflet-popup-content-wrapper { border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
     .leaflet-popup-content { font-family: 'Geist', sans-serif; margin: 1rem; line-height: 1.6; }
     .leaflet-popup-content h4 { font-size: 1.125rem; font-weight: 700; color: #1d4ed8; margin-bottom: 0.5rem; }
     .leaflet-popup-content p { margin: 0.25rem 0; }
+    
+    /* Correction pour le popup en mode sombre */
+    .dark .leaflet-popup-content-wrapper {
+      background-color: #1f2937; /* bg-gray-800 */
+      color: #d1d5db; /* text-gray-300 */
+      border: 1px solid #374151; /* border-gray-700 */
+    }
+    .dark .leaflet-popup-content h4 {
+      color: #60a5fa; /* text-blue-400 */
+    }
+    .dark .leaflet-popup-close-button {
+      color: #d1d5db; /* text-gray-300 */
+    }
+    .dark .leaflet-popup-tip {
+      background: #1f2937; /* bg-gray-800 */
+    }
   </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -68,7 +84,7 @@
                 <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                   <i data-lucide="search" class="w-5 h-5 text-gray-400"></i>
                 </div>
-                <input type="search" id="search-bar" placeholder="Ex: PN 121 ou 124.500" class="block w-full rounded-md border-gray-300 pl-10 px-4 py-2 focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <input type="search" id="search-bar" placeholder="Ex: PN 121 ou 124.500" class="block w-full rounded-md border-gray-300 pl-10 px-4 py-2 focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400">
               </div>
             </div>
             
@@ -102,14 +118,13 @@
   <script>
     document.addEventListener('DOMContentLoaded', () => {
     
-      // AJOUT : S'assurer que les icônes de la page (comme la loupe) se chargent
+      // Appel initial pour les icônes de la page (loupe, etc.)
       lucide.createIcons();
 
       const notyf = (typeof Notyf !== 'undefined') 
         ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
         : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
 
-      // ... (le reste de votre script est inchangé) ...
       const filterContainer = document.getElementById('filter-container');
       const pnListContainer = document.getElementById('pn-list');
       const searchBar = document.getElementById('search-bar');
@@ -129,6 +144,11 @@
             maxZoom: 19,
             attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           }).addTo(map);
+
+          // S'assurer que le thème de la carte correspond au thème du site
+          if (document.documentElement.classList.contains('dark')) {
+             map.getContainer().style.backgroundColor = '#1f2937'; // bg-gray-800
+          }
 
           markersLayer = L.layerGroup().addTo(map);
         } catch(e) {
@@ -152,16 +172,17 @@
           
           const lignes = [...new Set(data.map(item => item.ligne_nom).filter(Boolean))].sort();
           
+          // CORRECTION CSS : Ajout des classes dark:
           filterContainer.innerHTML = `
             <label class="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
               <input type="checkbox" value="all" checked 
-                     class="filter-checkbox h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                     class="filter-checkbox h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500">
               <span class="font-bold text-sm text-gray-700 dark:text-gray-200">Afficher toutes les lignes</span>
             </label>
             ${lignes.map(ligne => `
             <label class="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
               <input type="checkbox" value="${ligne}" checked 
-                     class="filter-checkbox h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                     class="filter-checkbox h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500">
               <span class="text-sm text-gray-700 dark:text-gray-300">${ligne}</span>
             </label>
             `).join('')}
@@ -274,6 +295,7 @@
           return;
         }
         
+        // CORRECTION CSS : Ajout des classes dark:
         pnListContainer.innerHTML = data.map(pn => `
           <div class="bg-white p-4 rounded-lg shadow border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
             <div class="flex justify-between items-center">
