@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-gray-50">
+<head>
+  <meta charset="UTF-8">
+  <title>Statistiques - Portail BACO</title>
+  <link rel="icon" type="image/png" href="favicon.jpg">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist&family=Geist+Mono&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.303.0/dist/umd/lucide.min.js" defer></script>
+  
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <link rel="stylesheet" href="https://unpkg.com/notyf@3/notyf.min.css">
+  <script src="https://unpkg.com/notyf@3/notyf.min.js"></script>
+  
+  <script src="js/auth.js"></script>
+  <script src="js/layout.js" defer></script> 
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Geist', 'sans-serif'],
+            mono: ['Geist Mono', 'monospace'],
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="h-full flex flex-col min-h-screen bg-gray-50">
+
+  <div id="nav-placeholder"></div>
+
+  <div class="flex-grow">
+    <div class="container mx-auto p-8">
+      <h1 class="text-3xl font-bold text-gray-800 mb-8">Statistiques du Portail</h1>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-lg shadow border border-gray-200 flex items-center gap-4">
+          <div class="p-3 bg-blue-100 rounded-full">
+            <i data-lucide="users" class="w-6 h-6 text-blue-600"></i>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Utilisateurs Totaux</p>
+            <p id="total-users" class="text-3xl font-bold text-gray-900">...</p>
+          </div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow border border-gray-200 flex items-center gap-4">
+          <div class="p-3 bg-red-100 rounded-full">
+            <i data-lucide="wrench" class="w-6 h-6 text-red-600"></i>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Rampes "HS"</p>
+            <p id="total-rampes-hs" class="text-3xl font-bold text-red-600">...</p>
+          </div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow border border-gray-200 flex items-center gap-4">
+          <div class="p-3 bg-green-100 rounded-full">
+            <i data-lucide="accessibility" class="w-6 h-6 text-green-600"></i>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Clients PMR Enregistrés</p>
+            <p id="total-clients-pmr" class="text-3xl font-bold text-gray-900">...</p>
+          </div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow border border-gray-200 flex items-center gap-4">
+          <div class="p-3 bg-yellow-100 rounded-full">
+            <i data-lucide="book-copy" class="w-6 h-6 text-yellow-600"></i>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Entrées Journal (7j)</p>
+            <p id="total-journal-7d" class="text-3xl font-bold text-gray-900">...</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow border border-gray-200">
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">État des Rampes PMR</h2>
+          <div class="max-h-80 flex justify-center">
+            <canvas id="pmrStatusChart"></canvas>
+          </div>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow border border-gray-200">
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Activité du Journal (30 derniers jours)</h2>
+          <div class="max-h-80">
+            <canvas id="journalActivityChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="footer-placeholder"></div>
+
+  <script>
+    // --- GARDE DE SÉCURITÉ ---
+    // S'assure que seul un admin peut voir cette page
+    const userRole = sessionStorage.getItem('userRole');
+    if (userRole !== 'admin') {
+      alert("Accès refusé. Vous devez être administrateur pour voir cette page.");
+      // Redirige vers l'accueil plutôt que la page de connexion
+      window.location.replace('accueil.html');
+    }
+    // --------------------------
+  
+    document.addEventListener('DOMContentLoaded', () => {
+    
+      const notyf = (typeof Notyf !== 'undefined') 
+        ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
+        : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
+
+      /**
+       * Charge les statistiques des rampes PMR
+       */
+      async function loadPmrStats() {
+        const ctx = document.getElementById('pmrStatusChart');
+        if (!ctx) return;
+        
+        try {
+          const { data, error } = await supabaseClient
+            .from('pmr_data')
+            .select('etat_rampe');
+            
+          if (error) throw error;
+
+          const counts = { 'OK': 0, 'HS': 0, 'En attente': 0 };
+          let hsCount = 0;
+
+          data.forEach(item => {
+            if (item.etat_rampe in counts) {
+              counts[item.etat_rampe]++;
+              if (item.etat_rampe === 'HS') {
+                hsCount++;
+              }
+            }
+          });
+          
+          // Mettre à jour la carte "Rampes HS"
+          document.getElementById('total-rampes-hs').textContent = hsCount;
+          
+          // Rendu du graphique
+          new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels: ['OK', 'HS', 'En attente'],
+              datasets: [{
+                label: 'État des Rampes',
+                data: [counts['OK'], counts['HS'], counts['En attente']],
+                backgroundColor: [
+                  'rgb(34, 197, 94)', // green-500
+                  'rgb(239, 68, 68)', // red-500
+                  'rgb(234, 179, 8)'   // yellow-500
+                ],
+                hoverOffset: 4
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+            }
+          });
+          
+        } catch (error) {
+          notyf.error("Erreur chargement stats PMR: " + error.message);
+        }
+      }
+
+      /**
+       * Charge les statistiques du journal (30 derniers jours)
+       */
+      async function loadJournalStats() {
+        const ctx = document.getElementById('journalActivityChart');
+        if (!ctx) return;
+
+        // Calcule la date d'il y a 30 jours
+        const date30DaysAgo = new Date();
+        date30DaysAgo.setDate(date30DaysAgo.getDate() - 30);
+
+        try {
+          const { data, error } = await supabaseClient
+            .from('main_courante')
+            .select('created_at')
+            .gte('created_at', date30DaysAgo.toISOString()); // Ne prend que les 30 derniers jours
+            
+          if (error) throw error;
+          
+          // Compter les entrées des 7 derniers jours pour la carte
+          const date7DaysAgo = new Date();
+          date7DaysAgo.setDate(date7DaysAgo.getDate() - 7);
+          const entriesLast7Days = data.filter(e => new Date(e.created_at) > date7DaysAgo).length;
+          document.getElementById('total-journal-7d').textContent = entriesLast7Days;
+
+          // Agréger les données par jour pour le graphique
+          const activity = {};
+          const labels = [];
+          
+          // Initialiser les 30 derniers jours à 0
+          for (let i = 29; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const label = d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+            labels.push(label);
+            activity[label] = 0;
+          }
+          
+          data.forEach(entry => {
+            const label = new Date(entry.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+            if (label in activity) {
+              activity[label]++;
+            }
+          });
+
+          // Rendu du graphique
+          new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Entrées du journal',
+                data: Object.values(activity),
+                fill: false,
+                borderColor: 'rgb(59, 130, 246)', // blue-500
+                tension: 0.1
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    // S'assurer que l'axe Y n'affiche que des entiers
+                    stepSize: 1 
+                  }
+                }
+              }
+            }
+          });
+
+        } catch (error) {
+          notyf.error("Erreur chargement stats Journal: " + error.message);
+        }
+      }
+
+      /**
+       * Charge les compteurs simples (Utilisateurs, Clients PMR)
+       */
+      async function loadTotalCounts() {
+        try {
+          // Compter les utilisateurs
+          const { count: userCount, error: userError } = await supabaseClient
+            .from('profiles')
+            .select('*', { count: 'exact', head: true });
+          if (userError) throw userError;
+          document.getElementById('total-users').textContent = userCount;
+          
+          // Compter les clients PMR
+          const { count: clientCount, error: clientError } = await supabaseClient
+            .from('pmr_clients')
+            .select('*', { count: 'exact', head: true });
+          if (clientError) throw clientError;
+          document.getElementById('total-clients-pmr').textContent = clientCount;
+
+        } catch (error) {
+           notyf.error("Erreur chargement compteurs: " + error.message);
+        }
+      }
+
+      // --- Lancement ---
+      if (userRole === 'admin') {
+        loadPmrStats();
+        loadJournalStats();
+        loadTotalCounts();
+      }
+      
+    }); // Fin de DOMContentLoaded
+  </script>
+  
+</body>
+</html>
