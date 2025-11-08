@@ -129,18 +129,22 @@
       const pnListContainer = document.getElementById('pn-list');
       const searchBar = document.getElementById('search-bar');
       
+      let allPnData = [];
       let map; // Variable globale pour la carte Leaflet
       let markersLayer; // Groupe de marqueurs
       
-// AJOUT : Définir les couches de base
+// ==========================================================
+      // == MODIFICATION : NOUVELLES COUCHES DE CARTE
+      // ==========================================================
       const tileLayers = {
         'Plan': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
+          maxZoom: 19, // Le plan s'arrête à 19
           attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         }),
-        'Satellite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-          maxZoom: 19,
-          attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        'Satellite': L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+          maxZoom: 22, // <-- Zoom maximum beaucoup plus élevé
+          subdomains:['mt0','mt1','mt2','mt3'], // Serveurs de tuiles Google
+          attribution: 'Map data &copy;2025 Google'
         })
       };
 
@@ -149,7 +153,10 @@
        */
       function initMap() {
         try {
-          map = L.map('map').setView([50.63, 4.47], 9); 
+        // MODIFICATION : Ajouter maxZoom: 22 à la carte elle-même
+          map = L.map('map', {
+              maxZoom: 22 // Permet à la carte de zoomer jusqu'à 22
+          }).setView([50.63, 4.47], 9); // Centre sur la Belgique
 
           // MODIFICATION : Ajouter la couche "Plan" par défaut
           tileLayers['Plan'].addTo(map);
