@@ -7,7 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.fullscreen@2.4.0/Control.Fullscreen.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist&family=Geist+Mono&display=swap" rel="stylesheet">
@@ -140,6 +140,11 @@
         'Plan': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
           attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }),
+        // NOUVELLE COUCHE (LA MEILLEURE)
+        'Satellite (Belgique - HD)': L.tileLayer('https://wms.ngi.be/inspire/ortho/service?service=WMS&version=1.3.0&request=GetMap&layers=orthoimage_latest&styles=&format=image/png&transparent=true&height=256&width=256&crs=EPSG:3857&bbox={bbox}', {
+          maxZoom: 22, // Permet de zoomer loin
+          attribution: '&copy; <a href="https://www.ngi.be/">IGN/NGI</a>'
         }),
         'Satellite': L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
           maxZoom: 22,
