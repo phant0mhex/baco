@@ -100,12 +100,12 @@
 
           // 1. Requête de COMPTAGE
           let countQuery = supabaseClient
-            .from('ebp_data')
+            .from('ebp')
             .select('*', { count: 'exact', head: true });
 
           // 2. Requête de DONNÉES
           let dataQuery = supabaseClient
-            .from('ebp_data')
+            .from('ebp')
             .select('Lignes, PtCar, Abbr, Vue_EBP')
             .order('PtCar', { ascending: true }) // Trier par nom de PtCar
             .range(from, to);
