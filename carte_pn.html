@@ -154,7 +154,6 @@
           version: '1.3.0',
           request: 'GetMap',
           service: 'WMS',
-          crs: 'EPSG:3857', // S'assurer que le système de coordonnées est correct
           maxZoom: 22, 
           attribution: '&copy; <a href="https://www.ngi.be/">IGN/NGI</a>'
         }),
@@ -173,7 +172,7 @@
       };
       // ==========================================================
 
-      
+
       /**
        * Initialise la carte Leaflet
        */
@@ -181,7 +180,8 @@
         try {
         // MODIFICATION : Ajouter maxZoom: 22 à la carte elle-même
           map = L.map('map', {
-              maxZoom: 22 // Permet à la carte de zoomer jusqu'à 22
+              maxZoom: 22, // Permet à la carte de zoomer jusqu'à 22
+              fullscreenControl: true
           }).setView([50.63, 4.47], 9); // Centre sur la Belgique
 
           // MODIFICATION : Ajouter la couche "Plan" par défaut
