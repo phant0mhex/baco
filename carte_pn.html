@@ -136,16 +136,23 @@
 // ==========================================================
       // == MODIFICATION : NOUVELLES COUCHES DE CARTE
       // ==========================================================
-      const tileLayers = {
+     const tileLayers = {
         'Plan': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19, // Le plan s'arrête à 19
+          maxZoom: 19,
           attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         }),
         'Satellite': L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-          maxZoom: 22, // <-- Zoom maximum beaucoup plus élevé
-          subdomains:['mt0','mt1','mt2','mt3'], // Serveurs de tuiles Google
+          maxZoom: 22,
+          subdomains:['mt0','mt1','mt2','mt3'],
+          attribution: 'Map data &copy;2025 Google'
+        }),
+        // --- NOUVELLE COUCHE AJOUTÉE CI-DESSOUS ---
+        'Hybride': L.tileLayer('http://{s}.google.com/vt/lyrs=h&x={x}&y={y}&z={z}', {
+          maxZoom: 22, // Même zoom max
+          subdomains:['mt0','mt1','mt2','mt3'],
           attribution: 'Map data &copy;2025 Google'
         })
+        // --- FIN DE L'AJOUT ---
       };
 
       /**
