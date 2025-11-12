@@ -41,8 +41,10 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
     // ===============================================
     // == NOUVELLE LIGNE : On révèle le contenu
     // ===============================================
-    document.body.style.visibility = 'visible';
-
-
+    document.addEventListener('DOMContentLoaded', () => {
+        if (document.body) {
+            document.body.style.visibility = 'visible';
+        }
+    });
   }
 })();
