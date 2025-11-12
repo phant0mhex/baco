@@ -405,10 +405,10 @@
             const isFavorited = favoritedContactIds.has(p.id);
             const starClass = isFavorited ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400';
           const favoriteButton = `
-  <button onclick="window.toggleFavorite(this, 'contact', ${p.id}, ${isFavorited})" class="p-1 rounded-full hover:bg-yellow-100" title="Mettre en favori">
-    <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
-  </button>
-`;
+      <button onclick="window.toggleFavorite(this, 'repertoire', '${p.id}', ${isFavorited})" class="p-1 rounded-full hover:bg-yellow-100" title="Mettre en favori">
+        <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
+      </button>
+    `;
             return `
               <div class="bg-gray-50 rounded-lg border border-gray-200 transition-all hover:shadow-sm">
                 <div class="flex items-center justify-between p-3 border-b border-gray-100">

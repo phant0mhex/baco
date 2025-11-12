@@ -323,9 +323,8 @@
       }
       
 
-
-      // ==========================================================
-      // == NOUVELLE FONCTION POUR LE WIDGET FAVORIS
+// ==========================================================
+      // == FONCTION CORRIGÉE POUR LE WIDGET FAVORIS
       // ==========================================================
       async function loadFavoritesWidget() {
         const listContainer = document.getElementById('favorites-list');
@@ -339,17 +338,15 @@
           </div>`;
         lucide.createIcons();
 
-        // Attendre que l'ID utilisateur soit chargé par loadUserGreeting
         if (!currentUserId) {
             await loadUserGreeting();
-            // Si toujours pas d'ID, on arrête
             if (!currentUserId) {
                 listContainer.innerHTML = `<p class="text-red-500">Erreur: ID utilisateur non trouvé.</p>`;
                 return;
             }
         }
 
-       try {
+        try {
           // 2. Appel de la fonction RPC (inchangé)
           const { data, error } = await supabaseClient.rpc('get_my_favorites');
 
@@ -364,70 +361,87 @@
             return;
           }
 
-          // 3. Afficher les favoris trouvés
+          // 3. Afficher les favoris trouvés (AVEC LES BONS NOMS DE COLONNES)
           listContainer.innerHTML = data.map(fav => {
             switch (fav.type_contenu) {
               case 'client_pmr':
+                // CORRECTION : Utiliser fav.client_prenom et fav.client_nom
+                if (!fav.client_nom) return ''; // Au cas où le client a été supprimé
                 return renderFavCard({
                   id: fav.id_contenu,
                   type: fav.type_contenu,
                   icon: 'accessibility',
                   iconColor: 'text-blue-500',
-                  title: `${fav.pmr_clients.prenom || ''} ${fav.pmr_clients.nom}`,
-                  subtext: fav.pmr_clients.telephone,
-                  link: `clients_pmr.html?search=${fav.pmr_clients.nom}`
+                  title: `${fav.client_prenom || ''} ${fav.client_nom}`,
+                  subtext: fav.client_tel,
+                  link: `clients_pmr.html`
                 });
+              
               case 'taxi':
-               return renderFavCard({
-                  id: fav.id_contenu, type: fav.type_contenu, icon: 'car', iconColor: 'text-yellow-500',
+                // CORRECTION : Utiliser fav.taxi_nom et fav.taxi_contacts
+                if (!fav.taxi_nom) return '';
+                return renderFavCard({
+                  id: fav.id_contenu,
+                  type: fav.type_contenu,
+                  icon: 'car',
+                  iconColor: 'text-yellow-500',
                   title: fav.taxi_nom,
                   subtext: (fav.taxi_contacts && fav.taxi_contacts.length > 0) ? fav.taxi_contacts[0] : 'N/A', 
                   link: `taxi.html`
                 });
-           // CORRECTION : Gérer le type 'repertoire'
+              
               case 'repertoire':
+                // CORRECTION : Utiliser fav.contact_nom, etc.
+                if (!fav.contact_nom) return '';
                 return renderFavCard({
                   id: fav.id_contenu,
                   type: fav.type_contenu,
                   icon: 'contact',
                   iconColor: 'text-green-500',
                   title: fav.contact_nom,
-                  subtext: fav.contact_tel || fav.contact_groupe, // Affiche le tél, ou le groupe si pas de tél
+                  subtext: fav.contact_tel || fav.contact_groupe,
                   link: `repertoire.html`
                 });
-                
-              case 'bus': // Laisse ceci pour les anciens favoris
-                 return renderFavCard({
-                  id: fav.id_contenu, type: fav.type_contenu, icon: 'bus', iconColor: 'text-purple-500',
-                  title: fav.bus_societe_nom,
-                  subtext: 'Société de bus (Ancien)',
-                  link: `bus.html`
-                });
-
-              // --- NOUVEAUX CASES AJOUTÉES ---
-              case 'bus_contact':
+              
+              case 'bus':
+                 // CORRECTION : Utiliser fav.bus_societe_nom
+                 if (!fav.bus_societe_nom) return '';
                  return renderFavCard({
                   id: fav.id_contenu,
                   type: fav.type_contenu,
-                  icon: 'user-check', // Icône différente
+                  icon: 'bus',
+                  iconColor: 'text-purple-500',
+                  title: fav.bus_societe_nom,
+                  subtext: 'Société de bus',
+                  link: `bus.html`
+                });
+
+              // NOUVEAU : Gérer les contacts/chauffeurs de bus
+              case 'bus_contact':
+                 if (!fav.bus_contact_nom) return '';
+                 return renderFavCard({
+                  id: fav.id_contenu,
+                  type: fav.type_contenu,
+                  icon: 'user-check',
                   iconColor: 'text-purple-500',
                   title: fav.bus_contact_nom,
                   subtext: fav.bus_contact_tel,
                   link: `bus.html`
                 });
               case 'bus_chauffeur':
+                 if (!fav.bus_chauffeur_nom) return '';
                  return renderFavCard({
                   id: fav.id_contenu,
                   type: fav.type_contenu,
-                  icon: 'user', // Icône différente
+                  icon: 'user',
                   iconColor: 'text-purple-500',
                   title: fav.bus_chauffeur_nom,
                   subtext: fav.bus_chauffeur_tel,
                   link: `bus.html`
                 });
-              // --- FIN DES NOUVEAUX CASES ---
+
               default:
-                return ''; // Ne rien afficher si le type est inconnu
+                return '';
             }
           }).join('');
           
@@ -438,6 +452,7 @@
           listContainer.innerHTML = `<p class="col-span-full text-red-600">Erreur: ${error.message}</p>`;
         }
       }
+      
 
       /**
        * (Fonction utilitaire) Génère le HTML pour une carte de favori
@@ -453,9 +468,9 @@
               </div>
             </a>
             <button 
-              onclick="window.toggleFavorite(this, '${type}', ${id}, true)"
-              class="p-2 text-yellow-500 rounded-full hover:bg-yellow-100 dark:hover:bg-gray-800" 
-              title="Retirer des favoris">
+              onclick="window.toggleFavorite(this, '${type}', '${id}', true)"
+              class="p-2 text-yellow-500 rounded-full hover:bg-yellow-100 dark:hover:bg-gray-800" 
+              title="Retirer des favoris">
               <i data-lucide="star" class="w-5 h-5 fill-yellow-500"></i>
             </button>
           </div>
