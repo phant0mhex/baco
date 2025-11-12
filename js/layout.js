@@ -679,23 +679,26 @@ async function loadJournalNotificationCount() {
 window.loadJournalNotificationCount = loadJournalNotificationCount;
 
 
+// ... (après la fonction loadJournalNotificationCount par exemple) ...
 
 /**
  * Gère l'ajout ou la suppression d'un favori (VERSION GLOBALE)
- * @param {HTMLElement} element - Le bouton (ou l'icône) sur lequel on a cliqué
+ * @param {HTMLElement} element - Le bouton sur lequel on a cliqué
  * @param {string} type - Le type de contenu (ex: 'client_pmr', 'taxi', 'bus', 'repertoire')
- * @param {number} id - L'ID du contenu à (dé)favoriser
+ * @param {string|number} id - L'ID du contenu à (dé)favoriser
  * @param {boolean} isFavorited - L'état actuel (true si déjà en favori)
  */
 window.toggleFavorite = async function(element, type, id, isFavorited) {
+  // On s'assure que currentUserId est chargé (il est défini globalement dans layout.js)
   if (!currentUserId) {
-    notyf.error("Erreur: Utilisateur non identifié.");
+    notyf.error("Erreur: Utilisateur non identifié. Veuillez rafraîchir.");
     return;
   }
   
   // Désactiver le bouton pour éviter les double-clics
   element.disabled = true;
   element.classList.add('opacity-50', 'cursor-wait');
+  const icon = element.querySelector('i[data-lucide="star"]');
 
   try {
     if (isFavorited) {
@@ -704,22 +707,13 @@ window.toggleFavorite = async function(element, type, id, isFavorited) {
         .match({ user_id: currentUserId, id_contenu: id, type_contenu: type });
       if (error) throw error;
       
-      // Mettre à jour l'UI
-      const favCard = element.closest('.favorite-card');
-      if (favCard) {
-        // Si on est dans le widget d'accueil, supprimer la carte
-        favCard.remove();
-        // Vérifier si le conteneur est vide
-        checkIfFavoritesEmpty();
-      } else {
-        // Sinon, on est sur une page de liste, on met à jour l'icône
-        const icon = element.querySelector('i[data-lucide="star"]');
-        if (icon) {
-          icon.classList.remove('fill-yellow-400', 'text-yellow-400');
-          icon.classList.add('text-gray-400');
-        }
-        element.setAttribute('onclick', `window.toggleFavorite(this, '${type}', ${id}, false)`);
+      // Mettre à jour l'UI (icône et prochain clic)
+      if (icon) {
+        icon.classList.remove('fill-yellow-400', 'text-yellow-400');
+        icon.classList.add('text-gray-400');
       }
+      // IMPORTANT : Mettre à jour l'attribut onclick pour appeler window.toggleFavorite
+      element.setAttribute('onclick', `window.toggleFavorite(this, '${type}', '${id}', false)`);
       
     } else {
       // --- Ajouter le favori ---
@@ -727,16 +721,28 @@ window.toggleFavorite = async function(element, type, id, isFavorited) {
         .insert({ user_id: currentUserId, id_contenu: id, type_contenu: type });
       if (error) throw error;
       
-      // Mettre à jour l'UI (on ne fait rien sur le widget, on met à jour l'icône sur les listes)
-      const icon = element.querySelector('i[data-lucide="star"]');
+      // Mettre à jour l'UI (icône et prochain clic)
       if (icon) {
         icon.classList.add('fill-yellow-400', 'text-yellow-400');
         icon.classList.remove('text-gray-400');
       }
-      element.setAttribute('onclick', `window.toggleFavorite(this, '${type}', ${id}, true)`);
+      // IMPORTANT : Mettre à jour l'attribut onclick pour appeler window.toggleFavorite
+      element.setAttribute('onclick', `window.toggleFavorite(this, '${type}', '${id}', true)`);
     }
   } catch (error) {
-    notyf.error("Erreur: " + error.message);
+    // Gérer les erreurs (comme 'duplicate key')
+    console.error("Erreur toggleFavorite:", error.message);
+    if (error.message.includes('duplicate key')) {
+        notyf.error("Erreur : Ce favori existe déjà. L'interface va se synchroniser.");
+        // Force la synchronisation de l'UI en cas d'erreur de 'duplicate'
+        if (icon) {
+            icon.classList.add('fill-yellow-400', 'text-yellow-400');
+            icon.classList.remove('text-gray-400');
+        }
+        element.setAttribute('onclick', `window.toggleFavorite(this, '${type}', '${id}', true)`);
+    } else {
+        notyf.error("Erreur: " + error.message);
+    }
   } finally {
     // Réactiver le bouton
     element.disabled = false;
