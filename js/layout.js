@@ -614,7 +614,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Si la nav a chargé, exécuter tous les scripts qui en dépendent
     highlightActiveLink();
     await loadNavAvatar(); // <-- ATTENDRE que l'ID utilisateur soit défini
-    setupRealtimePresence(); 
+    // setupRealtimePresence(); 
     setupThemeToggle();
 
     // --- Initialisation du Calendrier ---
