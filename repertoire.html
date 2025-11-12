@@ -173,9 +173,12 @@
       }
 
       // --- Définition des variables ---
-      const resultDisplay = document.getElementById('resultDisplay');
+      
+      // CORRECTION : ID 'resultDisplay' (camelCase)
+      const resultDisplay = document.getElementById('resultDisplay'); 
+      
       const searchInput = document.getElementById('search-bar');
-      const filterContainer = document.getElementById('mainCategories'); // Renommé pour correspondre au HTML
+      const filterContainer = document.getElementById('mainCategories');
       const zoneContainer = document.getElementById('zoneSubCategoriesContainer');
       const zoneCheckboxContainer = document.getElementById('zoneSubCategories');
       const sortAzButton = document.getElementById('sort-az');
@@ -187,34 +190,33 @@
 
       let currentSortOrder = 'az';
       let favoritedContactIds = new Set();
-      let allContactsData = []; // Cache pour les données
       
       
       /**
        * Charge dynamiquement les catégories principales depuis Supabase
        */
       async function loadMainCategories() {
+        const categoriesContainer = document.getElementById('mainCategories');
         try {
-          // Charger les données (seulement si le cache est vide)
-          if (allContactsData.length === 0) {
-              const { data, error } = await supabaseClient
-                .from('contacts_repertoire')
-                .select('*');
-              if (error) throw error;
-              allContactsData = data; // Mettre en cache
+          const { data, error } = await supabaseClient
+            .from('contacts_repertoire')
+            .select('categorie_principale');
+          if (error) throw error;
+          const categories = [...new Set(data.map(item => item.categorie_principale))]
+            .filter(Boolean)
+            .sort();
+          if (categories.length === 0) {
+             categoriesContainer.innerHTML = '<p class="text-gray-600">Aucune catégorie trouvée.</p>';
+             return;
           }
-            
-          // Construire les filtres de catégorie
-          const categories = [...new Set(allContactsData.map(p => p.categorie_principale))].filter(Boolean).sort();
-          filterContainer.innerHTML = categories.map(categorie => `
+          categoriesContainer.innerHTML = categories.map(categorie => `
             <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
               <input type="checkbox" value="${categorie}" onchange="updateSubCategories()" class="rounded text-blue-600 focus:ring-blue-500">
               <span class="font-medium text-gray-700">${categorie}</span>
             </label>
           `).join('');
-          
         } catch (error) {
-          filterContainer.innerHTML = `<p class="text-red-600">Erreur chargement catégories: ${error.message}</p>`;
+          categoriesContainer.innerHTML = `<p class="text-red-600">Erreur chargement catégories: ${error.message}</p>`;
         }
       }
 
@@ -232,12 +234,14 @@
         }
 
         try {
-            // Pas besoin de requêter à nouveau, on filtre le cache
-            const zones = [...new Set(
-                allContactsData
-                    .filter(item => relevantCategories.includes(item.categorie_principale))
-                    .map(item => item.zone)
-            )].filter(Boolean).sort();
+            const { data, error } = await supabaseClient
+                .from('contacts_repertoire')
+                .select('zone')
+                .in('categorie_principale', relevantCategories);
+            
+            if (error) throw error;
+
+            const zones = [...new Set(data.map(item => item.zone))].filter(Boolean).sort();
             
             if (zones.length === 0) {
                 zoneCheckboxContainer.innerHTML = '<p class="text-xs text-gray-500">Aucune zone de filtre trouvée.</p>';
@@ -289,8 +293,10 @@
       /**
        * Charge les favoris et met à jour l'affichage
        */
-      async function loadData() {
-        resultDisplay.innerHTML = '<div class="flex justify-center items-center py-20"><i data-lucide="loader-2" class="w-10 h-10 text-blue-600 animate-spin"></i></div>';
+      updateDisplay = async () => {
+        if (!resultDisplay) return;
+        
+        resultDisplay.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
         lucide.createIcons();
 
         try {
@@ -304,155 +310,189 @@
           if (favError) throw favError;
           favoritedContactIds = new Set(favs.map(f => f.id_contenu));
         } catch (error) {
-          resultDisplay.innerHTML = `<p class="text-red-600 text-center">Erreur (auth/favs): ${error.message}</p>`;
+          resultDisplay.innerHTML = `<p class='text-red-600'>Erreur (auth/favs): ${error.message}</p>`;
           return;
         }
 
-        if (allContactsData.length === 0) {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('contacts_repertoire')
-                    .select('*');
-                if (error) throw error;
-                allContactsData = data;
-            } catch (error) {
-                resultDisplay.innerHTML = `<p class="text-red-600 text-center">Erreur: ${error.message}</p>`;
-                return;
-            }
-        }
-        updateDisplay();
-      }
-
-      /**
-       * Filtre et affiche les contacts
-       */
-      updateDisplay = () => {
         const mainChecked = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
         const zoneSubChecked = Array.from(document.querySelectorAll('#zoneSubCategories input:checked')).map(cb => cb.value);
-        const searchTerm = searchInput.value.toLowerCase().trim();
+        const searchTerm = document.getElementById('search-bar').value.trim();
         
+        let hasContent = false;
+        const columns = {};
+
+        let query = supabaseClient
+          .from('contacts_repertoire')
+          .select('id, nom, tel, groupe, email, categorie_principale, zone')
+          .order('nom', { ascending: (currentSortOrder === 'az') });
+
+        // (La logique de filtrage complexe est recopiée de votre script original)
+        const orFilters = [];
         const categoriesWithZones = ['MIA', 'DSE'];
         const mainCategoriesWithZones = mainChecked.filter(cat => categoriesWithZones.includes(cat));
         const mainCategoriesWithoutZones = mainChecked.filter(cat => !categoriesWithZones.includes(cat));
-
-        let filteredData = allContactsData.filter(p => {
-            // 1. Filtre de recherche
-            const searchMatch = !searchTerm || (
-                (p.nom && p.nom.toLowerCase().includes(searchTerm)) || 
-                (p.tel && p.tel.toLowerCase().includes(searchTerm)) || 
-                (p.email && p.email.toLowerCase().includes(searchTerm)) || 
-                (p.groupe && p.groupe.toLowerCase().includes(searchTerm))
-            );
-            if (!searchMatch) return false;
-
-            // 2. Filtre de catégorie (si aucun filtre n'est coché, on affiche tout)
-            if (mainChecked.length === 0) return true;
-
-            // 3. Logique de filtrage combiné
-            let categoryMatch = false;
-            // Vérifier les catégories sans zone
-            if (mainCategoriesWithoutZones.includes(p.categorie_principale)) {
-                categoryMatch = true;
-            }
-            // Vérifier les catégories AVEC zone
-            if (mainCategoriesWithZones.includes(p.categorie_principale)) {
-                if (zoneSubChecked.length === 0) {
-                    categoryMatch = true; // Si la cat principale est cochée mais aucune zone, on affiche tout de cette cat
-                } else if (zoneSubChecked.includes(p.zone)) {
-                    categoryMatch = true;
-                }
-                // Cas spécial pour TL/MPI
-                if (p.categorie_principale === 'MIA' && p.zone === 'FMS' && p.groupe === 'TL/MPI' && zoneSubChecked.includes('FTY')) {
-                    categoryMatch = true;
-                }
-            }
-            
-            return categoryMatch;
-        });
-
-        // 4. Trier les résultats
-        filteredData.sort((a, b) => {
-            if (currentSortOrder === 'az') {
-                return a.nom.localeCompare(b.nom);
+        if (mainCategoriesWithZones.length > 0) {
+            if (zoneSubChecked.length > 0) {
+                zoneSubChecked.forEach(zone => {
+                    if (zone === 'FTY') {
+                        if (mainCategoriesWithZones.includes('MIA')) {
+                            orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FTY)`);
+                            orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FMS,groupe.eq.TL/MPI)`);
+                        }
+                        if (mainCategoriesWithZones.includes('DSE')) {
+                             orFilters.push(`and(categorie_principale.eq.DSE,zone.eq.FTY)`);
+                        }
+                    } else {
+                        mainCategoriesWithZones.forEach(cat => {
+                            orFilters.push(`and(categorie_principale.eq.${cat},zone.eq.${zone})`);
+                        });
+                    }
+                });
             } else {
-                return b.nom.localeCompare(a.nom);
+                mainCategoriesWithZones.forEach(cat => {
+                    orFilters.push(`categorie_principale.eq.${cat}`);
+                });
             }
+        }
+        mainCategoriesWithoutZones.forEach(cat => {
+            orFilters.push(`categorie_principale.eq.${cat}`);
         });
-
-        if (filteredData.length === 0) {
-          resultDisplay.innerHTML = `<p class="text-gray-600 text-center">Aucun contact trouvé pour les filtres actuels.</p>`;
-          return;
+        if (orFilters.length > 0) {
+          query = query.or(orFilters.join(','));
+        }
+        if (searchTerm) {
+          query = query.or(
+            `nom.ilike.*${searchTerm}*`,
+            `tel.ilike.*${searchTerm}*`,
+            `email.ilike.*${searchTerm}*`,
+            `groupe.ilike.*${searchTerm}*`
+          );
+        }
+        if (orFilters.length === 0 && !searchTerm) {
+            resultDisplay.innerHTML = '<p class="text-gray-600">Veuillez sélectionner une catégorie ou lancer une recherche.</p>';
+            return;
         }
         
-        let currentGroup = "";
-        resultDisplay.innerHTML = filteredData.map(p => {
-          let groupHeader = "";
-          // N'afficher l'en-tête de groupe que si on n'a pas de filtre de catégorie ou de recherche
-          if (p.groupe !== currentGroup && mainChecked.length === 0 && !searchTerm) {
-            currentGroup = p.groupe;
-            groupHeader = `<h3 class="text-xl font-semibold text-gray-800 mt-6 mb-3 col-span-full">${currentGroup}</h3>`;
-          }
-          
-          const isFavorited = favoritedContactIds.has(p.id.toString());
-          const starClass = isFavorited ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400';
-          
-          const favoriteButton = `
-            <button onclick="window.toggleFavorite(this, 'repertoire', '${p.id}', ${isFavorited})" class="p-1 rounded-full hover:bg-yellow-100" title="Mettre en favori">
-              <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
-            </button>
-          `;
-          
-          const emailHtml = p.email
-            ? `<a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800 transition-colors" title="${p.email}"><i data-lucide="mail" class="w-4 h-4"></i><span class="truncate" style="max-width: 200px;">${p.email}</span></a>`
-            : '';
+        const { data: contacts, error } = await query;
             
-          const telHtml = (p.tel === '(manquant)' || !p.tel)
-            ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500"><i data-lucide="phone-off" class="w-4 h-4"></i><span>(manquant)</span></span>`
-            : `<a href="etrali:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors"><i data-lucide="phone" class="w-4 h-4"></i><span>${p.tel}</span></a>`;
+        if (error) {
+          resultDisplay.innerHTML = `<p class='text-red-600'>Erreur: ${error.message}</p>`;
+          return;
+        }
 
-          return groupHeader + `
-            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex justify-between items-center contact-card" data-category="${p.groupe}">
-              <div class="flex items-center gap-3">
-                <i data-lucide="user" class="w-5 h-5 text-gray-400"></i>
-                <div>
-                  <p class="font-semibold text-gray-900">${p.nom}</p>
-                  <p class="text-sm text-gray-600">${p.service || ''}</p>
-                </div>
-              </div>
-              <div class="flex items-center gap-3">
-                ${telHtml}
-                ${emailHtml}
-                ${favoriteButton}
-                <div class="admin-only flex items-center gap-2">
-                  <button onclick="showContactModal(${JSON.stringify(p).replace(/"/g, "&quot;")})" class="p-1 text-blue-600 rounded hover:bg-blue-100" title="Modifier">
-                    <i data-lucide="pencil" class="w-4 h-4"></i>
-                  </button>
-                  <button onclick="deleteContact(${p.id}, '${p.nom}')" class="p-1 text-red-600 rounded hover:bg-red-100" title="Supprimer">
-                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                  </button>
-                </div>
-              </div>
-            </div>
-          `;
-        }).join('');
+        for (const contact of contacts) {
+          const col = contact.groupe;
+          if (!columns[col]) columns[col] = [];
+          columns[col].push(contact);
+          hasContent = true;
+        }
         
+        // ==========================================================
+        // == RETOUR À LA LOGIQUE DES "CARTES PAR GROUPE"
+        // ==========================================================
+        let outputHTML = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">';
+        const sortedKeys = Object.keys(columns).sort();
+
+        for (const col of sortedKeys) {
+            const colName = highlightText(col, searchTerm);
+            outputHTML += `<div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">`;
+            outputHTML += `<h3 class="text-xl font-semibold text-gray-900 p-4 border-b bg-gray-50">${colName}</h3>`;
+            outputHTML += `<div class="flex flex-col gap-3 p-4">`;
+            
+            outputHTML += columns[col].map(p => {
+              const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
+
+              const displayName = highlightText(p.nom, searchTerm);
+              const displayTel = p.tel ? highlightText(p.tel, searchTerm) : '(manquant)';
+              const telHtml = (p.tel === '(manquant)' || !p.tel)
+                ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500"><i data-lucide="phone-off" class="w-4 h-4"></i><span>(manquant)</span></span>`
+                : `<a href="etrali:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors"><i data-lucide="phone" class="w-4 h-4"></i><span>${displayTel}</span></a>`;
+              const displayEmail = p.email ? highlightText(p.email, searchTerm) : '';
+              const emailHtml = p.email
+                ? `<a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800 transition-colors" title="${p.email}"><i data-lucide="mail" class="w-4 h-4"></i><span class="truncate" style="max-width: 200px;">${displayEmail}</span></a>`
+                : '';
+
+              const isFavorited = favoritedContactIds.has(p.id.toString()); // Assurer la comparaison en string
+              const starClass = isFavorited ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400';
+              
+              const favoriteButton = `
+                <button onclick="window.toggleFavorite(this, 'repertoire', '${p.id}', ${isFavorited})" class="p-1 rounded-full hover:bg-yellow-100" title="Mettre en favori">
+                  <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
+                </button>
+              `;
+
+              return `
+                <div class="bg-gray-50 rounded-lg border border-gray-200 transition-all hover:shadow-sm">
+                  <div class="flex items-center justify-between p-3 border-b border-gray-100">
+                    <span class="flex items-center gap-2.5 text-sm font-medium text-gray-900">
+                       <i data-lucide="user" class="w-4 h-4 text-gray-600"></i>
+                       <span>${displayName}</span>
+                    </span>
+                    
+                    <div class="flex items-center gap-1">
+                      ${favoriteButton}
+                      <div class="admin-only flex items-center gap-2">
+                        <button onclick="showContactModal(${contactJson})" class="p-1 text-blue-600 rounded hover:bg-blue-100" title="Modifier">
+                          <i data-lucide="pencil" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="deleteContact(${p.id}, '${p.nom}')" class="p-1 text-red-600 rounded hover:bg-red-100" title="Supprimer">
+                          <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                      </div>
+                    </div>
+                    
+                  </div>
+                  <div class="p-3 flex flex-col gap-2">
+                    ${telHtml}
+                    ${emailHtml}
+                  </div>
+                </div>`;
+            }).join('');
+            
+            outputHTML += `</div></div>`;
+        }
+        outputHTML += '</div>';
+
+        if (!hasContent) {
+            let message = searchTerm 
+              ? `Aucun contact ne correspond à "${searchTerm}".` 
+              : "Aucun contact trouvé pour les filtres sélectionnés.";
+            resultDisplay.innerHTML = `
+              <div class="col-span-full flex flex-col items-center justify-center text-center py-16 px-6 bg-white rounded-lg border border-dashed border-gray-300">
+                <i data-lucide="user-x" class="w-16 h-16 text-gray-300"></i>
+                <h3 class="mt-4 text-xl font-semibold text-gray-800">Aucun contact trouvé</h3>
+                <p class="mt-2 text-sm text-gray-500">${message}</p>
+              </div>
+            `;
+          } else {
+            resultDisplay.innerHTML = outputHTML;
+          }
         lucide.createIcons();
         if (window.hideAdminElements) window.hideAdminElements();
       }
 
       window.filterContacts = (category, element) => {
         document.querySelectorAll('#mainCategories input[type="checkbox"]').forEach(cb => {
+            if (cb.value !== category) cb.checked = false;
+        });
+        document.querySelectorAll('#zoneSubCategories input[type="checkbox"]').forEach(cb => {
             cb.checked = false;
         });
         
+        // Gérer le style des boutons
         document.querySelectorAll('#filter-container button').forEach(btn => {
           btn.classList.remove('bg-blue-100', 'text-blue-700');
           btn.classList.add('text-gray-600', 'hover:bg-gray-200');
         });
-        element.classList.add('bg-blue-100', 'text-blue-700');
-        element.classList.remove('text-gray-600', 'hover:bg-gray-200');
+        if (element) {
+            element.classList.add('bg-blue-100', 'text-blue-700');
+            element.classList.remove('text-gray-600', 'hover:bg-gray-200');
+        } else {
+            // Si on appelle sans élément (ex: recherche), on remet 'Tous' en surbrillance
+            document.querySelector('#filter-container button[onclick*="\'all\'"]').classList.add('bg-blue-100', 'text-blue-700');
+        }
         
-        updateDisplay();
+        updateSubCategories(); // Met à jour les sous-catégories ET l'affichage
       }
 
       function updateSortButtons() {
@@ -482,8 +522,8 @@
       
       // --- Lancement ---
       updateSortButtons();
-      loadData();
-      loadMainCategories(); // Charger les catégories
+      loadMainCategories(); // Charger les catégories et les données
+      updateDisplay(); // Afficher
     
       // --- Fonctions Modales ---
       showContactModal = (contact = null) => {
@@ -554,8 +594,8 @@
           notyf.success(isEdit ? "Contact mis à jour !" : "Contact ajouté !");
           hideContactModal();
           allContactsData = []; // Vider le cache
-          loadData();
-          loadMainCategories(); 
+          loadMainCategories(); // Recharger les catégories
+          updateDisplay(); // Recharger l'affichage
         }
       }
       
@@ -570,14 +610,13 @@
           notyf.success("Contact supprimé !");
           await supabaseClient.from('favoris').delete().match({ id_contenu: id.toString(), type_contenu: 'repertoire' });
           allContactsData = []; // Vider le cache
-          loadData();
-          loadMainCategories(); 
+          loadMainCategories(); // Recharger les catégories
+          updateDisplay(); // Recharger l'affichage
         }
       }
     
     }; // Fin de window.pageInit
   </script>
-  
   <div id="footer-placeholder"></div>
   
 </body>
