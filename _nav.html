@@ -109,40 +109,42 @@
           </div>
         </div> -->
 
-        <div class="relative" id="profile-dropdown-container">
-          <button id="profile-toggle-button" class="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 focus-visible:ring-blue-500">
-            <img id="nav-avatar" 
-                 src="https://via.placeholder.com/40" 
-                 alt="Avatar" 
-                 class="w-10 h-10 rounded-full object-cover cursor-pointer transition-transform duration-150 ease-in-out hover:scale-105">
-          </button>
+       <div class="relative" id="profile-dropdown-container">
+  
+  <div id="admin-avatar-border" class="relative rounded-full"> 
+    <button id="profile-toggle-button" class="block rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 focus-visible:ring-blue-500">
+      <img id="nav-avatar" 
+           src="https://via.placeholder.com/40" 
+           alt="Avatar" 
+           class="w-10 h-10 rounded-full object-cover cursor-pointer transition-transform duration-150 ease-in-out hover:scale-105">
+    </button>
+  </div>
+  <div id="profile-dropdown" class="hidden absolute top-full md:right-0 left-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
+    <div class="p-2">
+      <a href="profil.html" class="flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
+        <i data-lucide="user-cog" class="w-4 h-4"></i>
+        <span>Mon Profil</span>
+      </a>
 
-          <div id="profile-dropdown" class="hidden absolute top-full md:right-0 left-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
-            <div class="p-2">
-              <a href="profil.html" class="flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
-                <i data-lucide="user-cog" class="w-4 h-4"></i>
-                <span>Mon Profil</span>
-              </a>
-
-              <div class="admin-only">
-                <hr class="border-gray-700 my-2"> <a href="admin.html" class="flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm font-medium text-yellow-400 hover:bg-gray-700 hover:text-yellow-400">
-                  <i data-lucide="shield-check" class="w-4 h-4"></i>
-                  <span>Admin</span>
-                </a>
-                <a href="statistiques.html" class="flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm font-medium text-yellow-400 hover:bg-gray-700 hover:text-yellow-400">
-                  <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
-                  <span>Statistiques</span>
-                </a>
-               
-              </div>
-              
-              <button id="logout-button" class="flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm font-medium text-red-400 hover:bg-red-700 hover:text-white">
-                <i data-lucide="log-out" class="w-4 h-4"></i>
-                <span>Déconnexion</span>
-              </button>
-            </div>
-          </div>
+      <div class="admin-only">
+        <hr class="border-gray-700 my-2"> 
+        <a href="admin.html" class="flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm font-medium text-yellow-400 hover:bg-gray-700 hover:text-yellow-400">
+          <i data-lucide="shield-check" class="w-4 h-4"></i>
+          <span>Admin</span>
+        </a>
+        <a href="statistiques.html" class="flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm font-medium text-yellow-400 hover:bg-gray-700 hover:text-yellow-400">
+          <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
+          <span>Statistiques</span>
+        </a>
         </div>
+      
+      <button id="logout-button" class="flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm font-medium text-red-400 hover:bg-red-700 hover:text-white">
+        <i data-lucide="log-out" class="w-4 h-4"></i>
+        <span>Déconnexion</span>
+      </button>
+    </div>
+  </div>
+</div>
         </div>
     </div>
   </div>

@@ -339,6 +339,48 @@ function injectCalendarStyles() {
   document.head.appendChild(style);
 }
 
+
+// NOUVELLE FONCTION: Ajoute les styles CSS pour le "glow"
+function injectAdminGlowStyles() {
+  const style = document.createElement('style');
+  style.innerHTML = `
+    /* Wrapper pour l'animation */
+    .admin-avatar-glow {
+      padding: 2px; /* Épaisseur de la "bordure" */
+      border-radius: 9999px; /* rounded-full */
+      
+      /* Le gradient animé */
+      background: linear-gradient(90deg, #60a5fa, #f472b6, #fb923c, #60a5fa); /* bleu, rose, orange, bleu */
+      background-size: 300% 300%;
+      animation: admin-glow-animation 3s linear infinite;
+      
+      /* S'assure qu'il est bien positionné */
+      display: inline-block;
+      vertical-align: middle; 
+    }
+
+    /* Keyframes pour l'animation du gradient */
+    @keyframes admin-glow-animation {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+// NOUVELLE FONCTION: Applique la classe "glow" si l'utilisateur est admin
+function applyAdminGlow() {
+  const userRole = sessionStorage.getItem('userRole');
+  if (userRole === 'admin') {
+    // Cible le nouveau wrapper que nous avons créé dans _nav.html
+    const avatarWrapper = document.getElementById('admin-avatar-border');
+    if (avatarWrapper) {
+      avatarWrapper.classList.add('admin-avatar-glow');
+    }
+  }
+}
+
 // ===============================================================
 // ==              SECTION RECHERCHE GLOBALE
 // ===============================================================
@@ -604,6 +646,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   
   injectCalendarStyles();
+  injectAdminGlowStyles();
   createSearchModal();
   window.addEventListener('keydown', globalKeyListener);
   hideAdminElements();
@@ -616,6 +659,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadNavAvatar(); // <-- ATTENDRE que l'ID utilisateur soit défini
     // setupRealtimePresence(); 
     setupThemeToggle();
+    applyAdminGlow();
 
     // --- Initialisation du Calendrier ---
     const calendarButton = document.getElementById('calendar-toggle-button');
