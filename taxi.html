@@ -89,9 +89,9 @@
     // On attend que TOUT le HTML soit chargé (y compris le modal à la fin)
     document.addEventListener('DOMContentLoaded', async () => {
 
-      const notyf = (typeof Notyf !== 'undefined') 
-        ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
-        : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
+      // const notyf = (typeof Notyf !== 'undefined') 
+      //   ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
+      //   : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
 
       // --- Déclaration des variables ---
       const modal = document.getElementById('taxi-modal');
