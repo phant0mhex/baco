@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api-proxy/:path*",
+      "destination": "https://mgljaheyimizrydazrxh.supabase.co/:path*"
+    }
+  ]
+}
