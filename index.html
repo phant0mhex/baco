@@ -106,23 +106,56 @@
       loginButton.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> <span>Connexion...</span>';
       lucide.createIcons(); // Redessiner l'icône
 
+      // ÉTAPE 1: Tenter de se connecter
       const { data, error } = await supabaseClient.auth.signInWithPassword({
         email: email,
         password: password,
       });
 
       if (error) {
+        // Erreur d'email ou de mot de passe
         console.error("Erreur de connexion:", error.message);
         errorDiv.textContent = "Email ou mot de passe incorrect.";
-        
-        // Réactiver le bouton
+        reactiverBouton();
+        return; // Arrêter ici
+      }
+
+      // ÉTAPE 2: Connexion réussie, VÉRIFIER LE STATUT DE BANNISSEMENT
+      try {
+        const { data: profileData, error: profileError } = await supabaseClient
+          .from('profiles')
+          .select('banned_until')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profileError) throw profileError;
+
+        // VÉRIFICATION : 'banned_until' est-il rempli ?
+        if (profileData && profileData.banned_until) {
+          // OUI, L'UTILISATEUR EST BANNI
+          errorDiv.textContent = "Ce compte a été banni.";
+          await supabaseClient.auth.signOut(); // Déconnecter immédiatement
+          reactiverBouton();
+        } else {
+          // NON, L'UTILISATEUR N'EST PAS BANNI
+          console.log("Connecté !", data.user);
+          window.location.href = "accueil.html"; // Redirection
+        }
+
+      } catch (profileError) {
+        // Erreur lors de la récupération du profil
+        console.error("Erreur vérification profil:", profileError.message);
+        errorDiv.textContent = "Erreur lors de la vérification du profil.";
+        await supabaseClient.auth.signOut(); // Déconnecter par sécurité
+        reactiverBouton();
+      }
+    }
+    
+    // NOUVELLE FONCTION UTILITAIRE pour réactiver le bouton
+    function reactiverBouton() {
         loginButton.disabled = false;
         loginButton.innerHTML = '<i data-lucide="log-in" class="w-5 h-5"></i> <span>Connexion</span>';
-        lucide.createIcons(); // Redessiner l'icône
-      } else {
-        console.log("Connecté !", data.user);
-        window.location.href = "accueil.html";
-      }
+        lucide.createIcons();
     }
 
 // NOUVELLE FONCTION: Gérer la demande de réinitialisation
