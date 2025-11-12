@@ -598,7 +598,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       dismissible: true
     });
   } else {
-    // Fallback au cas où Notyf n'est pas chargé (ex: _nav.html manquant)
+    // Fallback au cas où Notyf n'est pas chargé
     console.error("Notyf n'est pas chargé !");
     notyf = { success: (msg) => alert(msg), error: (msg) => alert(msg) };
   }
