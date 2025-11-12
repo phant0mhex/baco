@@ -46,6 +46,12 @@
     .EasyMDEContainer { z-index: 60; }
     .editor-toolbar { z-index: 61; }
   </style>
+  <style>
+  /* Cacher le corps par défaut jusqu'à ce que l'auth soit vérifiée */
+  body {
+    visibility: hidden;
+  }
+</style>
 </head>
 <body class="flex flex-col min-h-screen bg-gray-100">
 

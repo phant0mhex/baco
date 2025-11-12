@@ -36,5 +36,12 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
     
     // Stocker le rôle dans le sessionStorage pour y accéder depuis TOUTES les pages
     sessionStorage.setItem('userRole', userRole);
+
+    // ===============================================
+    // == NOUVELLE LIGNE : On révèle le contenu
+    // ===============================================
+    document.body.style.visibility = 'visible';
+
+    
   }
 })();
