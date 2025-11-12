@@ -165,62 +165,7 @@
         ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
         : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
     
-    /**
-     * Gère l'ajout ou la suppression d'un favori
-     */
-    async function toggleFavorite(element, type, id, isFavorited) {
-      if (!currentUserId) {
-        notyf.error("Erreur: Utilisateur non identifié.");
-        return;
-      }
-      
-      element.disabled = true;
-      element.classList.add('opacity-50', 'cursor-wait');
-      
-      // ======================= CORRECTION =======================
-      // CIBLER L'ICÔNE À L'INTÉRIEUR DU BOUTON
-      const icon = element.querySelector('i');
-      if (!icon) return; // Sécurité
-      // ==========================================================
-
-      try {
-        if (isFavorited) {
-          // --- Le supprimer ---
-          const { error } = await supabaseClient.from('favoris').delete()
-            .match({ user_id: currentUserId, id_contenu: id, type_contenu: type });
-          if (error) throw error;
-          
-          favoritedContactIds.delete(id);
-          
-          // ======================= CORRECTION =======================
-          icon.classList.remove('fill-yellow-400', 'text-yellow-400');
-          icon.classList.add('text-gray-400');
-          // ==========================================================
-          
-          element.setAttribute('onclick', `toggleFavorite(this, '${type}', ${id}, false)`);
-          
-        } else {
-          // --- L'ajouter ---
-          const { error } = await supabaseClient.from('favoris')
-            .insert({ user_id: currentUserId, id_contenu: id, type_contenu: type });
-          if (error) throw error;
-          
-          favoritedContactIds.add(id);
-          
-          // ======================= CORRECTION =======================
-          icon.classList.add('fill-yellow-400', 'text-yellow-400');
-          icon.classList.remove('text-gray-400');
-          // ==========================================================
-          
-          element.setAttribute('onclick', `toggleFavorite(this, '${type}', ${id}, true)`);
-        }
-      } catch (error) {
-        notyf.error("Erreur: " + error.message);
-      } finally {
-        element.disabled = false;
-        element.classList.remove('opacity-50', 'cursor-wait');
-      }
-    }
+   
     
     /**
      * Charge dynamiquement les catégories principales depuis Supabase

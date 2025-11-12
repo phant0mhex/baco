@@ -90,11 +90,14 @@
       </div>
 
 
-  <!--   <div id="favorites-container" class="mb-12" style="display: none;">
-      <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-4">Mes Favoris</h2>
+    <div id="favorites-container" class="mb-10">
+      <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+        <i data-lucide="star" class="w-6 h-6 text-yellow-500"></i>
+        <span>Mes Favoris</span>
+      </h2>
       <div id="favorites-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         </div>
-    </div> -->
+    </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
@@ -318,6 +321,137 @@
         }
         lucide.createIcons(); // Appel final
       }
+      
+
+
+      // ==========================================================
+      // == NOUVELLE FONCTION POUR LE WIDGET FAVORIS
+      // ==========================================================
+      async function loadFavoritesWidget() {
+        const listContainer = document.getElementById('favorites-list');
+        if (!listContainer) return;
+
+        // 1. État de chargement
+        listContainer.innerHTML = `
+          <div class="col-span-full flex items-center justify-center p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <i data-lucide="loader-2" class="w-6 h-6 text-blue-500 animate-spin"></i>
+            <span class="ml-3 text-gray-600 dark:text-gray-400">Chargement des favoris...</span>
+          </div>`;
+        lucide.createIcons();
+
+        // Attendre que l'ID utilisateur soit chargé par loadUserGreeting
+        if (!currentUserId) {
+            await loadUserGreeting();
+            // Si toujours pas d'ID, on arrête
+            if (!currentUserId) {
+                listContainer.innerHTML = `<p class="text-red-500">Erreur: ID utilisateur non trouvé.</p>`;
+                return;
+            }
+        }
+
+        try {
+          // 2. Interroger Supabase avec des jointures intelligentes
+          // On récupère tous les favoris de l'utilisateur ET les données associées
+          const { data, error } = await supabaseClient
+            .from('favoris')
+            .select(`
+              id, 
+              type_contenu, 
+              id_contenu,
+              pmr_clients ( id, nom, prenom, telephone ),
+              taxis ( id, nom, telephone ),
+              profiles ( id, full_name, telephone, service ),
+              bus ( id, ligne, arret )
+            `)
+            .eq('user_id', currentUserId)
+            .limit(9); // Limiter à 9 pour le widget
+
+          if (error) throw error;
+          
+          if (data.length === 0) {
+            checkIfFavoritesEmpty(); // Afficher le message "Pas de favoris"
+            return;
+          }
+
+          // 3. Afficher les favoris trouvés
+          listContainer.innerHTML = data.map(fav => {
+            switch (fav.type_contenu) {
+              case 'client_pmr':
+                return renderFavCard({
+                  id: fav.id_contenu,
+                  type: fav.type_contenu,
+                  icon: 'accessibility',
+                  iconColor: 'text-blue-500',
+                  title: `${fav.pmr_clients.prenom || ''} ${fav.pmr_clients.nom}`,
+                  subtext: fav.pmr_clients.telephone,
+                  link: `clients_pmr.html?search=${fav.pmr_clients.nom}`
+                });
+              case 'taxi':
+                return renderFavCard({
+                  id: fav.id_contenu,
+                  type: fav.type_contenu,
+                  icon: 'car',
+                  iconColor: 'text-yellow-500',
+                  title: fav.taxis.nom,
+                  subtext: fav.taxis.telephone,
+                  link: `taxi.html?search=${fav.taxis.nom}`
+                });
+              case 'repertoire':
+                return renderFavCard({
+                  id: fav.id_contenu,
+                  type: fav.type_contenu,
+                  icon: 'contact',
+                  iconColor: 'text-green-500',
+                  title: fav.profiles.full_name,
+                  subtext: fav.profiles.telephone || fav.profiles.service,
+                  link: `repertoire.html?search=${fav.profiles.full_name}`
+                });
+              case 'bus':
+                 return renderFavCard({
+                  id: fav.id_contenu,
+                  type: fav.type_contenu,
+                  icon: 'bus',
+                  iconColor: 'text-purple-500',
+                  title: `${fav.bus.ligne} - ${fav.bus.arret}`,
+                  subtext: 'Info Bus',
+                  link: `bus.html?search=${fav.bus.arret}`
+                });
+              default:
+                return ''; // Ne rien afficher si le type est inconnu
+            }
+          }).join('');
+          
+          lucide.createIcons();
+
+        } catch (error) {
+          console.error("Erreur chargement widget favoris:", error.message);
+          listContainer.innerHTML = `<p class="col-span-full text-red-600">Erreur: ${error.message}</p>`;
+        }
+      }
+
+      /**
+       * (Fonction utilitaire) Génère le HTML pour une carte de favori
+       */
+      function renderFavCard({ id, type, icon, iconColor, title, subtext, link }) {
+        return `
+          <div class="favorite-card flex items-center justify-between p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
+            <a href="${link}" class="flex items-center gap-3 overflow-hidden" title="Voir le détail">
+              <i data-lucide="${icon}" class="w-5 h-5 ${iconColor} flex-shrink-0"></i>
+              <div class="overflow-hidden">
+                <p class="font-semibold text-gray-800 dark:text-gray-100 truncate">${title}</p>
+                <p class="text-sm text-gray-600 dark:text-gray-400 truncate">${subtext || ''}</p>
+              </div>
+            </a>
+            <button 
+              onclick="window.toggleFavorite(this, '${type}', ${id}, true)"
+              class="p-2 text-yellow-500 rounded-full hover:bg-yellow-100 dark:hover:bg-gray-800" 
+              title="Retirer des favoris">
+              <i data-lucide="star" class="w-5 h-5 fill-yellow-500"></i>
+            </button>
+          </div>
+        `;
+      }
+
       
       // --- Appel des fonctions au chargement ---
       loadUserGreeting();

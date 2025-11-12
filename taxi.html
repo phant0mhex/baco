@@ -102,54 +102,7 @@
       const lieuCheckboxesContainer = document.getElementById('lieuCheckboxes');
       
       
-      // ======================= NOUVELLE FONCTION (Corrigée) =======================
-      /**
-       * Gère l'ajout ou la suppression d'un favori
-       */
-      window.toggleFavorite = async function(element, type, id, isFavorited) {
-        if (!currentUserId) {
-          notyf.error("Erreur: Utilisateur non identifié.");
-          return;
-        }
-        
-        element.disabled = true;
-        element.classList.add('opacity-50', 'cursor-wait');
-        
-        // CIBLER L'ICÔNE À L'INTÉRIEUR DU BOUTON
-        const icon = element.querySelector('i');
-        if (!icon) return; // Sécurité
-
-        try {
-          if (isFavorited) {
-            // --- Le supprimer ---
-            const { error } = await supabaseClient.from('favoris').delete()
-              .match({ user_id: currentUserId, id_contenu: id, type_contenu: type });
-            if (error) throw error;
-            
-            favoritedTaxiIds.delete(id);
-            icon.classList.remove('fill-yellow-400', 'text-yellow-400');
-            icon.classList.add('text-gray-400');
-            element.setAttribute('onclick', `toggleFavorite(this, '${type}', ${id}, false)`);
-            
-          } else {
-            // --- L'ajouter ---
-            const { error } = await supabaseClient.from('favoris')
-              .insert({ user_id: currentUserId, id_contenu: id, type_contenu: type });
-            if (error) throw error;
-            
-            favoritedTaxiIds.add(id);
-            icon.classList.add('fill-yellow-400', 'text-yellow-400');
-            icon.classList.remove('text-gray-400');
-            element.setAttribute('onclick', `toggleFavorite(this, '${type}', ${id}, true)`);
-          }
-        } catch (error) {
-          notyf.error("Erreur: " + error.message);
-        } finally {
-          element.disabled = false;
-          element.classList.remove('opacity-50', 'cursor-wait');
-        }
-      }
-      // ======================================================================
+    
 
       // On attache les événements aux fonctions globales
       window.updateTaxiDisplay = updateTaxiDisplay;
