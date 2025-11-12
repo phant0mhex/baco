@@ -345,11 +345,11 @@
         
         const isFavorited = favoritedClientIds.has(client.id);
         const starClass = isFavorited ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400';
-        const favoriteButton = `
-          <button onclick="toggleFavorite(this, 'client_pmr', ${client.id}, ${isFavorited})" class="p-2 rounded-full hover:bg-yellow-100" title="Mettre en favori">
-            <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
-          </button>
-        `;
+       const favoriteButton = `
+  <button onclick="window.toggleFavorite(this, 'client_pmr', ${client.id}, ${isFavorited})" class="p-2 rounded-full hover:bg-yellow-100" title="Mettre en favori">
+    <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
+  </button>
+`;
         
         let traceabilityHtml = '';
         if (client.updated_at && client.profiles) {
