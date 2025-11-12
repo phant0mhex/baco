@@ -17,6 +17,7 @@
     <div id="nav-content" class="hidden md:flex flex-col md:flex-row md:items-start md:justify-between w-full md:flex-nowrap">
       
       <div class="flex flex-col md:flex-row md:space-x-4 mt-4 md:mt-0 flex-wrap" id="nav-links">
+        
         <a href="operationnel.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700"><i data-lucide="shield" class="w-4 h-4"></i><span>Opérationnel</span></a>
         
         <div class="relative md:block" id="pmr-dropdown-container">
@@ -25,7 +26,6 @@
                 <span>PMR</span>
                 <i data-lucide="chevron-down" class="w-4 h-4 ml-auto md:ml-0" id="pmr-chevron-icon"></i>
             </button>
-            
             <div id="pmr-dropdown" class="hidden absolute top-full left-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
                 <a href="pmr.html" class="flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
                     <i data-lucide="combine" class="w-4 h-4"></i>
@@ -37,20 +37,56 @@
                 </a>
             </div>
         </div>
-        <a href="bus.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700"><i data-lucide="bus" class="w-4 h-4"></i><span>Bus</span></a>
-        <a href="taxi.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700"><i data-lucide="car" class="w-4 h-4"></i><span>Taxi</span></a>
-        <a href="repertoire.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700"><i data-lucide="book-user" class="w-4 h-4"></i><span>Répertoire</span></a>
-        <a href="lignes.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700"><i data-lucide="train" class="w-4 h-4"></i><span>Lignes</span></a>
-        <a href="ptcar.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700"><i data-lucide="tag" class="w-4 h-4"></i><span>PtCar</span></a>
-        <a href="ebp.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
-          <i data-lucide="database" class="w-4 h-4"></i><span>EBP</span>
-        </a>
+
+        <div class="relative md:block" id="repertoire-dropdown-container">
+            <button id="repertoire-toggle-button" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 w-full md:w-auto text-left">
+                <i data-lucide="book-user" class="w-4 h-4"></i>
+                <span>Répertoire</span>
+                <i data-lucide="chevron-down" class="w-4 h-4 ml-auto md:ml-0" id="repertoire-chevron-icon"></i>
+            </button>
+            <div id="repertoire-dropdown" class="hidden absolute top-full left-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
+                <a href="bus.html" class="flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
+                    <i data-lucide="bus" class="w-4 h-4"></i><span>Bus</span>
+                </a>
+                <a href="taxi.html" class="flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
+                    <i data-lucide="car" class="w-4 h-4"></i><span>Taxi</span>
+                </a>
+                <a href="repertoire.html" class="flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
+                    <i data-lucide="book-user" class="w-4 h-4"></i><span>Répertoire Interne</span>
+                </a>
+            </div>
+        </div>
+        
+        <div class="relative md:block" id="data-dropdown-container">
+            <button id="data-toggle-button" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 w-full md:w-auto text-left">
+                <i data-lucide="database" class="w-4 h-4"></i>
+                <span>Data</span>
+                <i data-lucide="chevron-down" class="w-4 h-4 ml-auto md:ml-0" id="data-chevron-icon"></i>
+            </button>
+            <div id="data-dropdown" class="hidden absolute top-full left-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
+                <a href="lignes.html" class="flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
+                    <i data-lucide="train" class="w-4 h-4"></i><span>Lignes</span>
+                </a>
+                <a href="ptcar.html" class="flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
+                    <i data-lucide="tag" class="w-4 h-4"></i><span>PtCar</span>
+                </a>
+                <a href="ebp.html" class="flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
+                    <i data-lucide="database" class="w-4 h-4"></i><span>EBP</span>
+                </a>
+                <a href="carte_pn.html" class="flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
+                    <i data-lucide="map" class="w-4 h-4"></i><span>Carte PN</span>
+                </a>
+            </div>
+        </div>
+        
         <a href="documents.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700"><i data-lucide="folder" class="w-4 h-4"></i><span>Documents</span></a>
+        
         <a href="journal.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
           <i data-lucide="book-copy" class="w-4 h-4"></i>
           <span>Journal</span>
           <span id="journal-badge" class="hidden ml-1 px-2 py-0.5 text-xs font-bold rounded-full bg-red-600 text-white"></span>
         </a>
+
       </div>
 
       <div class="flex flex-col md:flex-row items-start md:items-center gap-4 mt-4 md:mt-0 border-t border-gray-700 pt-4 md:border-none md:pt-0 md:flex-shrink-0">
@@ -97,9 +133,7 @@
                   <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
                   <span>Statistiques</span>
                 </a>
-                <a href="carte_pn.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">
-          <i data-lucide="map" class="w-4 h-4"></i><span>Carte PN</span>
-        </a>
+               
               </div>
               
               <button id="logout-button" class="flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm font-medium text-red-400 hover:bg-red-700 hover:text-white">
