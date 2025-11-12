@@ -16,7 +16,7 @@
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.303.0/dist/umd/lucide.min.js" defer></script>
 <link rel="stylesheet" href="https://unpkg.com/notyf@3/notyf.min.css">
   <script src="https://unpkg.com/notyf@3/notyf.min.js"></script>
-  
+
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -410,13 +410,7 @@
                  // CORRECTION : Utiliser fav.bus_societe_nom
                  if (!fav.bus_societe_nom) return '';
                  return renderFavCard({
-                  id: fav.id_contenu,
-                  type: fav.type_contenu,
-                  icon: 'bus',
-                  iconColor: 'text-purple-500',
-                  title: fav.bus_societe_nom,
-                  subtext: 'Société de bus',
-                  link: `bus.html`
+                 
                 });
 
               // NOUVEAU : Gérer les contacts/chauffeurs de bus
