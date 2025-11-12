@@ -410,7 +410,15 @@
                  // CORRECTION : Utiliser fav.bus_societe_nom
                  if (!fav.bus_societe_nom) return '';
                  return renderFavCard({
-                 
+                 // --- DÉBUT DU CODE RESTAURÉ ---
+                  id: fav.id_contenu,
+                  type: fav.type_contenu,
+                  icon: 'bus',
+                  iconColor: 'text-purple-500',
+                  title: fav.bus_societe_nom,
+                  subtext: 'Société de bus',
+                  link: `bus.html`
+                  // --- FIN DU CODE RESTAURÉ ---
                 });
 
               // NOUVEAU : Gérer les contacts/chauffeurs de bus
