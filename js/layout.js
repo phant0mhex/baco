@@ -684,6 +684,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         presenceDropdown.addEventListener('click', (e) => e.stopPropagation());
     }
 
+    // Dropdown Répertoire (Nouveau)
+    const repertoireContainer = document.getElementById('repertoire-dropdown-container');
+    const repertoireButton = document.getElementById('repertoire-toggle-button');
+    const repertoireDropdown = document.getElementById('repertoire-dropdown');
+    const repertoireChevron = document.getElementById('repertoire-chevron-icon');
+
+    // Dropdown Data (Nouveau)
+    const dataContainer = document.getElementById('data-dropdown-container');
+    const dataButton = document.getElementById('data-toggle-button');
+    const dataDropdown = document.getElementById('data-dropdown');
+    const dataChevron = document.getElementById('data-chevron-icon');
+
+    
     // Logique du dropdown de profil
     const profileButton = document.getElementById('profile-toggle-button');
     if (profileContainer && profileButton && profileDropdown) {
@@ -711,20 +724,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         pmrDropdown.addEventListener('click', (e) => e.stopPropagation());
     }
 
-    // Logique de fermeture "Click-away"
+    // Logique du dropdown Répertoire
+    if (repertoireContainer && repertoireButton && repertoireDropdown) {
+        repertoireButton.onclick = (e) => {
+            e.stopPropagation();
+            toggleMenu(repertoireDropdown, repertoireChevron);
+        };
+        repertoireDropdown.addEventListener('click', (e) => e.stopPropagation());
+    }
+
+    // Logique du dropdown Data
+    if (dataContainer && dataButton && dataDropdown) {
+        dataButton.onclick = (e) => {
+            e.stopPropagation();
+            toggleMenu(dataDropdown, dataChevron);
+        };
+        dataDropdown.addEventListener('click', (e) => e.stopPropagation());
+    }
+
+
+   // Logique de fermeture "Click-away" (Généralisée)
     window.addEventListener('click', (e) => {
-        if (presenceContainer && !presenceContainer.contains(e.target)) {
-            presenceDropdown?.classList.add('hidden');
-        }
-        if (profileContainer && !profileContainer.contains(e.target)) {
-            profileDropdown?.classList.add('hidden');
-        }
-        if (pmrContainer && !pmrContainer.contains(e.target)) {
-            if (pmrDropdown && !pmrDropdown.classList.contains('hidden')) {
-              pmrDropdown.classList.add('hidden');
-              pmrChevron?.setAttribute('data-lucide', 'chevron-down');
-              lucide.createIcons();
-            }
+        // Liste de tous les conteneurs de menu
+        const containers = [
+            profileContainer, pmrContainer, repertoireContainer, dataContainer, presenceContainer
+        ];
+        
+        // On vérifie si le clic a eu lieu *à l'intérieur* de l'un des conteneurs
+        let clickedInsideADropdown = containers.some(container => 
+            container && container.contains(e.target)
+        );
+
+        // Si le clic est à l'extérieur de tous les conteneurs...
+        if (!clickedInsideADropdown) {
+            // ...on ferme TOUS les menus.
+            allDropdowns.forEach(({ menu, chevron }) => {
+                menu?.classList.add('hidden');
+                if (chevron) {
+                    chevron.setAttribute('data-lucide', 'chevron-down');
+                }
+            });
+            lucide.createIcons(); // Redessiner les chevrons
         }
     });
 
