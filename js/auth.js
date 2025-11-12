@@ -22,8 +22,9 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
     const currentPage = window.location.pathname.split('/').pop();
     
     // Ne pas rediriger si on est DÉJÀ sur index.html
-    if (currentPage !== 'index.html') {
-      alert("Vous n'êtes pas connecté. Redirection vers la page de connexion.");
+   // Ne pas rediriger si on est DÉJÀ sur index.html ou reset-password.html
+    if (currentPage !== 'index.html' && currentPage !== 'reset-password.html') {
+      // alert("Vous n'êtes pas connecté. Redirection vers la page de connexion."); // <- SUPPRIMÉ
       window.location.href = 'index.html';
     }
   } else {
@@ -42,6 +43,6 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
     // ===============================================
     document.body.style.visibility = 'visible';
 
-    
+
   }
 })();
