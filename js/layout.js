@@ -1,5 +1,12 @@
 // js/layout.js
 
+// ==========================================================
+// == VARIABLES GLOBALES
+// ==========================================================
+let currentUserId = null;
+let notyf;
+
+
 /**
  * Charge un composant HTML (comme _nav.html ou _footer.html) dans un placeholder
  * @param {string} placeholderId L'ID du div où injecter le HTML
@@ -695,54 +702,50 @@ window.toggleFavorite = async function(element, type, id, isFavorited) {
     return;
   }
   
-  // Désactiver le bouton pour éviter les double-clics
+ // Désactiver le bouton pour éviter les double-clics
   element.disabled = true;
   element.classList.add('opacity-50', 'cursor-wait');
-  const icon = element.querySelector('i[data-lucide="star"]');
 
-  try {
+ try {
     if (isFavorited) {
       // --- Supprimer le favori ---
       const { error } = await supabaseClient.from('favoris').delete()
         .match({ user_id: currentUserId, id_contenu: id, type_contenu: type });
       if (error) throw error;
       
-      // Mettre à jour l'UI (icône et prochain clic)
-      if (icon) {
-        icon.classList.remove('fill-yellow-400', 'text-yellow-400');
-        icon.classList.add('text-gray-400');
+      // Mettre à jour l'UI
+      const favCard = element.closest('.favorite-card');
+      if (favCard) {
+        // Si on est dans le widget d'accueil, supprimer la carte
+        favCard.remove();
+        // Vérifier si le conteneur est vide
+        checkIfFavoritesEmpty();
+      } else {
+        // Sinon, on est sur une page de liste, on met à jour l'icône
+        const icon = element.querySelector('i[data-lucide="star"]');
+        if (icon) {
+          icon.classList.remove('fill-yellow-400', 'text-yellow-400');
+          icon.classList.add('text-gray-400');
+        }
+        element.setAttribute('onclick', `window.toggleFavorite(this, '${type}', ${id}, false)`);
       }
-      // IMPORTANT : Mettre à jour l'attribut onclick pour appeler window.toggleFavorite
-      element.setAttribute('onclick', `window.toggleFavorite(this, '${type}', '${id}', false)`);
       
-    } else {
+  } else {
       // --- Ajouter le favori ---
       const { error } = await supabaseClient.from('favoris')
         .insert({ user_id: currentUserId, id_contenu: id, type_contenu: type });
       if (error) throw error;
       
-      // Mettre à jour l'UI (icône et prochain clic)
+    // Mettre à jour l'UI (on ne fait rien sur le widget, on met à jour l'icône sur les listes)
+      const icon = element.querySelector('i[data-lucide="star"]');
       if (icon) {
         icon.classList.add('fill-yellow-400', 'text-yellow-400');
         icon.classList.remove('text-gray-400');
       }
-      // IMPORTANT : Mettre à jour l'attribut onclick pour appeler window.toggleFavorite
-      element.setAttribute('onclick', `window.toggleFavorite(this, '${type}', '${id}', true)`);
+      element.setAttribute('onclick', `window.toggleFavorite(this, '${type}', ${id}, true)`);
     }
   } catch (error) {
-    // Gérer les erreurs (comme 'duplicate key')
-    console.error("Erreur toggleFavorite:", error.message);
-    if (error.message.includes('duplicate key')) {
-        notyf.error("Erreur : Ce favori existe déjà. L'interface va se synchroniser.");
-        // Force la synchronisation de l'UI en cas d'erreur de 'duplicate'
-        if (icon) {
-            icon.classList.add('fill-yellow-400', 'text-yellow-400');
-            icon.classList.remove('text-gray-400');
-        }
-        element.setAttribute('onclick', `window.toggleFavorite(this, '${type}', '${id}', true)`);
-    } else {
-        notyf.error("Erreur: " + error.message);
-    }
+    notyf.error("Erreur: " + error.message);
   } finally {
     // Réactiver le bouton
     element.disabled = false;
