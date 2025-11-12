@@ -95,15 +95,13 @@ function checkIfFavoritesEmpty() {
     }
 }
 
+
 // ==========================================================
 // == CODE D'ORIGINE RESTAURÉ (fonctions, etc.)
 // ==========================================================
 
 /**
  * Charge un composant HTML (comme _nav.html ou _footer.html) dans un placeholder
- * @param {string} placeholderId L'ID du div où injecter le HTML
- * @param {string} htmlFilePath Le chemin vers le fichier HTML à charger
- * @returns {Promise<boolean>} Vrai si le chargement a réussi, faux sinon
  */
 async function loadComponent(placeholderId, htmlFilePath) {
   const placeholder = document.getElementById(placeholderId);
@@ -126,24 +124,22 @@ async function loadComponent(placeholderId, htmlFilePath) {
   }
 }
 
-// --- Fonctions utilitaires (au niveau global) ---
+// --- Fonctions utilitaires ---
 function highlightActiveLink() {
   const currentPage = window.location.pathname.split('/').pop();
   if (currentPage) {
     const navLinksContainer = document.getElementById('nav-links');
     if (navLinksContainer) {
-      // Pour le dropdown PMR, on active les liens enfants si la page est l'une des deux
+      // Pour le dropdown PMR
       const pmrLink = navLinksContainer.querySelector(`a[href="pmr.html"]`);
       const clientsPmrLink = navLinksContainer.querySelector(`a[href="clients_pmr.html"]`);
 
       if (pmrLink && clientsPmrLink) {
         if (currentPage === 'pmr.html' || currentPage === 'clients_pmr.html') {
-          // On highlight le bouton du dropdown PMR s'il existe
           const pmrButton = document.getElementById('pmr-toggle-button');
           if (pmrButton) {
             pmrButton.classList.add('bg-gray-700', 'font-bold');
           }
-          // On gère l'highlight des liens à l'intérieur du dropdown plus tard/avec d'autres scripts.
         }
       }
       
@@ -154,6 +150,7 @@ function highlightActiveLink() {
     }
   }
 }
+
 function hideAdminElements() {
   const userRole = sessionStorage.getItem('userRole');
   if (userRole !== 'admin') {
@@ -162,12 +159,19 @@ function hideAdminElements() {
     document.head.appendChild(style);
   }
 }
+
+/**
+ * Charge l'avatar et DÉFINIT L'ID UTILISATEUR GLOBAL
+ */
 async function loadNavAvatar() {
   const navAvatar = document.getElementById('nav-avatar');
   if (!navAvatar) return; 
   try {
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) return;
+    if (authError || !user) {
+        // Si personne n'est connecté, on arrête (le gardien auth.js s'en chargera)
+        return;
+    }
     
     currentUserId = user.id; // Définit l'ID global
     
@@ -180,25 +184,25 @@ async function loadNavAvatar() {
     console.error("Impossible de charger l'avatar de la nav:", error.message);
   }
 }
+
 async function setupRealtimePresence() {
+  // S'assurer que currentUserId a été défini avant de continuer
+  if (!currentUserId) {
+    console.warn("Présence non activée: utilisateur non identifié.");
+    return;
+  }
+  
   let userProfile;
-  let localUserId; 
   try {
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) {
-      console.warn("Présence non activée: utilisateur non connecté.");
-      return; 
-    }
-    localUserId = user.id;
     userProfile = {
-      id: user.id,
-      full_name: user.email.split('@')[0], 
+      id: currentUserId,
+      full_name: 'Utilisateur', // Nom par défaut
       avatar_url: 'https://via.placeholder.com/40'
     };
     const { data: profileData, error: profileError } = await supabaseClient
       .from('profiles')
       .select('full_name, avatar_url')
-      .eq('id', user.id)
+      .eq('id', currentUserId)
       .single();
     if (profileError && profileError.code !== 'PGRST116') {
       console.error("Erreur chargement profil présence:", profileError.message);
@@ -225,7 +229,7 @@ async function setupRealtimePresence() {
   channel
     .on('presence', { event: 'sync' }, () => {
       const presenceState = channel.presenceState();
-      updateOnlineAvatars(presenceState, localUserId); 
+      updateOnlineAvatars(presenceState, currentUserId); // Utiliser currentUserId
     })
     .subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
@@ -233,6 +237,7 @@ async function setupRealtimePresence() {
       }
     });
 }
+
 function updateOnlineAvatars(state, localUserId) {
   const counter = document.getElementById('presence-counter');
   const list = document.getElementById('presence-list');
@@ -260,16 +265,17 @@ function updateOnlineAvatars(state, localUserId) {
     list.innerHTML = html;
   }
 }
+
 async function loadLatestChangelog() {
   const versionElement = document.getElementById('version-info');
   if (!versionElement) return;
   try {
     const { data, error } = await supabaseClient
       .from('changelog')
-      .select('title, type') // Sélectionne le titre et le type
-      .order('created_at', { ascending: false }) // La plus récente
-      .limit(1) // Une seule
-      .single(); // On s'attend à un seul objet
+      .select('title, type') 
+      .order('created_at', { ascending: false })
+      .limit(1) 
+      .single(); 
     if (error) throw error;
     if (data) {
       let typeText = '';
@@ -294,16 +300,8 @@ async function loadLatestChangelog() {
   }
 }
 
-// ===============================================================
-// ==              SECTION CALENDRIER PERSONNALISÉ              ==
-// ===============================================================
-
-/**
- * Injecte les styles CSS personnalisés pour Flatpickr (thème "BACO")
- */
 function injectCalendarStyles() {
   const style = document.createElement('style');
-  // ... (votre code de style CSS pour le calendrier, inchangé) ...
   style.innerHTML = `
     .flatpickr-calendar.baco-theme {
       background: #1F2937 !important; /* bg-gray-800 */
@@ -342,7 +340,7 @@ function injectCalendarStyles() {
 }
 
 // ===============================================================
-// ==              SECTION RECHERCHE GLOBALE (MISE À JOUR)      ==
+// ==              SECTION RECHERCHE GLOBALE
 // ===============================================================
 
 let globalSearchTimer;
@@ -352,11 +350,7 @@ let globalSearchResults;
 let globalSearchSpinner;
 let globalSearchSelectedIndex = -1;
 
-/**
- * Crée et injecte la modale de recherche globale et ses styles
- */
 function createSearchModal() {
-  // 1. Injecter les styles CSS
   const style = document.createElement('style');
   style.innerHTML = `
     #global-search-modal { z-index: 100; }
@@ -365,8 +359,6 @@ function createSearchModal() {
     kbd { font-family: 'Geist Mono', monospace; font-size: 0.75rem; background-color: #374151; border: 1px solid #4B5563; border-radius: 4px; padding: 2px 5px; }
   `;
   document.head.appendChild(style);
-
-  // 2. Injecter le HTML de la modale
   const modalHtml = `
     <div id="global-search-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-start justify-center p-4 pt-[20vh]" style="display: none;">
       <div id="global-search-modal-panel" class="bg-gray-800 text-gray-200 rounded-lg shadow-xl w-full max-w-2xl flex flex-col overflow-hidden">
@@ -381,24 +373,19 @@ function createSearchModal() {
         <div class="p-2 text-xs text-center text-gray-500 border-t border-gray-700">
           Utilisez <kbd>Cmd+K</kbd> ou <kbd>Shift+K</kbd> pour ouvrir/fermer.
         </div>
-      </div>
+        </div>
     </div>
   `;
   document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-  // 3. Stocker les références aux éléments
   globalSearchModal = document.getElementById('global-search-modal');
   globalSearchInput = document.getElementById('global-search-input');
   globalSearchResults = document.getElementById('global-search-results');
   globalSearchSpinner = document.getElementById('global-search-spinner');
-
-  // 4. Attacher les écouteurs d'événements
   globalSearchModal.addEventListener('click', (e) => {
     if (e.target.id === 'global-search-modal') {
       hideGlobalSearch();
     }
   });
-
   globalSearchInput.addEventListener('keydown', (e) => {
     const results = globalSearchResults.querySelectorAll('.search-result-item');
     if (e.key === 'ArrowDown') {
@@ -422,7 +409,6 @@ function createSearchModal() {
       hideGlobalSearch();
     }
   });
-
   globalSearchInput.addEventListener('keyup', (e) => {
     const navKeys = ['ArrowDown', 'ArrowUp', 'Enter', 'Escape'];
     if (!navKeys.includes(e.key)) {
@@ -430,10 +416,6 @@ function createSearchModal() {
     }
   });
 }
-
-/**
- * Affiche la modale de recherche
- */
 function showGlobalSearch() {
   if (globalSearchModal) {
     globalSearchModal.style.display = 'flex';
@@ -443,29 +425,17 @@ function showGlobalSearch() {
     globalSearchResults.innerHTML = '<p class="text-center text-gray-500 p-6">Commencez à taper pour rechercher...</p>';
   }
 }
-
-/**
- * Cache la modale de recherche
- */
 function hideGlobalSearch() {
   if (globalSearchModal) {
     globalSearchModal.style.display = 'none';
   }
 }
-
-/**
- * Gère le debounce pour la recherche
- */
 function debounceSearch() {
   clearTimeout(globalSearchTimer);
   globalSearchTimer = setTimeout(() => {
     executeSearch();
   }, 300); 
 }
-
-/**
- * Appelle la fonction RPC de Supabase
- */
 async function executeSearch() {
   const searchTerm = globalSearchInput.value;
   if (searchTerm.length < 2) {
@@ -486,10 +456,6 @@ async function executeSearch() {
     globalSearchSpinner.style.display = 'none';
   }
 }
-
-/**
- * Met à jour la surbrillance visuelle de l'élément sélectionné
- */
 function updateSelectedResult(results) {
   results = results || globalSearchResults.querySelectorAll('.search-result-item');
   results.forEach((item, index) => {
@@ -501,10 +467,6 @@ function updateSelectedResult(results) {
     }
   });
 }
-
-/**
- * Affiche les résultats dans la modale
- */
 function renderSearchResults(results) {
   globalSearchSelectedIndex = -1; 
   if (!results || results.length === 0) {
@@ -513,7 +475,7 @@ function renderSearchResults(results) {
   }
   const iconMap = {
     'Contact': 'book-user', 'Procédure': 'shield', 'Client PMR': 'users', 'PtCar': 'tag',
-    'Taxi': 'car', 'Bus (Société)': 'bus', 'Bus (Chauffeur)': 'user-check'
+    'Taxi': 'car', 'Bus (Société)': 'bus', 'Bus (Chauffeur)': 'user-check', 'Contact Bus': 'user-check'
   };
   globalSearchResults.innerHTML = results.map(r => `
     <a href="${r.url}" onclick="hideGlobalSearch()" class="search-result-item flex items-center justify-between gap-4 p-3 rounded-md cursor-pointer">
@@ -529,10 +491,6 @@ function renderSearchResults(results) {
   `).join('');
   lucide.createIcons();
 }
-
-/**
- * Écouteur de touches global pour Cmd+K / Shift+K
- */
 function globalKeyListener(e) {
   const modalVisible = (globalSearchModal && globalSearchModal.style.display === 'flex');
   if (e.shiftKey && e.key === 'K') {
@@ -546,18 +504,11 @@ function globalKeyListener(e) {
 }
 
 // ===============================================================
-// ==                FIN DE LA SECTION RECHERCHE                ==
-// ===============================================================
-
-// ===============================================================
 // ==              SECTION NOTIFICATIONS JOURNAL              ==
 // ===============================================================
 
 const JOURNAL_STORAGE_KEY = 'lastJournalVisit';
 
-/**
- * Charge et affiche le nombre de messages du journal non lus.
- */
 async function loadJournalNotificationCount() {
     const badgeElement = document.getElementById('journal-badge');
     if (!badgeElement) return;
@@ -593,9 +544,6 @@ window.loadJournalNotificationCount = loadJournalNotificationCount;
 // ==              SECTION LIGHT/DARK MODE TOGGLE               ==
 // ===============================================================
 
-/**
- * Gère la logique du mode sombre/clair.
- */
 function setupThemeToggle() {
     const themeToggleButton = document.getElementById('theme-toggle-button');
     const themeToggleIcon = document.getElementById('theme-toggle-icon');
@@ -650,6 +598,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       dismissible: true
     });
   } else {
+    // Fallback au cas où Notyf n'est pas chargé (ex: _nav.html manquant)
     console.error("Notyf n'est pas chargé !");
     notyf = { success: (msg) => alert(msg), error: (msg) => alert(msg) };
   }
@@ -779,12 +728,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // AJOUTEZ CETTE LIGNE :
+    // ==========================================================
+    // == CORRECTION : APPEL DE pageInit()
+    // ==========================================================
     // Une fois la nav et l'utilisateur chargés, on démarre le script de la page
     if (typeof window.pageInit === 'function') {
       window.pageInit();
     }
-
+    
   } // <-- Ferme le if (navLoaded)
 
   // Charger le footer
