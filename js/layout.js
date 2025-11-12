@@ -779,6 +779,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    // AJOUTEZ CETTE LIGNE :
+    // Une fois la nav et l'utilisateur chargés, on démarre le script de la page
+    if (typeof window.pageInit === 'function') {
+      window.pageInit();
+    }
+
   } // <-- Ferme le if (navLoaded)
 
   // Charger le footer

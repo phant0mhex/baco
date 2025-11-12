@@ -287,11 +287,7 @@
       lucide.createIcons();
 
       try {
-        if (!currentUserId) {
-          const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-          if (authError || !user) throw new Error("Utilisateur non connecté");
-          currentUserId = user.id;
-        }
+       
         
         const { data: favs, error: favError } = await supabaseClient
           .from('favoris')
@@ -456,7 +452,34 @@
         }
       lucide.createIcons();
     }
+
+
+    window.filterContacts = (category, element) => {
+        // ... (votre fonction filterContacts reste inchangée)
+        document.querySelectorAll('#filter-container button').forEach(btn => {
+          btn.classList.remove('bg-blue-100', 'text-blue-700');
+          btn.classList.add('text-gray-600', 'hover:bg-gray-200');
+        });
+        element.classList.add('bg-blue-100', 'text-blue-700');
+        element.classList.remove('text-gray-600', 'hover:bg-gray-200');
+        
+        const cards = document.querySelectorAll('.contact-card');
+        if (category === 'all') {
+          cards.forEach(card => card.style.display = 'block');
+        } else {
+          cards.forEach(card => {
+            card.style.display = card.dataset.category === category ? 'block' : 'none';
+          });
+        }
+      }
     
+      // --- Écouteurs ---
+      searchInput.addEventListener('input', () => loadData());
+      
+      // --- Lancement ---
+      loadData();
+
+      
     document.addEventListener('DOMContentLoaded', async () => { 
       // ... (code des boutons de tri inchangé) ...
       const sortAzButton = document.getElementById('sort-az');
