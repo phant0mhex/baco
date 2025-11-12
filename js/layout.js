@@ -660,29 +660,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
     }
     
-    // --- Définition des variables de dropdown ---
-    const presenceContainer = document.getElementById('presence-container');
-    const presenceDropdown = document.getElementById('presence-dropdown');
+    // [ Début du code à copier dans votre js/layout.js ]
+
+// --- Définition des variables de dropdown (VERSION MISE À JOUR) ---
+    
+    // Dropdown Profil
     const profileContainer = document.getElementById('profile-dropdown-container');
+    const profileButton = document.getElementById('profile-toggle-button');
     const profileDropdown = document.getElementById('profile-dropdown');
+
+    // Dropdown PMR
     const pmrContainer = document.getElementById('pmr-dropdown-container');
     const pmrButton = document.getElementById('pmr-toggle-button');
     const pmrDropdown = document.getElementById('pmr-dropdown');
     const pmrChevron = document.getElementById('pmr-chevron-icon');
-
-    // Logique du dropdown de présence
-    const presenceButton = document.getElementById('presence-toggle-button');
-    if (presenceContainer && presenceButton && presenceDropdown) {
-        presenceButton.onclick = (e) => {
-            e.stopPropagation(); 
-            presenceDropdown.classList.toggle('hidden');
-            profileDropdown?.classList.add('hidden');
-            pmrDropdown?.classList.add('hidden');
-            pmrChevron?.setAttribute('data-lucide', 'chevron-down');
-            lucide.createIcons();
-        };
-        presenceDropdown.addEventListener('click', (e) => e.stopPropagation());
-    }
 
     // Dropdown Répertoire (Nouveau)
     const repertoireContainer = document.getElementById('repertoire-dropdown-container');
@@ -696,18 +687,58 @@ document.addEventListener('DOMContentLoaded', async () => {
     const dataDropdown = document.getElementById('data-dropdown');
     const dataChevron = document.getElementById('data-chevron-icon');
 
+    // (Dropdown Presence - s'il existe)
+    const presenceContainer = document.getElementById('presence-container');
+    const presenceButton = document.getElementById('presence-toggle-button');
+    const presenceDropdown = document.getElementById('presence-dropdown');
     
+    // Liste de tous les menus qui doivent se fermer mutuellement
+    const allDropdowns = [
+        { menu: profileDropdown, chevron: null },
+        { menu: pmrDropdown, chevron: pmrChevron },
+        { menu: repertoireDropdown, chevron: repertoireChevron },
+        { menu: dataDropdown, chevron: dataChevron },
+        { menu: presenceDropdown, chevron: null }
+    ];
+
+    /**
+     * Fonction générique pour basculer un menu et fermer les autres.
+     * @param {HTMLElement} menuToToggle - Le menu (div) à ouvrir/fermer.
+     * @param {HTMLElement} [chevronToToggle] - L'icône chevron (i) à faire pivoter (optionnel).
+     */
+    function toggleMenu(menuToToggle, chevronToToggle) {
+        // Vérifier si le menu qu'on veut basculer est actuellement ouvert
+        const isCurrentlyOpen = !menuToToggle.classList.contains('hidden');
+
+        // 1. Fermer TOUS les menus
+        allDropdowns.forEach(({ menu, chevron }) => {
+            menu?.classList.add('hidden');
+            if (chevron) {
+                chevron.setAttribute('data-lucide', 'chevron-down');
+            }
+        });
+
+        // 2. Si le menu cible n'était PAS ouvert, on l'ouvre.
+        if (!isCurrentlyOpen) {
+            menuToToggle.classList.remove('hidden');
+            if (chevronToToggle) {
+                chevronToToggle.setAttribute('data-lucide', 'chevron-up');
+            }
+        }
+        // (S'il était ouvert, l'étape 1 l'a déjà fermé, ce qui correspond à un "toggle")
+        
+        lucide.createIcons();
+    }
+
+    // --- Attacher les écouteurs d'événements ---
+
     // Logique du dropdown de profil
-    const profileButton = document.getElementById('profile-toggle-button');
     if (profileContainer && profileButton && profileDropdown) {
         profileButton.onclick = (e) => {
-            e.stopPropagation();
-            profileDropdown.classList.toggle('hidden');
-            presenceDropdown?.classList.add('hidden');
-            pmrDropdown?.classList.add('hidden');
-            pmrChevron?.setAttribute('data-lucide', 'chevron-down');
-            lucide.createIcons();
+            e.stopPropagation(); // Empêche le "click-away" de se déclencher
+            toggleMenu(profileDropdown, null);
         };
+        // Empêche un clic dans le menu de fermer le menu
         profileDropdown.addEventListener('click', (e) => e.stopPropagation());
     }
 
@@ -715,11 +746,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (pmrContainer && pmrButton && pmrDropdown) {
         pmrButton.onclick = (e) => {
             e.stopPropagation();
-            pmrDropdown.classList.toggle('hidden');
-            pmrChevron.setAttribute('data-lucide', pmrDropdown.classList.contains('hidden') ? 'chevron-down' : 'chevron-up');
-            presenceDropdown?.classList.add('hidden');
-            profileDropdown?.classList.add('hidden');
-            lucide.createIcons();
+            toggleMenu(pmrDropdown, pmrChevron);
         };
         pmrDropdown.addEventListener('click', (e) => e.stopPropagation());
     }
@@ -741,9 +768,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
         dataDropdown.addEventListener('click', (e) => e.stopPropagation());
     }
+    
+    // Logique du dropdown de présence
+    if (presenceContainer && presenceButton && presenceDropdown) {
+        presenceButton.onclick = (e) => {
+            e.stopPropagation(); 
+            toggleMenu(presenceDropdown, null);
+        };
+        presenceDropdown.addEventListener('click', (e) => e.stopPropagation());
+    }
 
-
-   // Logique de fermeture "Click-away" (Généralisée)
+    // Logique de fermeture "Click-away" (Généralisée)
     window.addEventListener('click', (e) => {
         // Liste de tous les conteneurs de menu
         const containers = [
@@ -767,6 +802,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             lucide.createIcons(); // Redessiner les chevrons
         }
     });
+
+// [ Fin du code à copier ]
+
+
+
+
 
     // ==========================================================
     // == CORRECTION : APPEL DE pageInit()
