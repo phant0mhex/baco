@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api-proxy",
+      "destination": "https://mgljaheyimizrydazrxh.supabase.co"
+    },
+    {
       "source": "/api-proxy/:path*",
       "destination": "https://mgljaheyimizrydazrxh.supabase.co/:path*"
     }
