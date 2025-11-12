@@ -307,7 +307,7 @@
           '<ul class="list-none p-0 grid grid-cols-1 md:grid-cols-2 gap-3">' +
           contactList.map(c => {
             const isFavorited = favoritedItemIds.has(c.id.toString());
-            const starClass = isFavorited ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400';
+            const starClass = isFavorited ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400';
             const favoriteButton = `
               <button onclick="window.toggleFavorite(this, 'bus_contact', '${c.id}', ${isFavorited})" class="p-1 rounded-full hover:bg-yellow-100" title="Mettre en favori">
                 <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
