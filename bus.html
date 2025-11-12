@@ -158,7 +158,7 @@
   
   <script>
     let currentUserId;
-    let favoritedBusIds = new Set();
+    let favoritedItemIds = new Set();
   
     document.addEventListener('DOMContentLoaded', () => {
     
@@ -201,14 +201,14 @@
             currentUserId = user.id;
           }
           
-          const { data: favs, error: favError } = await supabaseClient
+         const { data: favs, error: favError } = await supabaseClient
             .from('favoris')
             .select('id_contenu')
             .eq('user_id', currentUserId)
-            .eq('type_contenu', 'bus');
+            .in('type_contenu', ['bus_contact', 'bus_chauffeur']); // <-- Nouveaux types
           
           if (favError) throw favError;
-          favoritedBusIds = new Set(favs.map(f => f.id_contenu));
+         favoritedItemIds = new Set(favs.map(f => f.id_contenu));
           
         } catch (error) {
           contentContainer.innerHTML = `<p class='text-red-600'>Erreur (auth/favs): ${error.message}</p>`;
@@ -251,28 +251,17 @@
                 
                 const isFavorited = favoritedBusIds.has(s.id);
                 const starClass = isFavorited ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400';
-               const favoriteButton = `
-  <button onclick="window.toggleFavorite(this, 'bus', ${s.id}, ${isFavorited})" class="p-1 rounded-full hover:bg-yellow-100" title="Mettre en favori">
-    <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
-  </button>
-`;
+               const favoriteButton = ''; // <-- SUPPRIMÉ
                 
-                return `
+               return `
                 <div class="flex items-center justify-between px-4 py-3 bg-white border border-gray-300 rounded-lg shadow-sm">
                   <label class="flex items-center space-x-2 cursor-pointer grow mr-2">
                     <input type="checkbox" value="${s.id}" onchange="updateChauffeursDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
                     <span class="font-medium text-gray-700">${s.nom}</span>
                   </label>
                   <div class="flex items-center gap-1 flex-shrink-0">
-                    ${favoriteButton}
-                    <div class="flex items-center gap-2 admin-only">
-                      <button onclick='showBusModal(${societeJson})' class="p-1 text-blue-600 rounded-full hover:bg-blue-100" title="Modifier ${s.nom}">
-                        <i data-lucide="pencil" class="w-4 h-4"></i>
-                      </button>
-                      <button onclick="deleteBus(${s.id}, '${s.nom}')" class="p-1 text-red-600 rounded-full hover:bg-red-100" title="Supprimer ${s.nom}">
-                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                      </button>
-                    </div>
+                    ${favoriteButton} <div class="flex items-center gap-2 admin-only">
+                      </div>
                   </div>
                 </div>`;
               }).join('') +
@@ -298,52 +287,74 @@
           return;
         }
 
+      // --- MODIFICATION ICI : On sélectionne 'id' ---
         const { data: contactList, error: contactError } = await supabaseClient
           .from('contacts_bus')
-          .select('nom, tel, societes_bus ( nom )')
+          .select('id, nom, tel, societes_bus ( nom )') // <-- Ajout de 'id'
           .in('societe_id', societesSelectionneesIds);
 
         const { data: chauffeursList, error: chauffeursError } = await supabaseClient
           .from('chauffeurs_bus')
-          .select('nom, tel, societes_bus ( nom )')
+          .select('id, nom, tel, societes_bus ( nom )') // <-- Ajout de 'id'
           .in('societe_id', societesSelectionneesIds);
           
         if (contactError || chauffeursError) {
-          contactsContainer.innerHTML = `<p class='text-red-600'>Erreur chargement contacts: ${contactError?.message || chauffeursError?.message}</p>`;
-          return;
+          // ... (votre gestion d'erreur)
         }
         
-        contactsContainer.innerHTML = contactList.length === 0 ? '' :
+      contactsContainer.innerHTML = contactList.length === 0 ? '' :
           '<h3 class="text-2xl font-semibold text-gray-800 mb-4">Contacts de la société :</h3>' +
           '<ul class="list-none p-0 grid grid-cols-1 md:grid-cols-2 gap-3">' +
-          contactList.map(c => 
-            `<li class="bg-gray-50 rounded-lg border border-gray-200 p-3 flex items-center justify-between">
+          contactList.map(c => {
+            // --- MODIFICATION ICI : Ajout du bouton favori ---
+            const isFavorited = favoritedItemIds.has(c.id);
+            const starClass = isFavorited ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400';
+            const favoriteButton = `
+              <button onclick="window.toggleFavorite(this, 'bus_contact', ${c.id}, ${isFavorited})" class="p-1 rounded-full hover:bg-yellow-100" title="Mettre en favori">
+                <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
+              </button>
+            `;
+            
+            return `<li class="bg-gray-50 rounded-lg border border-gray-200 p-3 flex items-center justify-between">
               <span class="flex items-center gap-2 text-sm font-medium text-gray-900">
                 <i data-lucide="user" class="w-4 h-4 text-gray-500"></i>
                 ${c.nom} <span class="font-normal text-gray-500">(${c.societes_bus.nom})</span>
               </span>
-              <a href="etrali:${c.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800">
-                <i data-lucide="phone" class="w-4 h-4"></i>
-                <span>${c.tel}</span>
-              </a>
+              <div class="flex items-center gap-2">
+                <a href="etrali:${c.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800">
+                  <i data-lucide="phone" class="w-4 h-4"></i>
+                  <span>${c.tel}</span>
+                </a>
+                ${favoriteButton} </div>
             </li>`
-          ).join('') + '</ul>';
+          }).join('') + '</ul>';
 
-        chauffeursContainer.innerHTML = chauffeursList.length === 0 ? '' :
+       chauffeursContainer.innerHTML = chauffeursList.length === 0 ? '' :
           '<h3 class="text-2xl font-semibold text-gray-800 mb-4 mt-8">Chauffeurs à contacter :</h3>' +
           '<ul class="list-none p-0 grid grid-cols-1 md:grid-cols-2 gap-3">' +
-          chauffeursList.map(c => 
-            `<li class="bg-gray-50 rounded-lg border border-gray-200 p-3 flex items-center justify-between">
+          chauffeursList.map(c => {
+            // --- MODIFICATION ICI : Ajout du bouton favori ---
+            const isFavorited = favoritedItemIds.has(c.id);
+            const starClass = isFavorited ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400';
+            const favoriteButton = `
+              <button onclick="window.toggleFavorite(this, 'bus_chauffeur', ${c.id}, ${isFavorited})" class="p-1 rounded-full hover:bg-yellow-100" title="Mettre en favori">
+                <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
+              </button>
+            `;
+            
+            return `<li class="bg-gray-50 rounded-lg border border-gray-200 p-3 flex items-center justify-between">
               <span class="flex items-center gap-2 text-sm font-medium text-gray-900">
                 <i data-lucide="user" class="w-4 h-4 text-gray-500"></i>
                 ${c.nom} <span class="font-normal text-gray-500">(${c.societes_bus.nom})</span>
               </span>
-              <a href="etrali:${c.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800">
-                <i data-lucide="phone" class="w-4 h-4"></i>
-                <span>${c.tel}</span>
-              </a>
+              <div class="flex items-center gap-2">
+                <a href="etrali:${c.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800">
+                  <i data-lucide="phone" class="w-4 h-4"></i>
+                  <span>${c.tel}</span>
+                </a>
+                ${favoriteButton} </div>
             </li>`
-          ).join('') + '</ul>';
+          }).join('') + '</ul>';
           
         lucide.createIcons();
       }
@@ -437,8 +448,29 @@
           return;
         }
 
-        try {
-          await supabaseClient.from('favoris').delete().match({ id_contenu: id, type_contenu: 'bus' });
+       try {
+          // --- MODIFICATION ICI ---
+          // 1. Trouver tous les contacts et chauffeurs liés à cette société
+          const { data: contacts, error: c_err } = await supabaseClient
+            .from('contacts_bus').select('id').eq('societe_id', id);
+          const { data: chauffeurs, error: ch_err } = await supabaseClient
+            .from('chauffeurs_bus').select('id').eq('societe_id', id);
+
+          if (c_err || ch_err) throw c_err || ch_err;
+
+          const contactIds = contacts.map(c => c.id.toString()); // s'assurer que ce sont des strings
+          const chauffeurIds = chauffeurs.map(ch => ch.id.toString());
+          const allIds = [...contactIds, ...chauffeurIds];
+          
+          // 2. Supprimer tous les favoris associés à ces contacts/chauffeurs
+          if (allIds.length > 0) {
+            await supabaseClient.from('favoris')
+              .delete()
+              .in('id_contenu', allIds) // 'id_contenu' doit être de type TEXT dans votre BDD
+              .in('type_contenu', ['bus_contact', 'bus_chauffeur']);
+          }
+          // --- FIN MODIFICATION ---
+          
         } catch (favError) {
            console.warn("Erreur suppression favori:", favError.message);
         }

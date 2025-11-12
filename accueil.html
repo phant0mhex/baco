@@ -384,7 +384,7 @@
                   subtext: (fav.taxi_contacts && fav.taxi_contacts.length > 0) ? fav.taxi_contacts[0] : 'N/A', 
                   link: `taxi.html`
                 });
-             // CORRECTION : Gérer le type 'repertoire'
+           // CORRECTION : Gérer le type 'repertoire'
               case 'repertoire':
                 return renderFavCard({
                   id: fav.id_contenu,
@@ -395,14 +395,37 @@
                   subtext: fav.contact_tel || fav.contact_groupe, // Affiche le tél, ou le groupe si pas de tél
                   link: `repertoire.html`
                 });
-
-              case 'bus':
-                return renderFavCard({
+                
+              case 'bus': // Laisse ceci pour les anciens favoris
+                 return renderFavCard({
                   id: fav.id_contenu, type: fav.type_contenu, icon: 'bus', iconColor: 'text-purple-500',
                   title: fav.bus_societe_nom,
-                  subtext: 'Société de bus',
+                  subtext: 'Société de bus (Ancien)',
                   link: `bus.html`
                 });
+
+              // --- NOUVEAUX CASES AJOUTÉES ---
+              case 'bus_contact':
+                 return renderFavCard({
+                  id: fav.id_contenu,
+                  type: fav.type_contenu,
+                  icon: 'user-check', // Icône différente
+                  iconColor: 'text-purple-500',
+                  title: fav.bus_contact_nom,
+                  subtext: fav.bus_contact_tel,
+                  link: `bus.html`
+                });
+              case 'bus_chauffeur':
+                 return renderFavCard({
+                  id: fav.id_contenu,
+                  type: fav.type_contenu,
+                  icon: 'user', // Icône différente
+                  iconColor: 'text-purple-500',
+                  title: fav.bus_chauffeur_nom,
+                  subtext: fav.bus_chauffeur_tel,
+                  link: `bus.html`
+                });
+              // --- FIN DES NOUVEAUX CASES ---
               default:
                 return ''; // Ne rien afficher si le type est inconnu
             }
