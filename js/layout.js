@@ -95,13 +95,15 @@ function checkIfFavoritesEmpty() {
     }
 }
 
-
 // ==========================================================
-// == LE RESTE DE VOTRE FICHIER layout.js (STRUCTURE CORRIGÉE)
+// == CODE D'ORIGINE RESTAURÉ (fonctions, etc.)
 // ==========================================================
 
 /**
  * Charge un composant HTML (comme _nav.html ou _footer.html) dans un placeholder
+ * @param {string} placeholderId L'ID du div où injecter le HTML
+ * @param {string} htmlFilePath Le chemin vers le fichier HTML à charger
+ * @returns {Promise<boolean>} Vrai si le chargement a réussi, faux sinon
  */
 async function loadComponent(placeholderId, htmlFilePath) {
   const placeholder = document.getElementById(placeholderId);
@@ -124,22 +126,24 @@ async function loadComponent(placeholderId, htmlFilePath) {
   }
 }
 
-// --- Fonctions utilitaires ---
+// --- Fonctions utilitaires (au niveau global) ---
 function highlightActiveLink() {
   const currentPage = window.location.pathname.split('/').pop();
   if (currentPage) {
     const navLinksContainer = document.getElementById('nav-links');
     if (navLinksContainer) {
-      // Pour le dropdown PMR
+      // Pour le dropdown PMR, on active les liens enfants si la page est l'une des deux
       const pmrLink = navLinksContainer.querySelector(`a[href="pmr.html"]`);
       const clientsPmrLink = navLinksContainer.querySelector(`a[href="clients_pmr.html"]`);
 
       if (pmrLink && clientsPmrLink) {
         if (currentPage === 'pmr.html' || currentPage === 'clients_pmr.html') {
+          // On highlight le bouton du dropdown PMR s'il existe
           const pmrButton = document.getElementById('pmr-toggle-button');
           if (pmrButton) {
             pmrButton.classList.add('bg-gray-700', 'font-bold');
           }
+          // On gère l'highlight des liens à l'intérieur du dropdown plus tard/avec d'autres scripts.
         }
       }
       
@@ -150,7 +154,6 @@ function highlightActiveLink() {
     }
   }
 }
-
 function hideAdminElements() {
   const userRole = sessionStorage.getItem('userRole');
   if (userRole !== 'admin') {
@@ -159,10 +162,6 @@ function hideAdminElements() {
     document.head.appendChild(style);
   }
 }
-
-/**
- * Charge l'avatar et DÉFINIT L'ID UTILISATEUR GLOBAL
- */
 async function loadNavAvatar() {
   const navAvatar = document.getElementById('nav-avatar');
   if (!navAvatar) return; 
@@ -181,9 +180,7 @@ async function loadNavAvatar() {
     console.error("Impossible de charger l'avatar de la nav:", error.message);
   }
 }
-
 async function setupRealtimePresence() {
-  // ... (votre fonction setupRealtimePresence, inchangée)
   let userProfile;
   let localUserId; 
   try {
@@ -236,9 +233,7 @@ async function setupRealtimePresence() {
       }
     });
 }
-
 function updateOnlineAvatars(state, localUserId) {
-  // ... (votre fonction updateOnlineAvatars, inchangée)
   const counter = document.getElementById('presence-counter');
   const list = document.getElementById('presence-list');
   if (!counter || !list) return;
@@ -265,18 +260,16 @@ function updateOnlineAvatars(state, localUserId) {
     list.innerHTML = html;
   }
 }
-
 async function loadLatestChangelog() {
-  // ... (votre fonction loadLatestChangelog, inchangée)
   const versionElement = document.getElementById('version-info');
   if (!versionElement) return;
   try {
     const { data, error } = await supabaseClient
       .from('changelog')
-      .select('title, type') 
-      .order('created_at', { ascending: false })
-      .limit(1) 
-      .single(); 
+      .select('title, type') // Sélectionne le titre et le type
+      .order('created_at', { ascending: false }) // La plus récente
+      .limit(1) // Une seule
+      .single(); // On s'attend à un seul objet
     if (error) throw error;
     if (data) {
       let typeText = '';
@@ -301,9 +294,16 @@ async function loadLatestChangelog() {
   }
 }
 
-// ... (votre fonction injectCalendarStyles, inchangée) ...
+// ===============================================================
+// ==              SECTION CALENDRIER PERSONNALISÉ              ==
+// ===============================================================
+
+/**
+ * Injecte les styles CSS personnalisés pour Flatpickr (thème "BACO")
+ */
 function injectCalendarStyles() {
   const style = document.createElement('style');
+  // ... (votre code de style CSS pour le calendrier, inchangé) ...
   style.innerHTML = `
     .flatpickr-calendar.baco-theme {
       background: #1F2937 !important; /* bg-gray-800 */
@@ -315,7 +315,6 @@ function injectCalendarStyles() {
       padding: 0.75rem !important; /* p-3 */
       color: #D1D5DB !important; /* text-gray-300 */
     }
-    /* ... (tous les autres styles du calendrier) ... */
     .baco-theme .flatpickr-months { background: transparent !important; padding: 0.25rem !important; border-bottom: 1px solid #374151 !important; margin-bottom: 0.75rem !important; }
     .baco-theme .flatpickr-months .flatpickr-month { height: 2.5rem !important; }
     .baco-theme .flatpickr-months .flatpickr-prev-month, .baco-theme .flatpickr-months .flatpickr-next-month { fill: #D1D5DB !important; padding: 0.5rem !important; border-radius: 0.375rem !important; top: 0.5rem !important; }
@@ -342,8 +341,10 @@ function injectCalendarStyles() {
   document.head.appendChild(style);
 }
 
+// ===============================================================
+// ==              SECTION RECHERCHE GLOBALE (MISE À JOUR)      ==
+// ===============================================================
 
-// ... (votre section RECHERCHE GLOBALE (createSearchModal, etc.), inchangée) ...
 let globalSearchTimer;
 let globalSearchModal;
 let globalSearchInput;
@@ -351,7 +352,11 @@ let globalSearchResults;
 let globalSearchSpinner;
 let globalSearchSelectedIndex = -1;
 
+/**
+ * Crée et injecte la modale de recherche globale et ses styles
+ */
 function createSearchModal() {
+  // 1. Injecter les styles CSS
   const style = document.createElement('style');
   style.innerHTML = `
     #global-search-modal { z-index: 100; }
@@ -360,6 +365,8 @@ function createSearchModal() {
     kbd { font-family: 'Geist Mono', monospace; font-size: 0.75rem; background-color: #374151; border: 1px solid #4B5563; border-radius: 4px; padding: 2px 5px; }
   `;
   document.head.appendChild(style);
+
+  // 2. Injecter le HTML de la modale
   const modalHtml = `
     <div id="global-search-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-start justify-center p-4 pt-[20vh]" style="display: none;">
       <div id="global-search-modal-panel" class="bg-gray-800 text-gray-200 rounded-lg shadow-xl w-full max-w-2xl flex flex-col overflow-hidden">
@@ -374,19 +381,24 @@ function createSearchModal() {
         <div class="p-2 text-xs text-center text-gray-500 border-t border-gray-700">
           Utilisez <kbd>Cmd+K</kbd> ou <kbd>Shift+K</kbd> pour ouvrir/fermer.
         </div>
-        </div>
+      </div>
     </div>
   `;
   document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+  // 3. Stocker les références aux éléments
   globalSearchModal = document.getElementById('global-search-modal');
   globalSearchInput = document.getElementById('global-search-input');
   globalSearchResults = document.getElementById('global-search-results');
   globalSearchSpinner = document.getElementById('global-search-spinner');
+
+  // 4. Attacher les écouteurs d'événements
   globalSearchModal.addEventListener('click', (e) => {
     if (e.target.id === 'global-search-modal') {
       hideGlobalSearch();
     }
   });
+
   globalSearchInput.addEventListener('keydown', (e) => {
     const results = globalSearchResults.querySelectorAll('.search-result-item');
     if (e.key === 'ArrowDown') {
@@ -410,6 +422,7 @@ function createSearchModal() {
       hideGlobalSearch();
     }
   });
+
   globalSearchInput.addEventListener('keyup', (e) => {
     const navKeys = ['ArrowDown', 'ArrowUp', 'Enter', 'Escape'];
     if (!navKeys.includes(e.key)) {
@@ -417,6 +430,10 @@ function createSearchModal() {
     }
   });
 }
+
+/**
+ * Affiche la modale de recherche
+ */
 function showGlobalSearch() {
   if (globalSearchModal) {
     globalSearchModal.style.display = 'flex';
@@ -426,17 +443,29 @@ function showGlobalSearch() {
     globalSearchResults.innerHTML = '<p class="text-center text-gray-500 p-6">Commencez à taper pour rechercher...</p>';
   }
 }
+
+/**
+ * Cache la modale de recherche
+ */
 function hideGlobalSearch() {
   if (globalSearchModal) {
     globalSearchModal.style.display = 'none';
   }
 }
+
+/**
+ * Gère le debounce pour la recherche
+ */
 function debounceSearch() {
   clearTimeout(globalSearchTimer);
   globalSearchTimer = setTimeout(() => {
     executeSearch();
   }, 300); 
 }
+
+/**
+ * Appelle la fonction RPC de Supabase
+ */
 async function executeSearch() {
   const searchTerm = globalSearchInput.value;
   if (searchTerm.length < 2) {
@@ -457,6 +486,10 @@ async function executeSearch() {
     globalSearchSpinner.style.display = 'none';
   }
 }
+
+/**
+ * Met à jour la surbrillance visuelle de l'élément sélectionné
+ */
 function updateSelectedResult(results) {
   results = results || globalSearchResults.querySelectorAll('.search-result-item');
   results.forEach((item, index) => {
@@ -468,6 +501,10 @@ function updateSelectedResult(results) {
     }
   });
 }
+
+/**
+ * Affiche les résultats dans la modale
+ */
 function renderSearchResults(results) {
   globalSearchSelectedIndex = -1; 
   if (!results || results.length === 0) {
@@ -492,8 +529,12 @@ function renderSearchResults(results) {
   `).join('');
   lucide.createIcons();
 }
+
+/**
+ * Écouteur de touches global pour Cmd+K / Shift+K
+ */
 function globalKeyListener(e) {
-  const modalVisible = globalSearchModal.style.display === 'flex';
+  const modalVisible = (globalSearchModal && globalSearchModal.style.display === 'flex');
   if (e.shiftKey && e.key === 'K') {
     e.preventDefault();
     modalVisible ? hideGlobalSearch() : showGlobalSearch();
@@ -504,8 +545,19 @@ function globalKeyListener(e) {
   }
 }
 
-// ... (votre section NOTIFICATIONS JOURNAL (loadJournalNotificationCount), inchangée) ...
+// ===============================================================
+// ==                FIN DE LA SECTION RECHERCHE                ==
+// ===============================================================
+
+// ===============================================================
+// ==              SECTION NOTIFICATIONS JOURNAL              ==
+// ===============================================================
+
 const JOURNAL_STORAGE_KEY = 'lastJournalVisit';
+
+/**
+ * Charge et affiche le nombre de messages du journal non lus.
+ */
 async function loadJournalNotificationCount() {
     const badgeElement = document.getElementById('journal-badge');
     if (!badgeElement) return;
@@ -537,8 +589,13 @@ async function loadJournalNotificationCount() {
 }
 window.loadJournalNotificationCount = loadJournalNotificationCount;
 
+// ===============================================================
+// ==              SECTION LIGHT/DARK MODE TOGGLE               ==
+// ===============================================================
 
-// ... (votre fonction setupThemeToggle, inchangée) ...
+/**
+ * Gère la logique du mode sombre/clair.
+ */
 function setupThemeToggle() {
     const themeToggleButton = document.getElementById('theme-toggle-button');
     const themeToggleIcon = document.getElementById('theme-toggle-icon');
@@ -582,6 +639,7 @@ function setupThemeToggle() {
 
 
 // --- Exécution principale au chargement du DOM ---
+
 document.addEventListener('DOMContentLoaded', async () => {
   
   // --- INITIALISATION GLOBALE DE NOTYF ---
@@ -610,7 +668,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupRealtimePresence(); 
     setupThemeToggle();
 
-    // ... (votre logique de calendrier, burger, logout, dropdowns, etc.)
+    // --- Initialisation du Calendrier ---
     const calendarButton = document.getElementById('calendar-toggle-button');
     if (calendarButton) {
       if (typeof flatpickr !== 'undefined' && flatpickr.l10ns.fr) {
@@ -628,7 +686,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.warn('Flatpickr (ou sa traduction FR) n\'est pas chargé.');
       }
     }
-    
+
     // Logique du menu burger
     const menuButton = document.getElementById('mobile-menu-button');
     const menuContent = document.getElementById('nav-content');
@@ -653,7 +711,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
     }
     
-    // Logique des dropdowns
+    // --- Définition des variables de dropdown ---
     const presenceContainer = document.getElementById('presence-container');
     const presenceDropdown = document.getElementById('presence-dropdown');
     const profileContainer = document.getElementById('profile-dropdown-container');
@@ -663,6 +721,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const pmrDropdown = document.getElementById('pmr-dropdown');
     const pmrChevron = document.getElementById('pmr-chevron-icon');
 
+    // Logique du dropdown de présence
     const presenceButton = document.getElementById('presence-toggle-button');
     if (presenceContainer && presenceButton && presenceDropdown) {
         presenceButton.onclick = (e) => {
@@ -676,6 +735,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         presenceDropdown.addEventListener('click', (e) => e.stopPropagation());
     }
 
+    // Logique du dropdown de profil
     const profileButton = document.getElementById('profile-toggle-button');
     if (profileContainer && profileButton && profileDropdown) {
         profileButton.onclick = (e) => {
@@ -689,6 +749,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         profileDropdown.addEventListener('click', (e) => e.stopPropagation());
     }
 
+    // Logique du dropdown PMR
     if (pmrContainer && pmrButton && pmrDropdown) {
         pmrButton.onclick = (e) => {
             e.stopPropagation();
@@ -718,7 +779,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-  } 
+  } // <-- Ferme le if (navLoaded)
 
   // Charger le footer
   const footerLoaded = await loadComponent('footer-placeholder', '_footer.html');
@@ -730,28 +791,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     loadLatestChangelog(); // Charger la version
 
+    // Logique "GO TO TOP"
     const goToTopButton = document.getElementById('go-to-top-button');
     if (goToTopButton) {
       window.addEventListener('scroll', () => {
-        if (window.scrollY > 200) { 
+        if (window.scrollY > 200) { // S'affiche après 200px de scroll
           goToTopButton.classList.remove('hidden', 'opacity-0');
         } else {
           goToTopButton.classList.add('opacity-0');
           setTimeout(() => {
-             if (window.scrollY <= 200) { 
+             if (window.scrollY <= 200) { // Revérifier au cas où l'utilisateur scrolle à nouveau
                 goToTopButton.classList.add('hidden');
              }
-          }, 300); 
+          }, 300); // 300ms = duration-300
         }
       });
       goToTopButton.addEventListener('click', () => {
         window.scrollTo({
           top: 0,
-          behavior: 'smooth'
+          behavior: 'smooth' // Défilement fluide
         });
       });
     }
   }
   
+  // Appeler Lucide une fois que tout est chargé (nav, footer, et contenu de la page)
   lucide.createIcons();
 });
