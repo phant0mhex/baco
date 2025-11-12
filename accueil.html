@@ -349,27 +349,18 @@
             }
         }
 
-        try {
-          // 2. Interroger Supabase avec des jointures intelligentes
-          // On récupère tous les favoris de l'utilisateur ET les données associées
-          const { data, error } = await supabaseClient
-            .from('favoris')
-            .select(`
-              id, 
-              type_contenu, 
-              id_contenu,
-              pmr_clients ( id, nom, prenom, telephone ),
-              taxis ( id, nom, telephone ),
-              profiles ( id, full_name, telephone, service ),
-              bus ( id, ligne, arret )
-            `)
-            .eq('user_id', currentUserId)
-            .limit(9); // Limiter à 9 pour le widget
+       try {
+          // 2. Appel de la fonction RPC (inchangé)
+          const { data, error } = await supabaseClient.rpc('get_my_favorites');
 
           if (error) throw error;
           
           if (data.length === 0) {
-            checkIfFavoritesEmpty(); // Afficher le message "Pas de favoris"
+            if (typeof checkIfFavoritesEmpty === 'function') {
+                checkIfFavoritesEmpty();
+            } else {
+                listContainer.innerHTML = `<p class="text-sm text-gray-500 dark:text-gray-400 col-span-full text-center">Vous n'avez pas encore de favoris.</p>`;
+            }
             return;
           }
 
@@ -387,34 +378,30 @@
                   link: `clients_pmr.html?search=${fav.pmr_clients.nom}`
                 });
               case 'taxi':
-                return renderFavCard({
-                  id: fav.id_contenu,
-                  type: fav.type_contenu,
-                  icon: 'car',
-                  iconColor: 'text-yellow-500',
-                  title: fav.taxis.nom,
-                  subtext: fav.taxis.telephone,
-                  link: `taxi.html?search=${fav.taxis.nom}`
+               return renderFavCard({
+                  id: fav.id_contenu, type: fav.type_contenu, icon: 'car', iconColor: 'text-yellow-500',
+                  title: fav.taxi_nom,
+                  subtext: (fav.taxi_contacts && fav.taxi_contacts.length > 0) ? fav.taxi_contacts[0] : 'N/A', 
+                  link: `taxi.html`
                 });
+             // CORRECTION : Gérer le type 'repertoire'
               case 'repertoire':
                 return renderFavCard({
                   id: fav.id_contenu,
                   type: fav.type_contenu,
                   icon: 'contact',
                   iconColor: 'text-green-500',
-                  title: fav.profiles.full_name,
-                  subtext: fav.profiles.telephone || fav.profiles.service,
-                  link: `repertoire.html?search=${fav.profiles.full_name}`
+                  title: fav.contact_nom,
+                  subtext: fav.contact_tel || fav.contact_groupe, // Affiche le tél, ou le groupe si pas de tél
+                  link: `repertoire.html`
                 });
+
               case 'bus':
-                 return renderFavCard({
-                  id: fav.id_contenu,
-                  type: fav.type_contenu,
-                  icon: 'bus',
-                  iconColor: 'text-purple-500',
-                  title: `${fav.bus.ligne} - ${fav.bus.arret}`,
-                  subtext: 'Info Bus',
-                  link: `bus.html?search=${fav.bus.arret}`
+                return renderFavCard({
+                  id: fav.id_contenu, type: fav.type_contenu, icon: 'bus', iconColor: 'text-purple-500',
+                  title: fav.bus_societe_nom,
+                  subtext: 'Société de bus',
+                  link: `bus.html`
                 });
               default:
                 return ''; // Ne rien afficher si le type est inconnu
@@ -452,7 +439,7 @@
         `;
       }
 
-      
+
       // --- Appel des fonctions au chargement ---
       loadUserGreeting();
       loadPmrIssuesWidget(); // <-- APPELEZ VOTRE NOUVELLE FONCTION ICI
