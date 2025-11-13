@@ -121,7 +121,7 @@
   
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
-  <script>
+<script>
   window.pageInit = () => {
     
       // Appel initial pour les icônes de la page (loupe, etc.)
@@ -136,56 +136,78 @@
       const searchBar = document.getElementById('search-bar');
       
       let allPnData = [];
-      let map; // Variable globale pour la carte Leaflet
-      let markersLayer; // Groupe de marqueurs
+      let allSpiData = [];
+      let map;
+      let markersLayer; // Couche pour les PN
+      let spiLayer; // Couche pour les bâtiments SPI
+      let zoneBoundariesLayer; // NOUVEAU: Couche pour les polygones de zone
       
-// ==========================================================
-      // == CORRECTION : Suppression de la couche NGI (bloquée par CORS)
-      // == Nous revenons aux couches Google qui fonctionnent.
-      // ==========================================================
+      // NOUVEAU: Définition des polygones de zone
+      const zonePolygons = {
+        'FTY': {
+          coordinates: [
+            [50.71242196210095, 3.2486830983771995], // L75A (Ouest)
+            [50.50535261886586, 3.665615019828966], // L78 (Sud)
+            [50.733658906763104, 3.847298507532925], // L90 (Est)
+            [50.7202, 4.1706]                       // L94 (Nord)
+          ],
+          color: '#3b82f6', // blue-500
+          name: "Zone FTY"
+        },
+        // Ajoutez FMS, FCR ici lorsque vous aurez leurs coordonnées
+      };
       
       const tileLayers = {
         'Plan': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 22,
           attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         }),
-        
         'Hybride (Google)': L.tileLayer('http://{s}.google.com/vt/lyrs=h&x={x}&y={y}&z={z}', {
           maxZoom: 22, 
           subdomains:['mt0','mt1','mt2','mt3'],
           attribution: 'Map data &copy;2025 Google'
         }),
-        
         'Satellite': L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
           maxZoom: 22,
           subdomains:['mt0','mt1','mt2','mt3'],
           attribution: 'Map data &copy;2025 Google'
         })
       };
-      // ==========================================================
+      
       /**
        * Initialise la carte Leaflet
        */
       function initMap() {
         try {
-        // MODIFICATION : Ajouter maxZoom: 22 à la carte elle-même
           map = L.map('map', {
-              maxZoom: 22, // Permet à la carte de zoomer jusqu'à 22
+              maxZoom: 22,
               fullscreenControl: true
-          }).setView([50.63, 4.47], 9); // Centre sur la Belgique
+          }).setView([50.63, 4.47], 9); 
 
-          // MODIFICATION : Ajouter la couche "Plan" par défaut
           tileLayers['Satellite'].addTo(map);
           
-          // AJOUT : Ajouter le contrôle de sélection des couches (Plan/Satellite)
-          L.control.layers(tileLayers).addTo(map);
-
-          // S'assurer que le thème de la carte correspond au thème du site
           if (document.documentElement.classList.contains('dark')) {
-             map.getContainer().style.backgroundColor = '#1f2937'; // bg-gray-800
+             map.getContainer().style.backgroundColor = '#1f2937'; 
           }
 
+          // Initialiser les couches de données
           markersLayer = L.layerGroup().addTo(map);
+          spiLayer = L.layerGroup().addTo(map);
+          zoneBoundariesLayer = L.layerGroup().addTo(map); // NOUVEAU
+
+          // NOUVEAU: Ajouter le contrôle des couches
+          const baseMaps = {
+            'Satellite': tileLayers['Satellite'],
+            'Plan': tileLayers['Plan'],
+            'Hybride': tileLayers['Hybride (Google)']
+          };
+          const overlayMaps = {
+            "Frontières de Zone": zoneBoundariesLayer,
+            "Passages à Niveau (PN)": markersLayer,
+            "Zone SPI": spiLayer
+          };
+          L.control.layers(baseMaps, overlayMaps).addTo(map);
+
         } catch(e) {
           notyf.error("Erreur lors de l'initialisation de la carte.");
           document.getElementById('map-container').innerHTML = 
@@ -194,20 +216,45 @@
       }
 
       /**
+       * NOUVEAU: Dessine les polygones de zone
+       */
+      function drawZoneBoundaries() {
+        if (!map || !zoneBoundariesLayer) return;
+        zoneBoundariesLayer.clearLayers();
+
+        Object.values(zonePolygons).forEach(zone => {
+          const polygon = L.polygon(zone.coordinates, { 
+            color: zone.color,
+            weight: 3,
+            opacity: 0.8,
+            fillOpacity: 0.1 
+          }).bindPopup(`<h4>${zone.name}</h4>`);
+          
+          zoneBoundariesLayer.addLayer(polygon);
+        });
+      }
+
+      /**
        * Charge les filtres de lignes
        */
       async function loadLineFilters() {
         filterContainer.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Chargement...</p>';
         try {
-          const { data, error } = await supabaseClient
-            .from('pn_data')
-            .select('ligne_nom');
+          const [pnLines, spiLines] = await Promise.all([
+            supabaseClient.from('pn_data').select('ligne_nom'),
+            supabaseClient.from('spi_data').select('ligne_nom')
+          ]);
+
+          if (pnLines.error) throw pnLines.error;
+          if (spiLines.error) throw spiLines.error;
+
+          const allLines = [
+            ...pnLines.data.map(item => item.ligne_nom),
+            ...spiLines.data.map(item => item.ligne_nom)
+          ];
           
-          if (error) throw error;
+          const lignes = [...new Set(allLines.filter(Boolean))].sort();
           
-          const lignes = [...new Set(data.map(item => item.ligne_nom).filter(Boolean))].sort();
-          
-          // CORRECTION CSS : Ajout des classes dark:
           filterContainer.innerHTML = `
             <label class="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
               <input type="checkbox" value="all" checked 
@@ -236,16 +283,29 @@
           const { data, error } = await supabaseClient
             .from('pn_data')
             .select('ligne_nom, pn, bk, adresse, geo')
-            .not('geo', 'is', null); // Ne charger que les PN qui ont des coordonnées !
+            .not('geo', 'is', null); 
             
           if (error) throw error;
           allPnData = data;
-          
-          // Une fois les données chargées, on filtre et on affiche
-          filterAndDisplayData();
-          
         } catch (error) {
           notyf.error('Erreur chargement données PN: ' + error.message);
+        }
+      }
+
+      /**
+       * Charge toutes les données SPI depuis Supabase
+       */
+      async function loadAllSpiData() {
+        try {
+          const { data, error } = await supabaseClient
+            .from('spi_data')
+            .select('ligne_nom, lieu, zone, adresse, remarques, geo')
+            .not('geo', 'is', null);
+            
+          if (error) throw error;
+          allSpiData = data;
+        } catch (error) {
+          console.warn('Erreur chargement données SPI: ' + error.message);
         }
       }
       
@@ -253,22 +313,19 @@
        * Fonction principale pour filtrer et afficher les données
        */
       function filterAndDisplayData() {
-        if (!allPnData.length) return;
+        if (allPnData.length === 0 && allSpiData.length === 0) return;
         
-        // 1. Obtenir les filtres de ligne
         const checkedBoxes = filterContainer.querySelectorAll('.filter-checkbox:checked');
         let selectedLignes = Array.from(checkedBoxes).map(cb => cb.value);
         
-        // Gérer le "Tout afficher"
         if (selectedLignes.includes('all')) {
           selectedLignes = Array.from(filterContainer.querySelectorAll('.filter-checkbox')).map(cb => cb.value);
         }
 
-        // 2. Obtenir le terme de recherche
         const searchTerm = searchBar.value.toLowerCase().trim();
 
-        // 3. Filtrer les données
-        const filteredData = allPnData.filter(pn => {
+        // Filtrer les données PN
+        const filteredPnData = allPnData.filter(pn => {
           const ligneMatch = selectedLignes.includes(pn.ligne_nom);
           const searchMatch = !searchTerm || 
                               (pn.pn && pn.pn.toLowerCase().includes(searchTerm)) ||
@@ -276,26 +333,34 @@
           return ligneMatch && searchMatch;
         });
 
-        // 4. Mettre à jour la carte et la liste
-        updateMap(filteredData);
-        updateList(filteredData);
+        // Filtrer les données SPI
+        const filteredSpiData = allSpiData.filter(spi => {
+          const ligneMatch = selectedLignes.includes(spi.ligne_nom);
+          const searchMatch = !searchTerm || 
+                              (spi.lieu && spi.lieu.toLowerCase().includes(searchTerm)) ||
+                              (spi.zone && spi.zone.toLowerCase().includes(searchTerm)) ||
+                              (spi.adresse && spi.adresse.toLowerCase().includes(searchTerm));
+          return ligneMatch && searchMatch;
+        });
+
+        updateMap(filteredPnData, filteredSpiData);
+        updateList(filteredPnData, filteredSpiData);
       }
       
       /**
        * Met à jour la carte Leaflet avec les données filtrées
        */
-      function updateMap(data) {
-        if (!map || !markersLayer) return;
+      function updateMap(pnData, spiData) {
+        if (!map || !markersLayer || !spiLayer) return;
         
-        markersLayer.clearLayers(); // Nettoyer les anciens marqueurs
-        
-        if (data.length === 0) return;
+        markersLayer.clearLayers();
+        spiLayer.clearLayers();    
         
         const markers = [];
-        data.forEach(pn => {
+        
+        // Ajouter les marqueurs PN
+        pnData.forEach(pn => {
           if (!pn.geo) return;
-          
-          // Votre format est "lat, long"
           const coords = pn.geo.split(',');
           const lat = parseFloat(coords[0]);
           const lon = parseFloat(coords[1]);
@@ -306,15 +371,45 @@
               <p><strong>BK:</strong> ${pn.bk || 'N/A'}</p>
               <p><strong>Adresse:</strong> ${pn.adresse || 'N/A'}</p>
             `;
-            
             const marker = L.marker([lat, lon]).bindPopup(popupContent);
             markers.push(marker);
+            markersLayer.addLayer(marker);
           }
         });
         
-        markers.forEach(marker => markersLayer.addLayer(marker));
+        // Ajouter les marqueurs SPI
+        spiData.forEach(spi => {
+          if (!spi.geo) return; 
+          const coords = spi.geo.split(',');
+          const lat = parseFloat(coords[0]);
+          const lon = parseFloat(coords[1]);
+          
+          if (!isNaN(lat) && !isNaN(lon)) {
+            const popupContent = `
+              <h4>Bât. SPI: ${spi.lieu || 'N/A'}</h4>
+              <p><strong>Ligne:</strong> ${spi.ligne_nom || 'N/A'}</p>
+              <p><strong>Zone:</strong> ${spi.zone || 'N/A'}</p>
+              <p><strong>Adresse:</strong> ${spi.adresse || 'N/A'}</p>
+              ${spi.remarques ? `<p><strong>Rem.:</strong> ${spi.remarques}</p>` : ''}
+            `;
+            
+            // NOUVEAU: Utiliser un icône différent pour les SPI
+            const spiIcon = L.icon({
+                iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            });
+
+            const marker = L.marker([lat, lon], {icon: spiIcon}).bindPopup(popupContent);
+            markers.push(marker);
+            spiLayer.addLayer(marker);
+          }
+        });
         
-        // Ajuster le zoom de la carte pour voir tous les marqueurs
+        // Ajuster le zoom de la carte
         if (markers.length > 0) {
           const group = L.featureGroup(markers);
           map.fitBounds(group.getBounds().pad(0.1));
@@ -324,14 +419,13 @@
       /**
        * Met à jour la liste HTML avec les données filtrées
        */
-      function updateList(data) {
-        if (data.length === 0) {
-          pnListContainer.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center">Aucun PN ne correspond aux filtres.</p>';
+      function updateList(pnData, spiData) {
+        if (pnData.length === 0 && spiData.length === 0) {
+          pnListContainer.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center">Aucun élément ne correspond aux filtres.</p>';
           return;
         }
         
-        // CORRECTION CSS : Ajout des classes dark:
-        pnListContainer.innerHTML = data.map(pn => `
+        const pnHtml = pnData.map(pn => `
           <div class="bg-white p-4 rounded-lg shadow border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
             <div class="flex justify-between items-center">
               <h3 class="text-lg font-bold text-blue-700 dark:text-blue-400">${pn.pn || 'N/A'}</h3>
@@ -341,6 +435,20 @@
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1"><strong>Adresse:</strong> ${pn.adresse || 'N/A'}</p>
           </div>
         `).join('');
+
+        const spiHtml = spiData.map(spi => `
+          <div class="bg-white p-4 rounded-lg shadow border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+            <div class="flex justify-between items-center">
+              <h3 class="text-lg font-bold text-green-700 dark:text-green-400">Bât. SPI: ${spi.lieu || 'N/A'}</h3>
+              <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">${spi.ligne_nom || 'N/A'}</span>
+            </div>
+            <p class="text-sm text-gray-700 dark:text-gray-300 mt-2"><strong>Zone:</strong> ${spi.zone || 'N/A'}</S_LIst>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1"><strong>Adresse:</strong> ${spi.adresse || 'N/A'}</p>
+            ${spi.remarques ? `<p class="text-sm text-gray-500 dark:text-gray-400 mt-1"><strong>Rem.:</strong> ${spi.remarques}</p>` : ''}
+          </div>
+        `).join('');
+
+        pnListContainer.innerHTML = spiHtml + pnHtml; // Afficher les SPI en premier
       }
 
       // --- Écouteurs d'événements ---
@@ -349,10 +457,17 @@
       
       // --- Lancement Initial ---
       initMap();
+      drawZoneBoundaries(); // NOUVEAU: Dessiner les polygones
       loadLineFilters();
-      loadAllPnData();
       
-    }; // Fin de DOMContentLoaded
+      Promise.all([
+        loadAllPnData(),
+        loadAllSpiData()
+      ]).then(() => {
+        filterAndDisplayData();
+      });
+      
+    }; // Fin de window.pageInit
   </script>
   
 </body>
