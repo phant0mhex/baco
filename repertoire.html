@@ -103,12 +103,29 @@
 <div class="flex-grow">
   <div class="container mx-auto p-8">
     
-    <div class="mb-6 flex justify-end admin-only">
+    <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+  <div class="flex-grow"></div>
+
+  <div class="flex items-center gap-4 justify-end">
+    
+    <div class="hidden md:flex rounded-md shadow-sm">
+      <button id="view-toggle-grid" type="button" class="relative inline-flex items-center rounded-l-md px-3 py-2 text-sm font-semibold ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10" title="Vue Grille">
+        <i data-lucide="layout-grid" class="w-5 h-5"></i>
+      </button>
+      <button id="view-toggle-list" type="button" class="relative -ml-px inline-flex items-center rounded-r-md px-3 py-2 text-sm font-semibold ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10" title="Vue Liste">
+        <i data-lucide="list" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <div class="admin-only">
       <button onclick="showContactModal()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
         <i data-lucide="plus" class="w-5 h-5"></i>
         <span>Ajouter un contact</span>
       </button>
     </div>
+    
+  </div>
+</div>
    
     <h1 class="text-3xl font-bold text-gray-800 mb-6">Répertoire téléphonique</h1>
 
@@ -176,7 +193,10 @@
       
       // CORRECTION : ID 'resultDisplay' (camelCase)
       const resultDisplay = document.getElementById('resultDisplay'); 
-      
+      const viewToggleGrid = document.getElementById('view-toggle-grid');
+  const viewToggleList = document.getElementById('view-toggle-list');
+  const viewPreferenceKey = 'baco-repertoire-view'; // Clé pour localStorage
+  let currentView = localStorage.getItem(viewPreferenceKey) || 'grid'; // 'grid' ou 'list'
       const searchInput = document.getElementById('search-bar');
       const filterContainer = document.getElementById('mainCategories');
       const zoneContainer = document.getElementById('zoneSubCategoriesContainer');
@@ -191,7 +211,23 @@
       let currentSortOrder = 'az';
       let favoritedContactIds = new Set();
       
-      
+     // NOUVEAU: Fonctions pour gérer le sélecteur de vue
+  function updateViewToggleUI() {
+    if (currentView === 'list') {
+      viewToggleList.classList.add('bg-gray-100', 'text-blue-600');
+      viewToggleGrid.classList.remove('bg-gray-100', 'text-blue-600');
+    } else {
+      viewToggleGrid.classList.add('bg-gray-100', 'text-blue-600');
+      viewToggleList.classList.remove('bg-gray-100', 'text-blue-600');
+    }
+  }
+
+  function setView(view) {
+    if (view === currentView) return;
+    currentView = view;
+    localStorage.setItem(viewPreferenceKey, currentView);
+    updateDisplay(); // Re-lancer le rendu
+  } 
 
 
 window.toggleGroup = (contentId, headerElement) => {
@@ -318,6 +354,11 @@ window.toggleGroup = (contentId, headerElement) => {
         } catch (e) { return text; }
       }
 
+
+      // NOUVEAU: Mettre à jour les boutons de vue
+    updateViewToggleUI();
+
+
       /**
        * Charge les favoris et met à jour l'affichage
        */
@@ -415,95 +456,161 @@ window.toggleGroup = (contentId, headerElement) => {
           hasContent = true;
         }
         
-        // ==========================================================
-        // == RETOUR À LA LOGIQUE DES "CARTES PAR GROUPE"
-        // ==========================================================
-        let outputHTML = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:items-start">';
-        const sortedKeys = Object.keys(columns).sort();
-
-        for (const col of sortedKeys) {
-          const groupId = `group-content-${col.replace(/[^a-zA-Z0-9]/g, '-')}`;
-            const colName = highlightText(col, searchTerm);
-
-// 1. LE CONTENEUR (bg-white)
-    // Il reste visible, mais 'overflow-hidden' force ses coins
-    // à être arrondis et il s'adaptera en hauteur.
-    outputHTML += `<div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">`; 
+   //
+    // =======================================================
+    // == DÉBUT DE LA NOUVELLE LOGIQUE DE RENDU (GRID vs LIST)
+    // =======================================================
+    //
     
-    // 2. LE DÉCLENCHEUR (le h3 gris)
-    // Il appelle toggleGroup en ciblant le 'groupId'
-    outputHTML += `
-      <h3 
-        class="text-xl font-semibold text-gray-900 p-4 border-b bg-gray-50 flex justify-between items-center cursor-pointer hover:bg-gray-100 transition-colors"
-        onclick="window.toggleGroup('${groupId}', this)"
-        role="button"
-        aria-expanded="true" 
-        aria-controls="${groupId}"
-      >
-        <span>${colName}</span>
-        <i data-lucide="chevron-down" class="w-5 h-5 transition-transform duration-300 ease-in-out rotate-180"></i>
-      </h3>
-    `;
-    
-    // 3. LA CIBLE (le div blanc) - MODIFIÉ
-    // Ajout de 'overflow-hidden', 'transition-all', 'duration-300', 'max-h-[1000px]'
- outputHTML += `
-      <div 
-        id="${groupId}" 
-        class="flex flex-col gap-3 p-4 overflow-hidden overflow-y-auto transition-all duration-300 ease-in-out max-h-[40rem]"
-      >
-    `;
+    let outputHTML = '';
+    const sortedKeys = Object.keys(columns).sort();
 
-    // 4. Le contenu (vos cartes de contact)
-    outputHTML += columns[col].map(p => {
-      const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
-      const displayName = highlightText(p.nom, searchTerm);
-      const displayTel = p.tel ? highlightText(p.tel, searchTerm) : '(manquant)';
-      const telHtml = (p.tel === '(manquant)' || !p.tel)
-        ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500"><i data-lucide="phone-off" class="w-4 h-4"></i><span>(manquant)</span></span>`
-        : `<a href="etrali:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors"><i data-lucide="phone" class="w-4 h-4"></i><span>${displayTel}</span></a>`;
-      const displayEmail = p.email ? highlightText(p.email, searchTerm) : '';
-      const emailHtml = p.email
-        ? `<a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800 transition-colors" title="${p.email}"><i data-lucide="mail" class="w-4 h-4"></i><span class="truncate" style="max-width: 200px;">${displayEmail}</span></a>`
-        : '';
-      const isFavorited = favoritedContactIds.has(p.id.toString());
-      const starClass = isFavorited ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400';
-      const favoriteButton = `
-        <button onclick="window.toggleFavorite(this, 'repertoire', '${p.id}', ${isFavorited})" class="p-1 rounded-full hover:bg-yellow-100" title="Mettre en favori">
-          <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
-        </button>
-      `;
-      return `
-        <div class="bg-gray-50 rounded-lg border border-gray-200 transition-all hover:shadow-sm">
-          <div class="flex items-center justify-between p-3 border-b border-gray-100">
-            <span class="flex items-center gap-2.5 text-sm font-medium text-gray-900">
-               <i data-lucide="user" class="w-4 h-4 text-gray-600"></i>
-               <span>${displayName}</span>
-            </span>
-            <div class="flex items-center gap-1">
-              ${favoriteButton}
-              <div class="admin-only flex items-center gap-2">
-                <button onclick="showContactModal(${contactJson})" class="p-1 text-blue-600 rounded hover:bg-blue-100" title="Modifier">
-                  <i data-lucide="pencil" class="w-4 h-4"></i>
+    if (currentView === 'list') {
+      // ==========================
+      // === NOUVELLE VUE LISTE ===
+      // ==========================
+      outputHTML = '<div class="space-y-6">'; // Un simple conteneur
+      
+      for (const col of sortedKeys) {
+        const colName = highlightText(col, searchTerm);
+        
+        // Conteneur de groupe
+        outputHTML += `<div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">`;
+        // Header (non-cliquable)
+        outputHTML += `<h3 class="text-xl font-semibold text-gray-900 p-4 border-b bg-gray-50">${colName}</h3>`;
+        // Conteneur de liste avec séparateurs
+        outputHTML += `<div class="divide-y divide-gray-100">`; 
+        
+        outputHTML += columns[col].map(p => {
+          // --- Rendu en LIGNE (style DaisyUI) ---
+          const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
+          const displayName = highlightText(p.nom, searchTerm);
+          const displayTel = p.tel ? highlightText(p.tel, searchTerm) : '(manquant)';
+          const displayEmail = p.email ? highlightText(p.email, searchTerm) : '';
+          const isFavorited = favoritedContactIds.has(p.id.toString());
+          const starClass = isFavorited ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400';
+
+          return `
+            <div class="flex items-center justify-between p-4 hover:bg-gray-50">
+              <div class="flex items-center gap-4">
+                <i data-lucide="user" class="w-5 h-5 text-gray-500 flex-shrink-0"></i>
+                <div class="overflow-hidden">
+                  <div class="text-sm font-medium text-gray-900">${displayName}</div>
+                  <div class="flex flex-col sm:flex-row sm:items-center sm:gap-4 mt-1">
+                    ${p.tel ? `<a href="etrali:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800"><i data-lucide="phone" class="w-4 h-4"></i><span>${displayTel}</span></a>` : ''}
+                    ${p.email ? `<a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800" title="${p.email}"><i data-lucide="mail" class="w-4 h-4"></i><span class="truncate" style="max-width: 200px;">${displayEmail}</span></a>` : ''}
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-1 flex-shrink-0">
+                <button onclick="window.toggleFavorite(this, 'repertoire', '${p.id}', ${isFavorited});" class="p-1 rounded-full hover:bg-yellow-100" title="Mettre en favori">
+                  <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
                 </button>
-                <button onclick="deleteContact(${p.id}, '${p.nom}')" class="p-1 text-red-600 rounded hover:bg-red-100" title="Supprimer">
-                  <i data-lucide="trash-2" class="w-4 h-4"></i>
-                </button>
+                <div class="admin-only flex items-center gap-1">
+                  <button onclick="showContactModal(${contactJson})" class="p-1 text-blue-600 rounded hover:bg-blue-100" title="Modifier">
+                    <i data-lucide="pencil" class="w-4 h-4"></i>
+                  </button>
+                  <button onclick="deleteContact(${p.id}, '${p.nom}')" class="p-1 text-red-600 rounded hover:bg-red-100" title="Supprimer">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="p-3 flex flex-col gap-2">
-            ${telHtml}
-            ${emailHtml}
-          </div>
-        </div>`;
-    }).join('');
+          `;
+        }).join('');
+        
+        outputHTML += `</div></div>`; // Ferme 'divide-y' et 'bg-white'
+      } // fin boucle for
+      outputHTML += '</div>'; // Ferme 'space-y-6'
+
+    } else {
+      // ===================================
+      // === VUE GRILLE (votre code Accordéon) ===
+      // ===================================
+      outputHTML = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:items-start">';
+      
+      for (const col of sortedKeys) {
+        const groupId = `group-content-${col.replace(/[^a-zA-Z0-9]/g, '-')}`;
+        const colName = highlightText(col, searchTerm);
+
+        // 1. LE CONTENEUR (bg-white)
+        outputHTML += `<div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">`; 
+        
+        // 2. LE DÉCLENCHEUR (le h3 gris)
+        outputHTML += `
+          <h3 
+            class="text-xl font-semibold text-gray-900 p-4 border-b bg-gray-50 flex justify-between items-center cursor-pointer hover:bg-gray-100 transition-colors"
+            onclick="window.toggleGroup('${groupId}', this)"
+            role="button" aria-expanded="true" aria-controls="${groupId}"
+          >
+            <span>${colName}</span>
+            <i data-lucide="chevron-down" class="w-5 h-5 transition-transform duration-300 ease-in-out rotate-180"></i>
+          </h3>
+        `;
+        
+        // 3. LA CIBLE (le div blanc)
+        outputHTML += `
+          <div 
+            id="${groupId}" 
+            class="flex flex-col gap-3 p-4 overflow-hidden overflow-y-auto transition-all duration-300 ease-in-out max-h-[40rem]"
+          >
+        `;
+        
+        // 4. Le contenu (vos cartes de contact)
+        outputHTML += columns[col].map(p => {
+          // ... (Le code de votre carte-contact bg-gray-50 reste ici, inchangé)
+          const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
+          const displayName = highlightText(p.nom, searchTerm);
+          const displayTel = p.tel ? highlightText(p.tel, searchTerm) : '(manquant)';
+          const telHtml = (p.tel === '(manquant)' || !p.tel) ? `...` : `<a href="etrali:${p.tel}">...</a>`;
+          // ... (code complet pour telHtml, emailHtml, favoriteButton, etc.)
+          // ... (omission pour la brièveté, c'est votre code existant)
+          // ...
+          const telHtmlFull = (p.tel === '(manquant)' || !p.tel)
+            ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500"><i data-lucide="phone-off" class="w-4 h-4"></i><span>(manquant)</span></span>`
+            : `<a href="etrali:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors"><i data-lucide="phone" class="w-4 h-4"></i><span>${displayTel}</span></a>`;
+          const displayEmail = p.email ? highlightText(p.email, searchTerm) : '';
+          const emailHtml = p.email
+            ? `<a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800 transition-colors" title="${p.email}"><i data-lucide="mail" class="w-4 h-4"></i><span class="truncate" style="max-width: 200px;">${displayEmail}</span></a>`
+            : '';
+          const isFavorited = favoritedContactIds.has(p.id.toString());
+          const starClass = isFavorited ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400';
+          const favoriteButton = `
+            <button onclick="window.toggleFavorite(this, 'repertoire', '${p.id}', ${isFavorited})" class="p-1 rounded-full hover:bg-yellow-100" title="Mettre en favori">
+              <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
+            </button>
+          `;
+          return `
+            <div class="bg-gray-50 rounded-lg border border-gray-200 transition-all hover:shadow-sm">
+              <div class="flex items-center justify-between p-3 border-b border-gray-100">
+                <span class="flex items-center gap-2.5 text-sm font-medium text-gray-900">
+                   <i data-lucide="user" class="w-4 h-4 text-gray-600"></i>
+                   <span>${displayName}</span>
+                </span>
+                <div class="flex items-center gap-1">
+                  ${favoriteButton}
+                  <div class="admin-only flex items-center gap-2">
+                    <button onclick="showContactModal(${contactJson})" class="p-1 text-blue-600 rounded hover:bg-blue-100" title="Modifier">
+                      <i data-lucide="pencil" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="deleteContact(${p.id}, '${p.nom}')" class="p-1 text-red-600 rounded hover:bg-red-100" title="Supprimer">
+                      <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="p-3 flex flex-col gap-2">
+                ${telHtmlFull}
+                ${emailHtml}
+              </div>
+            </div>`;
+        }).join('');
     
     // 5. Fermeture des balises
     outputHTML += `</div></div>`; // Ferme le #groupId (cible) et le .bg-white (conteneur)
 }
 outputHTML += '</div>'; // Ferme le conteneur grid
-
+}
         if (!hasContent) {
             let message = searchTerm 
               ? `Aucun contact ne correspond à "${searchTerm}".` 
@@ -571,6 +678,11 @@ outputHTML += '</div>'; // Ferme le conteneur grid
       // --- Écouteurs ---
       searchInput.addEventListener('input', () => updateDisplay());
       
+      // NOUVEAU: Écouteurs pour le sélecteur de vue
+  viewToggleGrid.addEventListener('click', () => setView('grid'));
+  viewToggleList.addEventListener('click', () => setView('list'));
+
+
       // --- Lancement ---
       updateSortButtons();
       loadMainCategories(); // Charger les catégories et les données
