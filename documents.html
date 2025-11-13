@@ -97,7 +97,7 @@
 <script src="js/core/layout.js" type="module"></script>
   
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
+    window.pageInit = () => {
     
       const notyf = (typeof Notyf !== 'undefined') 
         ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
@@ -351,7 +351,7 @@
         await loadDocuments();
       })();
 
-    }); // Fin de DOMContentLoaded
+    }; // Fin de DOMContentLoaded
   </script>
 
   

@@ -139,7 +139,7 @@
     let handleFormSubmit;
     let deleteEntry;
     let changePage;
-    document.addEventListener('DOMContentLoaded', () => {
+   window.pageInit = () => {
     
       const notyf = (typeof Notyf !== 'undefined') 
         ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
@@ -460,7 +460,7 @@
       loadChangelog();
       // (Le addEventListener a été supprimé pour fixer le bug de double-submit)
 
-    }); // Fin de DOMContentLoaded
+    }; // Fin de DOMContentLoaded
   </script>
 
 </body>

@@ -172,7 +172,7 @@
     let handleFormSubmit;
     let deleteProcedure;
 
-    document.addEventListener('DOMContentLoaded', () => {
+   window.pageInit = () => {
     
       const notyf = (typeof Notyf !== 'undefined') 
         ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
@@ -548,7 +548,7 @@
           }
         });
 
-    }); // Fin de DOMContentLoaded
+    }; // Fin de DOMContentLoaded
   </script>
 
 </body>

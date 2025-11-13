@@ -118,7 +118,7 @@
 <script src="js/core/layout.js" type="module"></script>
   
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
+   window.pageInit = () => {
     
       // 1. INITIALISER NOTYF
       if (typeof Notyf === 'undefined') {
@@ -301,7 +301,7 @@
       // NOUVEAU: Écouteur pour le formulaire de mot de passe
       passwordForm.addEventListener('submit', updatePassword);
 
-    });
+    };
   </script>
 <div id="footer-placeholder"></div>
 </div>

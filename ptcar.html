@@ -83,7 +83,7 @@
 <script src="js/core/layout.js" type="module"></script>
   
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
+ window.pageInit = () => {
     
       let searchTimer;
       let currentPage = 1;
@@ -239,7 +239,7 @@
 
       // Lancement initial
       loadData();
-    });
+    };
   </script>
   
   <div id="footer-placeholder"></div>

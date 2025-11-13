@@ -124,7 +124,7 @@
 <div id="footer-placeholder"></div>
 
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
+    window.pageInit = () => {
     
       // --- GARDE DE SÉCURITÉ ---
       const userRole = sessionStorage.getItem('userRole');
@@ -502,7 +502,7 @@
       // Lancement initial (Doit être la dernière ligne avant la fermeture du listener)
       loadUsers();
 
-    }); // Fin de DOMContentLoaded
+    }; // Fin de DOMContentLoaded
   </script>
 </body>
 </html>
