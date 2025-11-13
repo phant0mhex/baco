@@ -114,8 +114,7 @@
     </div>
 </div>
     <hr class="my-8">
-    <div id="active-filters-container" class="mb-6 flex flex-wrap gap-2 items-center">
-  </div>
+    
     <div id="resultDisplay" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       </div>
   </div>
@@ -226,11 +225,8 @@
   let handlePmrFormSubmit;
   let deletePmrEntry;
 
-
-  
   document.addEventListener('DOMContentLoaded', () => {
     
-    const activeFiltersContainer = document.getElementById('active-filters-container');
       const notyf = (typeof Notyf !== 'undefined') 
         ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
         : { success: (msg) => alert(msg), error: (msg) => alert(msg) }; // Fallback
@@ -247,34 +243,13 @@
       const pmrIdInput = document.getElementById('modal-pmr-id');
       const submitButton = document.getElementById('modal-submit-button');
       
-
-      /**
- * NOUVELLE FONCTION (Globale)
- * Réinitialise un filtre spécifique et recharge les données
- */
-window.removeFilter = (filterName) => {
-  if (filterName === 'zone') {
-    zoneFilter.value = 'all';
-  }
-  if (filterName === 'etat') {
-    etatFilter.value = 'all';
-  }
-  if (filterName === 'type') {
-    typeFilter.value = 'all';
-  }
-
-  // Recharge les données avec le filtre retiré
-  loadPmrData();
-}
-
-
       /**
        * Charge et affiche les données PMR en fonction des filtres
        */
       loadPmrData = async () => {
         resultDisplay.innerHTML = '<div class="col-span-full flex justify-center items-center py-20"><i data-lucide="loader-2" class="w-10 h-10 text-blue-600 animate-spin"></i></div>';
         lucide.createIcons();
-        renderActiveFilters();
+        
         try {
           let query = supabaseClient
             .from('pmr_data')
@@ -344,63 +319,6 @@ window.removeFilter = (filterName) => {
         } else if (entry.etat_rampe === 'HS') {
           etatColor = 'text-red-800 bg-red-100';
         }
-
-        /**
- * NOUVELLE FONCTION
- * Affiche les filtres actuellement actifs sous forme de badges
- */
-function renderActiveFilters() {
-  // Récupérer les valeurs actuelles des filtres
-  const zone = zoneFilter.value;
-  const etat = etatFilter.value;
-  const type = typeFilter.value;
-  // Note: Nous n'ajoutons pas la barre de recherche ici, car elle est évidente.
-
-  let html = '';
-
-  // Badge pour la Zone
-  if (zone !== 'all') {
-    html += `
-      <span class="inline-flex items-center gap-1.5 px-3 py-1 text-sm font-medium bg-gray-100 text-gray-700 rounded-full">
-        <span>Zone: <strong>${zone}</strong></span>
-        <button onclick="removeFilter('zone')" class="p-0.5 rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-700" title="Retirer ce filtre">
-          <i data-lucide="x" class="w-4 h-4"></i>
-        </button>
-      </span>
-    `;
-  }
-
-  // Badge pour l'État
-  if (etat !== 'all') {
-    html += `
-      <span class="inline-flex items-center gap-1.5 px-3 py-1 text-sm font-medium bg-gray-100 text-gray-700 rounded-full">
-        <span>État: <strong>${etat}</strong></span>
-        <button onclick="removeFilter('etat')" class="p-0.5 rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-700" title="Retirer ce filtre">
-          <i data-lucide="x" class="w-4 h-4"></i>
-        </button>
-      </span>
-    `;
-  }
-
-  // Badge pour le Type
-  if (type !== 'all') {
-    html += `
-      <span class="inline-flex items-center gap-1.5 px-3 py-1 text-sm font-medium bg-gray-100 text-gray-700 rounded-full">
-        <span>Type: <strong>${type}</strong></span>
-        <button onclick="removeFilter('type')" class="p-0.5 rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-700" title="Retirer ce filtre">
-          <i data-lucide="x" class="w-4 h-4"></i>
-        </button>
-      </span>
-    `;
-  }
-
-  activeFiltersContainer.innerHTML = html;
-
-  // S'il y a des filtres, on s'assure que les icônes "x" sont rendues
-  if (html) {
-    lucide.createIcons();
-  }
-}
 
         // NOUVEAU: Couleur pour le type
         let typeColor = 'bg-gray-100 text-gray-800';
