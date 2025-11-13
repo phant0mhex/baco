@@ -85,7 +85,7 @@ async function initLayout() {
     // Initialiser tout ce qui dépend du footer
     const yearSpan = document.getElementById('current-year');
     if (yearSpan) yearSpan.textContent = new Date().getFullYear();
-    loadLatestChangelog(supabaseClient); // Doit passer le client
+    loadLatestChangelog(); // Doit passer le client
     setupGoToTop();
   }
 
