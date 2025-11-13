@@ -199,21 +199,21 @@ window.toggleGroup = (contentId, headerElement) => {
   const icon = headerElement.querySelector('i[data-lucide="chevron-down"]'); 
   if (!content) return;
 
-  // 1. Vérifie si le contenu est actuellement ouvert (il n'a pas max-h-0)
   const isOpen = !content.classList.contains('max-h-0');
   
-  // 2. Met à jour les classes
   if (isOpen) {
     // === On FERME (replie) ===
-    content.classList.add('max-h-0', 'p-0'); // Met la hauteur à 0 et enlève le padding
-    content.classList.remove('p-4', 'max-h-[1000px]'); // Retire la hauteur et le padding
+    content.classList.add('max-h-0', 'p-0');
+    // MODIFIÉ : 1000px -> 40rem
+    content.classList.remove('p-4', 'max-h-[40rem]'); 
     headerElement.classList.remove('border-b');
     headerElement.setAttribute('aria-expanded', 'false');
     icon.classList.remove('rotate-180'); // Flèche vers le bas
   } else {
     // === On OUVRE (déplie) ===
     content.classList.remove('max-h-0', 'p-0');
-    content.classList.add('p-4', 'max-h-[1000px]'); // Mettez une hauteur max suffisante
+    // MODIFIÉ : 1000px -> 40rem
+    content.classList.add('p-4', 'max-h-[40rem]'); 
     headerElement.classList.add('border-b');
     headerElement.setAttribute('aria-expanded', 'true');
     icon.classList.add('rotate-180'); // Flèche vers le haut
@@ -418,7 +418,7 @@ window.toggleGroup = (contentId, headerElement) => {
         // ==========================================================
         // == RETOUR À LA LOGIQUE DES "CARTES PAR GROUPE"
         // ==========================================================
-        let outputHTML = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">';
+        let outputHTML = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:items-start">';
         const sortedKeys = Object.keys(columns).sort();
 
         for (const col of sortedKeys) {
@@ -447,12 +447,13 @@ window.toggleGroup = (contentId, headerElement) => {
     
     // 3. LA CIBLE (le div blanc) - MODIFIÉ
     // Ajout de 'overflow-hidden', 'transition-all', 'duration-300', 'max-h-[1000px]'
-    outputHTML += `
+ outputHTML += `
       <div 
         id="${groupId}" 
-        class="flex flex-col gap-3 p-4 overflow-hidden transition-all duration-300 ease-in-out max-h-[1000px]"
+        class="flex flex-col gap-3 p-4 overflow-hidden overflow-y-auto transition-all duration-300 ease-in-out max-h-[40rem]"
       >
     `;
+
     // 4. Le contenu (vos cartes de contact)
     outputHTML += columns[col].map(p => {
       const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
