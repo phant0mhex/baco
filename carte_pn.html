@@ -143,7 +143,7 @@
       let zoneBoundariesLayer; // NOUVEAU: Couche pour les polygones de zone
       
       // NOUVEAU: Définition des polygones de zone
-      const zonePolygons = {
+    const zonePolygons = {
         'FTY': {
           coordinates: [
             [50.71242196210095, 3.2486830983771995], // L75A (Ouest)
@@ -154,9 +154,23 @@
           color: '#3b82f6', // blue-500
           name: "Zone FTY"
         },
-        // Ajoutez FMS, FCR ici lorsque vous aurez leurs coordonnées
+        // === BLOC AJOUTÉ ===
+        'FMS': {
+          coordinates: [
+            [50.50543430839332, 3.665517067924104], // L78 (Ouest)
+            [50.410038785522126, 3.6864318433191707], // L97
+            [50.34183460048231, 3.90901553256975],  // L96 (Sud)
+            [50.409945808840774, 4.174203067321734], // L108
+            [50.465756327923955, 4.188206517070317], // L118
+            [50.4616, 4.2106],                      // L112
+            [50.5012, 4.2436],                      // L117 (Est)
+            [50.691778551415474, 4.205354002363112]  // L96 (Nord)
+          ],
+          color: '#eab308', // yellow-500
+          name: "Zone FMS"
+        }
+        // ===================
       };
-      
       const tileLayers = {
         'Plan': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 22,
