@@ -11,8 +11,9 @@ import { loadJournalNotificationCount } from '../modules/notifications.js';
 import { setupThemeToggle } from '../modules/theme.js';
 import { loadComponent, loadLatestChangelog, injectCalendarStyles, setupGoToTop } from '../modules/utils.js';
 
-// --- VARIABLES GLOBALES EXPORTÉES ---
-// Initialise Notyf et l'exporte
+// --- EXPORTS GLOBAUX ---
+// (Ces exports sont utilisés par les autres modules)
+
 export let notyf;
 if (typeof Notyf !== 'undefined') {
   notyf = new Notyf({
@@ -20,18 +21,15 @@ if (typeof Notyf !== 'undefined') {
     position: { x: 'right', y: 'top' },
     dismissible: true
   });
+  window.notyf = notyf; // Rendre notyf global également
 } else {
   console.error("Notyf n'est pas chargé !");
   notyf = { success: (msg) => alert(msg), error: (msg) => alert(msg) };
+  window.notyf = notyf;
 }
 
-// Récupère l'ID utilisateur et l'exporte
 export let currentUserId = null;
-const { data: { user } } = await supabaseClient.auth.getUser();
-if (user) {
-  currentUserId = user.id;
-}
-// ------------------------------------
+// -------------------------
 
 /**
  * Initialise le calendrier Flatpickr sur le bouton de la nav
@@ -52,7 +50,7 @@ function initNavCalendar() {
 }
 
 /**
- * Fonction d'initialisation principale
+ * Fonction interne pour charger les composants de layout
  */
 async function initLayout() {
   // Injecter les styles globaux
@@ -68,7 +66,7 @@ async function initLayout() {
   if (navLoaded) {
     // Initialiser tout ce qui dépend de la nav
     highlightActiveLink();
-    await loadNavAvatar();
+    await loadNavAvatar(); // Doit être 'await'
     setupThemeToggle();
     applyAdminGlow();
     initNavCalendar();
@@ -76,7 +74,6 @@ async function initLayout() {
     setupLogout();
     setupNavDropdowns();
     loadJournalNotificationCount(); // Charger le badge
-    // setupRealtimePresence(); // (Fonctionnalité commentée)
   }
 
   // Charger le footer
@@ -85,18 +82,52 @@ async function initLayout() {
     // Initialiser tout ce qui dépend du footer
     const yearSpan = document.getElementById('current-year');
     if (yearSpan) yearSpan.textContent = new Date().getFullYear();
-    loadLatestChangelog(); // Doit passer le client
+    loadLatestChangelog();
     setupGoToTop();
   }
 
   // Appeler Lucide une fois que tout est chargé
   lucide.createIcons();
-
-  // Démarrer le script spécifique à la page (si `pageInit` est défini)
-  if (typeof window.pageInit === 'function') {
-    window.pageInit();
-  }
 }
 
-// Lancer l'initialisation au chargement du DOM
-document.addEventListener('DOMContentLoaded', initLayout);
+/**
+ * Fonction de DÉMARRAGE PRINCIPALE
+ */
+document.addEventListener('DOMContentLoaded', async () => {
+  // 1. Exécuter le gardien d'authentification
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  const currentPage = window.location.pathname.split('/').pop();
+
+  if (!session) {
+    sessionStorage.removeItem('userRole');
+    if (currentPage !== 'index.html' && currentPage !== 'reset-password.html') {
+      window.location.href = 'index.html';
+      return; // Arrêter l'exécution
+    }
+  } else {
+    // Utilisateur connecté
+    const userRole = session.user.user_metadata?.role || 'user';
+    sessionStorage.setItem('userRole', userRole);
+    
+    // 2. Définir l'ID utilisateur global
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (user) {
+      currentUserId = user.id;
+    }
+  }
+  
+  // 3. Si on est sur index ou reset, ne pas charger le layout (nav/footer)
+  if (currentPage !== 'index.html' && currentPage !== 'reset-password.html') {
+    // 4. Lancer l'initialisation du layout (nav/footer)
+    await initLayout();
+  }
+
+  // 5. Révéler le corps
+  document.body.style.visibility = 'visible';
+  
+  // 6. Démarrer le script spécifique à la page
+  // (uniquement si ce n'est pas index/reset ET que la page a un script d'init)
+  if (typeof window.pageInit === 'function' && currentPage !== 'index.html' && currentPage !== 'reset-password.html') {
+    window.pageInit();
+  }
+});
