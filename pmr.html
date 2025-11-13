@@ -17,7 +17,13 @@
 <link rel="stylesheet" href="https://unpkg.com/flatpickr/dist/flatpickr.min.css">
   <link rel="stylesheet" href="https://unpkg.com/notyf@3/notyf.min.css">
   <script src="https://unpkg.com/notyf@3/notyf.min.js"></script>
-
+<script>
+    if (localStorage.getItem('baco-theme') === 'dark' || (!('baco-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  </script>
   <script>
     tailwind.config = {
       theme: {
