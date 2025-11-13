@@ -1,12 +1,19 @@
 <!DOCTYPE html>
-<html lang="fr" class="h-full bg-gray-100">
+<html lang="fr" class="h-full bg-gray-100 dark:bg-gray-900">
 <head>
   <meta charset="UTF-8">
   <title>Clients PMR - Portail BACO</title>
     <link rel="icon" type="image/png" href="favicon.jpg">
 
   <script src="https://cdn.tailwindcss.com"></script>
-  
+  <script>
+  // Script anti-flicker (déjà présent dans votre theme.js, mais bon à avoir en inline)
+  if (localStorage.getItem('baco-theme') === 'dark' || (!('baco-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.documentElement.classList.add('dark')
+  } else {
+    document.documentElement.classList.remove('dark')
+  }
+</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist&family=Geist+Mono&display=swap" rel="stylesheet">
@@ -366,16 +373,13 @@ function setView(view) {
   updateViewToggleUI();
 
         try {
-          if (!currentUserId) {
-            const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-            if (authError || !user) throw new Error("Utilisateur non connecté");
-            currentUserId = user.id;
-          }
+          // MODIFICATION : Le 'if (!currentUserId)' est supprimé.
+          // currentUserId est GARANTI d'exister ici.
           
           const { data: favs, error: favError } = await supabaseClient
             .from('favoris')
             .select('id_contenu')
-            .eq('user_id', currentUserId)
+            .eq('user_id', window.currentUserId) // Utiliser window.currentUserId
             .eq('type_contenu', 'client_pmr');
           
           if (favError) throw favError;

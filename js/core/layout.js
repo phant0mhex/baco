@@ -113,6 +113,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (user) {
       currentUserId = user.id;
+      window.currentUserId = currentUserId; // Rendre global
     }
   }
   
