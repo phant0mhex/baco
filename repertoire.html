@@ -490,19 +490,29 @@ window.toggleGroup = (contentId, headerElement) => {
           const isFavorited = favoritedContactIds.has(p.id.toString());
           const starClass = isFavorited ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400';
 
-          return `
+         return `
             <div class="flex items-center justify-between p-4 hover:bg-gray-50">
-              <div class="flex items-center gap-4">
+              
+              <div class="flex items-center gap-4 flex-grow min-w-0">
                 <i data-lucide="user" class="w-5 h-5 text-gray-500 flex-shrink-0"></i>
-                <div class="overflow-hidden">
-                  <div class="text-sm font-medium text-gray-900">${displayName}</div>
-                  <div class="flex flex-col sm:flex-row sm:items-center sm:gap-4 mt-1">
-                    ${p.tel ? `<a href="etrali:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800"><i data-lucide="phone" class="w-4 h-4"></i><span>${displayTel}</span></a>` : ''}
-                    ${p.email ? `<a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800" title="${p.email}"><i data-lucide="mail" class="w-4 h-4"></i><span class="truncate" style="max-width: 200px;">${displayEmail}</span></a>` : ''}
+                
+                <div class="flex-grow min-w-0">
+                  <div class="text-sm font-medium text-gray-900 truncate">${displayName}</div>
+                  
+                  <div class="flex flex-col sm:flex-row sm:items-center sm:gap-4 sm:flex-wrap mt-1">
+                    
+                    ${p.tel ? `<a href="etrali:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 flex-shrink-0"><i data-lucide="phone" class="w-4 h-4"></i><span>${displayTel}</span></a>` : ''}
+                    
+                    ${p.email ? `
+                      <a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800 min-w-0" title="${p.email}">
+                        <i data-lucide="mail" class="w-4 h-4 flex-shrink-0"></i>
+                        <span class="truncate">${displayEmail}</span>
+                      </a>` : ''}
                   </div>
                 </div>
               </div>
-              <div class="flex items-center gap-1 flex-shrink-0">
+
+              <div class="flex items-center gap-1 flex-shrink-0 ml-4">
                 <button onclick="window.toggleFavorite(this, 'repertoire', '${p.id}', ${isFavorited});" class="p-1 rounded-full hover:bg-yellow-100" title="Mettre en favori">
                   <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
                 </button>
