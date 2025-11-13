@@ -196,25 +196,27 @@
 
 window.toggleGroup = (contentId, headerElement) => {
   const content = document.getElementById(contentId);
-  // Trouve l'icône chevron à l'intérieur du H3
   const icon = headerElement.querySelector('i[data-lucide="chevron-down"]'); 
-
   if (!content) return;
 
-  // 1. Bascule la classe 'hidden' sur le conteneur de contenu (le "blanc")
-      const isHidden = content.classList.toggle('hidden');
-      
-      // 2. Bascule la bordure inférieure du h3 pour un look plus propre
-      headerElement.classList.toggle('border-b', !isHidden);
-      
-      // 3. Met à jour l'attribut d'accessibilité
-      headerElement.setAttribute('aria-expanded', !isHidden);
-
-  // Met à jour la rotation de l'icône
-  if (icon) {
-    // isHidden = true -> l'élément est caché -> l'icône pointe vers le bas (0deg)
-    // isHidden = false -> l'élément est visible -> l'icône pointe vers le haut (180deg)
-    icon.classList.toggle('rotate-180', !isHidden);
+  // 1. Vérifie si le contenu est actuellement ouvert (il n'a pas max-h-0)
+  const isOpen = !content.classList.contains('max-h-0');
+  
+  // 2. Met à jour les classes
+  if (isOpen) {
+    // === On FERME (replie) ===
+    content.classList.add('max-h-0', 'p-0'); // Met la hauteur à 0 et enlève le padding
+    content.classList.remove('p-4', 'max-h-[1000px]'); // Retire la hauteur et le padding
+    headerElement.classList.remove('border-b');
+    headerElement.setAttribute('aria-expanded', 'false');
+    icon.classList.remove('rotate-180'); // Flèche vers le bas
+  } else {
+    // === On OUVRE (déplie) ===
+    content.classList.remove('max-h-0', 'p-0');
+    content.classList.add('p-4', 'max-h-[1000px]'); // Mettez une hauteur max suffisante
+    headerElement.classList.add('border-b');
+    headerElement.setAttribute('aria-expanded', 'true');
+    icon.classList.add('rotate-180'); // Flèche vers le haut
   }
 };
 
@@ -443,10 +445,14 @@ window.toggleGroup = (contentId, headerElement) => {
       </h3>
     `;
     
-    // 3. LA CIBLE (le div blanc)
-    // C'est ce div qui sera caché/affiché
-    outputHTML += `<div id="${groupId}" class="flex flex-col gap-3 p-4">`;
-    
+    // 3. LA CIBLE (le div blanc) - MODIFIÉ
+    // Ajout de 'overflow-hidden', 'transition-all', 'duration-300', 'max-h-[1000px]'
+    outputHTML += `
+      <div 
+        id="${groupId}" 
+        class="flex flex-col gap-3 p-4 overflow-hidden transition-all duration-300 ease-in-out max-h-[1000px]"
+      >
+    `;
     // 4. Le contenu (vos cartes de contact)
     outputHTML += columns[col].map(p => {
       const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
