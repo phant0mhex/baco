@@ -192,6 +192,27 @@
       let favoritedContactIds = new Set();
       
       
+
+
+window.toggleGroup = (contentId, headerElement) => {
+  const content = document.getElementById(contentId);
+  const icon = headerElement.querySelector('i[data-lucide]');
+
+  if (!content) return;
+
+  // Bascule la classe 'hidden'
+  const isHidden = content.classList.toggle('hidden');
+
+  // Met à jour l'icône chevron
+  if (icon) {
+    // 'isHidden' est vrai si le contenu *vient* d'être caché
+    icon.classList.toggle('-rotate-180', isHidden);
+  }
+
+  // Met à jour l'attribut d'accessibilité
+  headerElement.setAttribute('aria-expanded', !isHidden);
+};
+
       /**
        * Charge dynamiquement les catégories principales depuis Supabase
        */
@@ -394,64 +415,81 @@
         const sortedKeys = Object.keys(columns).sort();
 
         for (const col of sortedKeys) {
+          const groupId = `group-content-${col.replace(/[^a-zA-Z0-9]/g, '-')}`;
             const colName = highlightText(col, searchTerm);
-            outputHTML += `<div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">`;
-            outputHTML += `<h3 class="text-xl font-semibold text-gray-900 p-4 border-b bg-gray-50">${colName}</h3>`;
-            outputHTML += `<div class="flex flex-col gap-3 p-4">`;
-            
-            outputHTML += columns[col].map(p => {
-              const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
+         // MODIFIÉ: Retiré 'overflow-hidden' du conteneur principal de la carte
+    outputHTML += `<div class="bg-white rounded-lg border border-gray-200 shadow-sm">`;
 
-              const displayName = highlightText(p.nom, searchTerm);
-              const displayTel = p.tel ? highlightText(p.tel, searchTerm) : '(manquant)';
-              const telHtml = (p.tel === '(manquant)' || !p.tel)
-                ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500"><i data-lucide="phone-off" class="w-4 h-4"></i><span>(manquant)</span></span>`
-                : `<a href="etrali:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors"><i data-lucide="phone" class="w-4 h-4"></i><span>${displayTel}</span></a>`;
-              const displayEmail = p.email ? highlightText(p.email, searchTerm) : '';
-              const emailHtml = p.email
-                ? `<a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800 transition-colors" title="${p.email}"><i data-lucide="mail" class="w-4 h-4"></i><span class="truncate" style="max-width: 200px;">${displayEmail}</span></a>`
-                : '';
+    // MODIFIÉ: Le <h3> est maintenant un bouton de basculement
+    outputHTML += `
+      <h3 
+        class="text-xl font-semibold text-gray-900 p-4 border-b bg-gray-50 flex justify-between items-center cursor-pointer hover:bg-gray-100 transition-colors"
+        onclick="window.toggleGroup('${groupId}', this)"
+        role="button"
+        aria-expanded="true" 
+        aria-controls="${groupId}"
+      >
+        <span>${colName}</span>
+        <i data-lucide="chevron-down" class="w-5 h-5 transition-transform duration-300 ease-in-out"></i>
+      </h3>
+    `;
 
-              const isFavorited = favoritedContactIds.has(p.id.toString()); // Assurer la comparaison en string
-              const starClass = isFavorited ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400';
-              
-              const favoriteButton = `
-                <button onclick="window.toggleFavorite(this, 'repertoire', '${p.id}', ${isFavorited})" class="p-1 rounded-full hover:bg-yellow-100" title="Mettre en favori">
-                  <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
+    // MODIFIÉ: Le conteneur de contenu a maintenant l'ID unique
+    // Il est visible par défaut (pas de classe 'hidden')
+    outputHTML += `<div id="${groupId}" class="flex flex-col gap-3 p-4">`;
+
+    outputHTML += columns[col].map(p => {
+      // ... (TOUTE la logique de rendu de contact (p.) reste EXACTEMENT LA MÊME) ...
+      const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
+      const displayName = highlightText(p.nom, searchTerm);
+      const displayTel = p.tel ? highlightText(p.tel, searchTerm) : '(manquant)';
+      const telHtml = (p.tel === '(manquant)' || !p.tel)
+        ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500"><i data-lucide="phone-off" class="w-4 h-4"></i><span>(manquant)</span></span>`
+        : `<a href="etrali:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors"><i data-lucide="phone" class="w-4 h-4"></i><span>${displayTel}</span></a>`;
+      const displayEmail = p.email ? highlightText(p.email, searchTerm) : '';
+      const emailHtml = p.email
+        ? `<a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800 transition-colors" title="${p.email}"><i data-lucide="mail" class="w-4 h-4"></i><span class="truncate" style="max-width: 200px;">${displayEmail}</span></a>`
+        : '';
+
+      const isFavorited = favoritedContactIds.has(p.id.toString());
+      const starClass = isFavorited ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400';
+
+      const favoriteButton = `
+        <button onclick="window.toggleFavorite(this, 'repertoire', '${p.id}', ${isFavorited})" class="p-1 rounded-full hover:bg-yellow-100" title="Mettre en favori">
+          <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
+        </button>
+      `;
+
+      return `
+        <div class="bg-gray-50 rounded-lg border border-gray-200 transition-all hover:shadow-sm">
+          <div class="flex items-center justify-between p-3 border-b border-gray-100">
+            <span class="flex items-center gap-2.5 text-sm font-medium text-gray-900">
+               <i data-lucide="user" class="w-4 h-4 text-gray-600"></i>
+               <span>${displayName}</span>
+            </span>
+            <div class="flex items-center gap-1">
+              ${favoriteButton}
+              <div class="admin-only flex items-center gap-2">
+                <button onclick="showContactModal(${contactJson})" class="p-1 text-blue-600 rounded hover:bg-blue-100" title="Modifier">
+                  <i data-lucide="pencil" class="w-4 h-4"></i>
                 </button>
-              `;
+                <button onclick="deleteContact(${p.id}, '${p.nom}')" class="p-1 text-red-600 rounded hover:bg-red-100" title="Supprimer">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="p-3 flex flex-col gap-2">
+            ${telHtml}
+            ${emailHtml}
+          </div>
+        </div>`;
+    }).join('');
 
-              return `
-                <div class="bg-gray-50 rounded-lg border border-gray-200 transition-all hover:shadow-sm">
-                  <div class="flex items-center justify-between p-3 border-b border-gray-100">
-                    <span class="flex items-center gap-2.5 text-sm font-medium text-gray-900">
-                       <i data-lucide="user" class="w-4 h-4 text-gray-600"></i>
-                       <span>${displayName}</span>
-                    </span>
-                    
-                    <div class="flex items-center gap-1">
-                      ${favoriteButton}
-                      <div class="admin-only flex items-center gap-2">
-                        <button onclick="showContactModal(${contactJson})" class="p-1 text-blue-600 rounded hover:bg-blue-100" title="Modifier">
-                          <i data-lucide="pencil" class="w-4 h-4"></i>
-                        </button>
-                        <button onclick="deleteContact(${p.id}, '${p.nom}')" class="p-1 text-red-600 rounded hover:bg-red-100" title="Supprimer">
-                          <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
-                      </div>
-                    </div>
-                    
-                  </div>
-                  <div class="p-3 flex flex-col gap-2">
-                    ${telHtml}
-                    ${emailHtml}
-                  </div>
-                </div>`;
-            }).join('');
-            
-            outputHTML += `</div></div>`;
-        }
-        outputHTML += '</div>';
+    outputHTML += `</div></div>`; // Ferme le conteneur de contenu (#groupId) et la carte
+} // Fin de la boucle for
+
+outputHTML += '</div>'; // Ferme le conteneur grid
 
         if (!hasContent) {
             let message = searchTerm 
