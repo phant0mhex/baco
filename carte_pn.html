@@ -41,6 +41,42 @@
     .leaflet-popup-content h4 { font-size: 1.125rem; font-weight: 700; color: #1d4ed8; margin-bottom: 0.5rem; }
     .leaflet-popup-content p { margin: 0.25rem 0; }
     
+
+.leaflet-legend {
+      background-color: white;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+      line-height: 1.5;
+    }
+    .leaflet-legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    .leaflet-legend-color {
+      width: 20px;
+      height: 10px;
+      margin-right: 8px;
+      opacity: 0.7;
+    }
+    .leaflet-legend-text {
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .leaflet-legend h4 {
+      font-weight: 700;
+      margin-top: 0;
+      margin-bottom: 5px;
+    }
+    
+    /* NOUVEAU: Style Dark Mode pour la légende */
+    .dark .leaflet-legend {
+      background-color: #374151; /* bg-gray-700 */
+      border-color: #4b5563; /* border-gray-600 */
+      color: #d1d5db; /* text-gray-300 */
+}
     /* Correction pour le popup en mode sombre */
     .dark .leaflet-popup-content-wrapper {
       background-color: #1f2937; /* bg-gray-800 */
@@ -136,15 +172,15 @@
       const searchBar = document.getElementById('search-bar');
       
       let allPnData = [];
-      let allSpiData = [];
+      // let allSpiData = []; // SUPPRIMÉ
       let map;
       let markersLayer; // Couche pour les PN
-      let spiLayer; // Couche pour les bâtiments SPI
-      let zoneBoundariesLayer; // NOUVEAU: Couche pour les polygones de zone
+      // let spiLayer; // SUPPRIMÉ
+      let zoneBoundariesLayer; // Couche pour les polygones de zone
       
-      // NOUVEAU: Définition des polygones de zone
-    const zonePolygons = {
-      'FTY': {
+      // Définition des polygones de zone
+      const zonePolygons = {
+        'FTY': {
           coordinates: [
             [50.7610, 3.2240],  // L75 (Nord-Ouest)
             [50.7166, 3.2403],  // L75A (Ouest)
@@ -155,7 +191,6 @@
           color: '#3b82f6', // blue-500
           name: "Zone FTY"
         },
-       // === BLOC MIS À JOUR (14 points) ===
         'FMS': {
           coordinates: [
             [50.4102, 3.6856],  // L97 (Point Ouest)
@@ -176,7 +211,7 @@
           color: '#eab308', // yellow-500
           name: "Zone FMS"
         },
-'FCR': {
+        'FCR': {
           coordinates: [
             [50.7302, 4.3785],  // L124 (Nord)
             [50.5048, 4.3876],  // L117
@@ -190,10 +225,8 @@
           color: '#ef4444', // red-500
           name: "Zone FCR"
         }
-     
-
-        // ===================
       };
+      
       const tileLayers = {
         'Plan': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 22,
@@ -229,10 +262,10 @@
 
           // Initialiser les couches de données
           markersLayer = L.layerGroup().addTo(map);
-          spiLayer = L.layerGroup().addTo(map);
-          zoneBoundariesLayer = L.layerGroup().addTo(map); // NOUVEAU
+          // spiLayer = L.layerGroup().addTo(map); // SUPPRIMÉ
+          zoneBoundariesLayer = L.layerGroup().addTo(map); 
 
-          // NOUVEAU: Ajouter le contrôle des couches
+          // Ajouter le contrôle des couches
           const baseMaps = {
             'Satellite': tileLayers['Satellite'],
             'Plan': tileLayers['Plan'],
@@ -240,10 +273,13 @@
           };
           const overlayMaps = {
             "Frontières de Zone": zoneBoundariesLayer,
-            "Passages à Niveau (PN)": markersLayer,
-            "Zone SPI": spiLayer
+            "Passages à Niveau (PN)": markersLayer
+            // "Bâtiments SPI": spiLayer // SUPPRIMÉ
           };
           L.control.layers(baseMaps, overlayMaps).addTo(map);
+
+          // NOUVEAU: Initialiser la légende
+          initLegend();
 
         } catch(e) {
           notyf.error("Erreur lors de l'initialisation de la carte.");
@@ -253,7 +289,29 @@
       }
 
       /**
-       * NOUVEAU: Dessine les polygones de zone
+       * NOUVEAU: Ajoute la légende des zones à la carte
+       */
+      function initLegend() {
+        const legend = L.control({ position: 'bottomright' });
+        legend.onAdd = function (map) {
+            const div = L.DomUtil.create('div', 'info legend leaflet-legend');
+            div.innerHTML += '<h4>Légende des Zones</h4>';
+            
+            Object.values(zonePolygons).forEach(zone => {
+                div.innerHTML += `
+                    <div class="leaflet-legend-item">
+                        <div class="leaflet-legend-color" style="background-color: ${zone.color}"></div>
+                        <span class="leaflet-legend-text">${zone.name}</span>
+                    </div>
+                `;
+            });
+            return div;
+        };
+        legend.addTo(map);
+      }
+
+      /**
+       * Dessine les polygones de zone
        */
       function drawZoneBoundaries() {
         if (!map || !zoneBoundariesLayer) return;
@@ -272,11 +330,13 @@
       }
 
       /**
-       * Charge les filtres de lignes
+       * Charge les filtres de lignes (modifié pour inclure les lignes SPI)
        */
       async function loadLineFilters() {
         filterContainer.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Chargement...</p>';
         try {
+          // On garde cette logique pour que les lignes SPI (même sans PN)
+          // apparaissent dans le filtre
           const [pnLines, spiLines] = await Promise.all([
             supabaseClient.from('pn_data').select('ligne_nom'),
             supabaseClient.from('spi_data').select('ligne_nom')
@@ -330,27 +390,15 @@
       }
 
       /**
-       * Charge toutes les données SPI depuis Supabase
+       * Charge toutes les données SPI (SUPPRIMÉ)
        */
-      async function loadAllSpiData() {
-        try {
-          const { data, error } = await supabaseClient
-            .from('spi_data')
-            .select('ligne_nom, lieu, zone, adresse, remarques, geo')
-            .not('geo', 'is', null);
-            
-          if (error) throw error;
-          allSpiData = data;
-        } catch (error) {
-          console.warn('Erreur chargement données SPI: ' + error.message);
-        }
-      }
-      
+      // async function loadAllSpiData() { ... } // SUPPRIMÉ
+
       /**
-       * Fonction principale pour filtrer et afficher les données
+       * Fonction principale pour filtrer et afficher les données (simplifié)
        */
       function filterAndDisplayData() {
-        if (allPnData.length === 0 && allSpiData.length === 0) return;
+        if (allPnData.length === 0) return;
         
         const checkedBoxes = filterContainer.querySelectorAll('.filter-checkbox:checked');
         let selectedLignes = Array.from(checkedBoxes).map(cb => cb.value);
@@ -370,28 +418,21 @@
           return ligneMatch && searchMatch;
         });
 
-        // Filtrer les données SPI
-        const filteredSpiData = allSpiData.filter(spi => {
-          const ligneMatch = selectedLignes.includes(spi.ligne_nom);
-          const searchMatch = !searchTerm || 
-                              (spi.lieu && spi.lieu.toLowerCase().includes(searchTerm)) ||
-                              (spi.zone && spi.zone.toLowerCase().includes(searchTerm)) ||
-                              (spi.adresse && spi.adresse.toLowerCase().includes(searchTerm));
-          return ligneMatch && searchMatch;
-        });
+        // Filtrer les données SPI (SUPPRIMÉ)
+        // const filteredSpiData = ... // SUPPRIMÉ
 
-        updateMap(filteredPnData, filteredSpiData);
-        updateList(filteredPnData, filteredSpiData);
+        updateMap(filteredPnData);
+        updateList(filteredPnData);
       }
       
       /**
-       * Met à jour la carte Leaflet avec les données filtrées
+       * Met à jour la carte Leaflet avec les données filtrées (simplifié)
        */
-      function updateMap(pnData, spiData) {
-        if (!map || !markersLayer || !spiLayer) return;
+      function updateMap(pnData) {
+        if (!map || !markersLayer) return;
         
         markersLayer.clearLayers();
-        spiLayer.clearLayers();    
+        // spiLayer.clearLayers(); // SUPPRIMÉ
         
         const markers = [];
         
@@ -414,37 +455,8 @@
           }
         });
         
-        // Ajouter les marqueurs SPI
-        spiData.forEach(spi => {
-          if (!spi.geo) return; 
-          const coords = spi.geo.split(',');
-          const lat = parseFloat(coords[0]);
-          const lon = parseFloat(coords[1]);
-          
-          if (!isNaN(lat) && !isNaN(lon)) {
-            const popupContent = `
-              <h4>Bât. SPI: ${spi.lieu || 'N/A'}</h4>
-              <p><strong>Ligne:</strong> ${spi.ligne_nom || 'N/A'}</p>
-              <p><strong>Zone:</strong> ${spi.zone || 'N/A'}</p>
-              <p><strong>Adresse:</strong> ${spi.adresse || 'N/A'}</p>
-              ${spi.remarques ? `<p><strong>Rem.:</strong> ${spi.remarques}</p>` : ''}
-            `;
-            
-            // NOUVEAU: Utiliser un icône différent pour les SPI
-            const spiIcon = L.icon({
-                iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                iconSize: [25, 41],
-                iconAnchor: [12, 41],
-                popupAnchor: [1, -34],
-                shadowSize: [41, 41]
-            });
-
-            const marker = L.marker([lat, lon], {icon: spiIcon}).bindPopup(popupContent);
-            markers.push(marker);
-            spiLayer.addLayer(marker);
-          }
-        });
+        // Ajouter les marqueurs SPI (SUPPRIMÉ)
+        // spiData.forEach(...) // SUPPRIMÉ
         
         // Ajuster le zoom de la carte
         if (markers.length > 0) {
@@ -454,11 +466,11 @@
       }
 
       /**
-       * Met à jour la liste HTML avec les données filtrées
+       * Met à jour la liste HTML avec les données filtrées (simplifié)
        */
-      function updateList(pnData, spiData) {
-        if (pnData.length === 0 && spiData.length === 0) {
-          pnListContainer.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center">Aucun élément ne correspond aux filtres.</p>';
+      function updateList(pnData) {
+        if (pnData.length === 0) {
+          pnListContainer.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center">Aucun PN ne correspond aux filtres.</p>';
           return;
         }
         
@@ -473,34 +485,23 @@
           </div>
         `).join('');
 
-        const spiHtml = spiData.map(spi => `
-          <div class="bg-white p-4 rounded-lg shadow border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
-            <div class="flex justify-between items-center">
-              <h3 class="text-lg font-bold text-green-700 dark:text-green-400">Bât. SPI: ${spi.lieu || 'N/A'}</h3>
-              <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">${spi.ligne_nom || 'N/A'}</span>
-            </div>
-            <p class="text-sm text-gray-700 dark:text-gray-300 mt-2"><strong>Zone:</strong> ${spi.zone || 'N/A'}</S_LIst>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1"><strong>Adresse:</strong> ${spi.adresse || 'N/A'}</p>
-            ${spi.remarques ? `<p class="text-sm text-gray-500 dark:text-gray-400 mt-1"><strong>Rem.:</strong> ${spi.remarques}</p>` : ''}
-          </div>
-        `).join('');
+        // Rendu HTML pour les SPI (SUPPRIMÉ)
+        // const spiHtml = ... // SUPPRIMÉ
 
-        pnListContainer.innerHTML = spiHtml + pnHtml; // Afficher les SPI en premier
+        pnListContainer.innerHTML = pnHtml; // Afficher seulement les PN
       }
 
       // --- Écouteurs d'événements ---
       filterContainer.addEventListener('change', filterAndDisplayData);
       searchBar.addEventListener('input', filterAndDisplayData);
       
-      // --- Lancement Initial ---
+      // --- Lancement Initial (simplifié) ---
       initMap();
-      drawZoneBoundaries(); // NOUVEAU: Dessiner les polygones
+      drawZoneBoundaries(); // Dessiner les polygones
       loadLineFilters();
       
-      Promise.all([
-        loadAllPnData(),
-        loadAllSpiData()
-      ]).then(() => {
+      // Charger uniquement les données PN
+      loadAllPnData().then(() => {
         filterAndDisplayData();
       });
       
