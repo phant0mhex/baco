@@ -11,7 +11,7 @@ let globalSearchSelectedIndex = -1;
 function createSearchModal() {
   const style = document.createElement('style');
   style.innerHTML = `
-    #global-search-modal { z-index: 100; }
+    #global-search-modal { z-index: 1050; }
     #global-search-modal-panel { max-height: 80vh; }
     .search-result-item:hover, .search-result-item.selected { background-color: #374151; }
     kbd { font-family: 'Geist Mono', monospace; font-size: 0.75rem; background-color: #374151; border: 1px solid #4B5563; border-radius: 4px; padding: 2px 5px; }
