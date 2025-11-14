@@ -1,10 +1,11 @@
 // js/modules/notifications.js
 import { supabaseClient } from '../core/auth.js';
+// import { currentUserId, notyf } from '../core/layout.js'; // <-- SUPPRIMÉ L'IMPORT DE currentUserId
 
 const JOURNAL_STORAGE_KEY = 'lastJournalVisit';
 
 /**
- * Charge le nombre de nouveaux messages du journal et met à jour le badge
+ * (Inchangé) Charge le nombre de nouveaux messages du journal et met à jour le badge
  */
 export async function loadJournalNotificationCount() {
   const badgeElement = document.getElementById('journal-badge');
@@ -38,20 +39,21 @@ export async function loadJournalNotificationCount() {
 window.loadJournalNotificationCount = loadJournalNotificationCount;
 
 
-// --- NOUVELLES FONCTIONS POUR LA CLOCHE ---
+// --- NOUVELLES FONCTIONS POUR LA CLOCHE (MODIFIÉES) ---
 
 /**
  * NOUVEAU: Récupère le COMPTE des notifications non lues
  */
 export async function loadNotificationCount() {
   const badge = document.getElementById('notifications-badge');
-  if (!badge || !currentUserId) return;
+  // MODIFIÉ: Utilise window.currentUserId
+  if (!badge || !window.currentUserId) return;
 
   try {
     const { count, error } = await supabaseClient
       .from('notifications')
       .select('id', { count: 'exact', head: true })
-      .eq('user_id_target', currentUserId)
+      .eq('user_id_target', window.currentUserId) // MODIFIÉ
       .eq('is_read', false);
 
     if (error) throw error;
@@ -72,14 +74,18 @@ export async function loadNotificationCount() {
  */
 export async function loadNotificationDropdown() {
   const list = document.getElementById('notifications-list');
-  if (!list) return;
+  // MODIFIÉ: Vérifie window.currentUserId
+  if (!list || !window.currentUserId) {
+    list.innerHTML = '<p class="p-3 text-sm text-center text-red-400">Erreur: Utilisateur non identifié.</p>';
+    return;
+  }
   list.innerHTML = '<p class="p-3 text-sm text-center text-gray-400">Chargement...</p>';
 
   try {
     const { data, error } = await supabaseClient
       .from('notifications')
       .select('id, message, link_url, created_at')
-      .eq('user_id_target', currentUserId)
+      .eq('user_id_target', window.currentUserId) // MODIFIÉ
       .order('created_at', { ascending: false })
       .limit(10);
 
@@ -109,11 +115,13 @@ export async function loadNotificationDropdown() {
  * NOUVEAU: Marque toutes les notifications comme lues
  */
 async function markNotificationsAsRead() {
+  if (!window.currentUserId) return; // MODIFIÉ
+
   try {
     const { error } = await supabaseClient
       .from('notifications')
       .update({ is_read: true })
-      .eq('user_id_target', currentUserId)
+      .eq('user_id_target', window.currentUserId) // MODIFIÉ
       .eq('is_read', false);
       
     if (error) throw error;
