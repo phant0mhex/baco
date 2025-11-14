@@ -78,6 +78,49 @@ function setupRealtimeNotifications() {
 
 
 /**
+ * Vérifie s'il y a de nouvelles entrées dans le journal
+ */
+async function pollJournalNotifications() {
+  const badgeElement = document.getElementById('journal-badge');
+  if (!badgeElement) return; // Pas sur une page avec la nav
+
+  // On utilise la même clé que le module de notifications
+  const JOURNAL_STORAGE_KEY = 'lastJournalVisit'; 
+  let lastVisit = localStorage.getItem(JOURNAL_STORAGE_KEY);
+  if (!lastVisit) lastVisit = '1970-01-01T00:00:00.000Z';
+
+  try {
+    const { count, error } = await supabaseClient
+      .from('main_courante')
+      .select('id', { count: 'exact', head: true })
+      .gt('created_at', lastVisit); // Compte les messages plus récents que la dernière visite
+
+    if (error) throw error;
+
+    const oldBadgeCount = parseInt(badgeElement.textContent || '0', 10);
+
+    // Si le compte de la BDD est supérieur à ce que le badge affiche
+    if (count > 0 && count > oldBadgeCount) {
+      badgeElement.textContent = count;
+      badgeElement.classList.remove('hidden');
+
+      // On affiche une notification seulement si le compte a changé
+      if (oldBadgeCount === 0) { // N'affiche que la première fois
+         notyf.success({
+            message: "Nouveau message dans le journal !",
+            onClick: () => { window.location.href = 'journal.html'; }
+         });
+      }
+    } else if (count === 0) {
+       badgeElement.classList.add('hidden');
+       badgeElement.textContent = '';
+    }
+  } catch (error) {
+    console.warn("[Journal Poll] Erreur:", error.message);
+  }
+}
+
+/**
  * Fonction interne pour charger les composants de layout
  */
 async function initLayout() {
@@ -105,6 +148,8 @@ async function initLayout() {
     loadNotificationCount(); // <-- NOUVEL APPEL
     setupRealtimeNotifications();
     updateUserHeartbeat();
+
+    setInterval(pollJournalNotifications, 30000); // 30 secondes
   }
 
   // Charger le footer
