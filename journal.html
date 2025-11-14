@@ -402,7 +402,7 @@
 
         notyf.success('Message posté dans le journal.');
         textarea.value = '';
-        loadLogs(); // Recharger les logs
+        loadLogFeed(); // Recharger les logs
 
       } catch (error) {
         notyf.error(error.message);
