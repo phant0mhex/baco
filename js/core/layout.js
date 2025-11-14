@@ -114,12 +114,57 @@ async function initLayout() {
     if (yearSpan) yearSpan.textContent = new Date().getFullYear();
     loadLatestChangelog();
     setupGoToTop();
+checkWhatIsNew();
+
   }
 
   // Appeler Lucide une fois que tout est chargé
   lucide.createIcons();
 }
 
+
+// 2. Ajoutez cette nouvelle fonction dans js/core/layout.js
+async function checkWhatIsNew() {
+  const STORAGE_KEY = 'baco-last-seen-changelog-id';
+  try {
+    // Récupérer le dernier changelog (vous avez déjà cette logique dans utils.js, 
+    // mais nous avons besoin de l'ID ici)
+    const { data, error } = await supabaseClient
+      .from('changelog')
+      .select('id, title, type')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) throw error;
+    if (!data) return; // Pas de changelog
+
+    const lastSeenId = localStorage.getItem(STORAGE_KEY);
+
+    // Si l'ID du dernier changelog est différent de celui sauvegardé
+    if (data.id.toString() !== lastSeenId) {
+
+      let typeText = data.type === 'Nouveau' ? '[Nouveau]' : '[Mise à jour]';
+
+      // Utiliser Notyf pour un popup cliquable
+      notyf.success({
+        message: `<strong>${typeText}</strong> ${data.title}`,
+        duration: 10000, // 10 secondes
+        icon: false,
+        // Permet à l'utilisateur de cliquer sur la notif pour voir le changelog
+        onClick: () => {
+          window.location.href = 'changelog.html';
+        }
+      });
+
+      // Mémoriser que l'utilisateur a vu cette mise à jour
+      localStorage.setItem(STORAGE_KEY, data.id.toString());
+    }
+
+  } catch (error) {
+    console.warn("Erreur 'Quoi de Neuf':", error.message);
+  }
+}
 /**
  * Fonction de DÉMARRAGE PRINCIPALE
  */
