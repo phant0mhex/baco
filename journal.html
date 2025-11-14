@@ -346,19 +346,20 @@
       /**
        * Affiche le popup de mention avec les utilisateurs filtrés
        */
-      function showMentionPopup(query) {
+     function showMentionPopup(query) {
+  console.log(`[Mentions] showMentionPopup() appelé avec la requête: "${query}"`);
   currentMentionQuery = query.toLowerCase();
 
-  // === MODIFICATION ICI ===
-  // Rendre le filtre robuste contre les valeurs `null`
   const filteredUsers = userCache.filter(user => {
-    // Vérifie si le username existe ET correspond
-    const usernameMatch = user.username && user.username.toLowerCase().includes(currentMentionQuery);
-    // Vérifie si le full_name existe ET correspond
-    const fullnameMatch = user.full_name && user.full_name.toLowerCase().includes(currentMentionQuery);
-    return usernameMatch || fullnameMatch;
+    // S'assurer que les valeurs ne sont pas nulles avant d'appeler .toLowerCase()
+    const username = user.username || '';
+    const fullname = user.full_name || '';
+
+    return username.toLowerCase().includes(currentMentionQuery) ||
+           fullname.toLowerCase().includes(currentMentionQuery);
   });
-  // ========================
+
+  console.log(`[Mentions] ${filteredUsers.length} utilisateurs trouvés pour "${query}"`);
 
   if (filteredUsers.length === 0) {
     hideMentionPopup();
@@ -373,6 +374,7 @@
   `).join('');
 
   mentionPopup.style.display = 'block';
+  console.log("[Mentions] Popup affiché.");
   selectedMentionIndex = 0;
   updateMentionSelection();
 }
@@ -399,30 +401,34 @@
         selectedMentionIndex = -1;
       }
 
-      /**
-       * Gère la saisie dans le textarea
-       */
-      function handleInput(e) {
-        const text = logMessageInput.value;
-        const cursorPos = logMessageInput.selectionStart;
-        const textBeforeCursor = text.substring(0, cursorPos);
-        
-        const lastAtIndex = textBeforeCursor.lastIndexOf('@');
-        
-        if (lastAtIndex === -1) {
-          hideMentionPopup();
-          return;
-        }
+     /**
+ * Gère la saisie dans le textarea (CORRIGÉ v3)
+ */
+function handleInput(e) {
+  const text = logMessageInput.value;
+  const cursorPos = logMessageInput.selectionStart;
+  const textBeforeCursor = text.substring(0, cursorPos);
 
-        // Vérifier qu'il n'y a pas d'espace entre @ et le terme
-        const potentialQuery = textBeforeCursor.substring(lastAtIndex + 1);
-        if (potentialQuery.includes(' ')) {
-          hideMentionPopup();
-          return;
-        }
+  const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+  console.log(`[Mentions] handleInput: lastAtIndex = ${lastAtIndex}`);
 
-        showMentionPopup(potentialQuery);
-      }
+  if (lastAtIndex === -1) {
+    hideMentionPopup();
+    return;
+  }
+
+  // Vérifier qu'il n'y a pas d'espace entre @ et le terme
+  const potentialQuery = textBeforeCursor.substring(lastAtIndex + 1);
+  console.log(`[Mentions] handleInput: potentialQuery = "${potentialQuery}"`);
+
+  if (potentialQuery.includes(' ')) {
+    hideMentionPopup();
+    return;
+  }
+
+  // On appelle TOUJOURS showMentionPopup, même si la requête est vide
+  showMentionPopup(potentialQuery);
+}
 
       /**
        * Gère la navigation au clavier dans le popup
