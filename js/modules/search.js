@@ -14,8 +14,7 @@ function createSearchModal() {
     #global-search-modal { z-index: 1050; }
     #global-search-modal-panel { max-height: 80vh; }
     .search-result-item:hover, .search-result-item.selected { background-color: #374151; }
-    kbd { font-family: 'Geist Mono', monospace; font-size: 0.75rem; background-color: #374151; border: 1px solid #4B5563; border-radius: 4px; padding: 2px 5px; }
-  `;
+kbd { font-family: 'Geist Mono', monospace; font-size: 0.75rem; background-color: #374151; border: 1px solid #4B5563; border-radius: 4px; padding: 2px 5px; color: #E5E7EB; }  `;
   document.head.appendChild(style);
   const modalHtml = `
     <div id="global-search-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-start justify-center p-4 pt-[20vh]" style="display: none;">
