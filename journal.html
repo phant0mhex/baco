@@ -311,54 +311,71 @@
         }
       }
       
-      /**
-       * Gère la soumission d'un nouveau message
-       */
-      async function handlePostSubmit(event) {
-        event.preventDefault();
-        const message = logMessageInput.value;
-        if (!message.trim()) return; 
-        
-        if (!currentUserId) {
-           notyf.error("Erreur: utilisateur non identifié.Veuillez rafraîchir la page.");
-           return;
-        }
-        
-        logSubmitButton.disabled = true;
-        logSubmitButton.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> <span>Publication...</span>';
-        lucide.createIcons();
-        
-        try {
-         
+     
 
-          // Insertion du message (inchangé)
-          const { error } = await supabaseClient
-            .from('main_courante')
-            .insert({
-              user_id: currentUserId,
-              message_content: message
-            });
+    async function handlePostSubmit(e) {
+      e.preventDefault();
+      const textarea = document.getElementById('log-textarea');
+      const message = textarea.value.trim();
+      if (!message || !currentUserId) return;
+
+      const postButton = e.target.querySelector('button[type="submit"]');
+      setLoading(postButton, true);
+
+      try {
+        // 1. Insérer le message dans le journal
+        const { data: logEntry, error: logError } = await supabaseClient
+          .from('main_courante')
+          .insert({ message_content: message, author_id: currentUserId })
+          .select() // Demander le retour de l'entrée
+          .single();
+          
+        if (logError) throw logError;
+
+        // --- DÉBUT DE LA NOUVELLE FONCTIONNALITÉ ---
+
+        // 2. Extraire les mentions (ex: @thomas)
+        const mentionRegex = /@(\w+)/g;
+        const mentions = message.match(mentionRegex); // ["@thomas", "@nicolas"]
+        
+        if (mentions && mentions.length > 0) {
+          const usernames = mentions.map(m => m.substring(1)); // ["thomas", "nicolas"]
+
+          // 3. Trouver les IDs de ces utilisateurs
+          const { data: users, error: userError } = await supabaseClient
+            .from('profiles')
+            .select('id, full_name') // On prend aussi le nom pour la notif
+            .in('username', usernames);
+
+          if (users && users.length > 0) {
             
-          if (error) throw error;
-          
-          logMessageInput.value = ''; 
-          notyf.success('Message publié !');
-          
-          // Envoyer un signal de "nouveau post" (inchangé)
-          // logChannel.send({ type: 'broadcast', event: 'new-post' });
-          
-          
-          
-          loadLogFeed();
-          
-        } catch (error) {
-          notyf.error("Erreur: " + error.message);
-        } finally {
-          logSubmitButton.disabled = false;
-          logSubmitButton.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> <span>Publier</span>';
-          lucide.createIcons();
+            // 4. Préparer les notifications
+            const notifications = users.map(user => ({
+              user_id_target: user.id, // L'utilisateur qui reçoit
+              user_id_author: currentUserId, // L'utilisateur qui envoie
+              message: `${currentUserFullName} vous a mentionné dans le journal.`,
+              link_url: `journal.html?highlight=${logEntry.id}` // Lien direct vers le journal
+            }));
+
+            // 5. Insérer les notifications (pas besoin de 'await')
+            supabaseClient.from('notifications').insert(notifications)
+              .then(({ error: notifError }) => {
+                if (notifError) console.warn("Erreur création notif mention:", notifError);
+              });
+          }
         }
+        // --- FIN DE LA NOUVELLE FONCTIONNALITÉ ---
+
+        notyf.success('Message posté dans le journal.');
+        textarea.value = '';
+        loadLogs(); // Recharger les logs
+
+      } catch (error) {
+        notyf.error(error.message);
+      } finally {
+        setLoading(postButton, false);
       }
+    }
       
       // ... (La fonction deleteLogEntry reste inchangée) ...
       window.deleteLogEntry = async (id) => {
