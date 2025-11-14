@@ -347,29 +347,35 @@
        * Affiche le popup de mention avec les utilisateurs filtrés
        */
       function showMentionPopup(query) {
-        currentMentionQuery = query.toLowerCase();
-        
-        const filteredUsers = userCache.filter(user => 
-          user.username.toLowerCase().includes(currentMentionQuery) ||
-          (user.full_name && user.full_name.toLowerCase().includes(currentMentionQuery))
-        );
-        
-        if (filteredUsers.length === 0) {
-          hideMentionPopup();
-          return;
-        }
+  currentMentionQuery = query.toLowerCase();
 
-        mentionPopup.innerHTML = filteredUsers.map((user, index) => `
-          <div class="mention-item" data-index="${index}" data-username="${user.username}" onmousedown="window.selectMention(event)">
-            <span class="username">@${user.username}</span>
-            <span class="fullname">(${user.full_name || '...'})</span>
-          </div>
-        `).join('');
-        
-        mentionPopup.style.display = 'block';
-        selectedMentionIndex = 0;
-        updateMentionSelection();
-      }
+  // === MODIFICATION ICI ===
+  // Rendre le filtre robuste contre les valeurs `null`
+  const filteredUsers = userCache.filter(user => {
+    // Vérifie si le username existe ET correspond
+    const usernameMatch = user.username && user.username.toLowerCase().includes(currentMentionQuery);
+    // Vérifie si le full_name existe ET correspond
+    const fullnameMatch = user.full_name && user.full_name.toLowerCase().includes(currentMentionQuery);
+    return usernameMatch || fullnameMatch;
+  });
+  // ========================
+
+  if (filteredUsers.length === 0) {
+    hideMentionPopup();
+    return;
+  }
+
+  mentionPopup.innerHTML = filteredUsers.map((user, index) => `
+    <div class="mention-item" data-index="${index}" data-username="${user.username}" onmousedown="window.selectMention(event)">
+      <span class="username">@${user.username}</span>
+      <span class="fullname">(${user.full_name || '...'})</span>
+    </div>
+  `).join('');
+
+  mentionPopup.style.display = 'block';
+  selectedMentionIndex = 0;
+  updateMentionSelection();
+}
 
       /**
        * Met à jour la surbrillance dans le popup
