@@ -1,7 +1,7 @@
 // js/modules/nav.js
 import { supabaseClient } from '../core/auth.js';
 import { currentUserId } from '../core/layout.js'; // Importer l'ID utilisateur
-
+import { loadNotificationDropdown } from './notifications.js';
 /**
  * Met en surbrillance le lien de navigation actif
  */
