@@ -558,16 +558,20 @@
         }
 
         // 2. Fonction pour mettre à jour l'UI
-        function updateWidgetVisuals() {
-          if (isWidgetOpen) {
-            content.classList.remove('hidden');
-            chevron.setAttribute('data-lucide', 'chevron-up');
-          } else {
-            content.classList.add('hidden');
-            chevron.setAttribute('data-lucide', 'chevron-down');
-          }
-          lucide.createIcons();
+      function updateWidgetVisuals() {
+        if (isWidgetOpen) {
+          content.classList.remove('hidden');
+          chevron.setAttribute('data-lucide', 'chevron-up'); // Change l'attribut
+        } else {
+          content.classList.add('hidden');
+          chevron.setAttribute('data-lucide', 'chevron-down'); // Change l'attribut
         }
+        
+        // CETTE LIGNE EST CRUCIALE !
+        // Elle redessine toutes les icônes de la page 
+        // en fonction de leurs attributs 'data-lucide' actuels.
+        lucide.createIcons(); 
+      }
 
         // 3. Appliquer l'état visuel initial
         updateWidgetVisuals();
@@ -585,13 +589,11 @@
       // Initialiser les widgets réductibles
       setupToggableWidget('pmr-widget-toggle', 'pmr-issues-list', 'pmr-widget-chevron', 'bacoPmrWidgetState', true);
       setupToggableWidget('journal-widget-toggle', 'journal-recent-list', 'journal-widget-chevron', 'bacoJournalWidgetState', true);
-      setupToggableWidget('fav-widget-toggle', 'favorites-list', 'fav-widget-chevron', 'bacoFavWidgetState', true);
 
 
       // --- Appel des fonctions au chargement ---
       loadUserGreeting();
       loadPmrIssuesWidget(); 
-      loadFavoritesWidget();
       loadRecentJournal();
 
 
