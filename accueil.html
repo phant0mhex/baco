@@ -94,17 +94,23 @@
 
 
 <div id="journal-widget-container" class="mb-10">
-      <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center justify-between">
+      <button 
+        type="button" 
+        id="journal-widget-toggle" 
+        class="w-full text-left text-2xl font-semibold text-gray-800 dark:text-gray-100 flex items-center justify-between gap-2 p-2 rounded-lg transition-colors hover:bg-gray-200 dark:hover:bg-gray-700"
+        title="Afficher/Masquer l'activité récente"
+      >
         <span class="flex items-center gap-2">
           <i data-lucide="book-copy" class="w-6 h-6 text-yellow-600"></i>
           <span>Activité Récente du Journal</span>
         </span>
-        <a href="journal.html" class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
-          Voir tout
+        <i id="journal-widget-chevron" data-lucide="chevron-up" class="w-6 h-6 text-gray-500 dark:text-gray-400"></i>
+      </button>
+      <div id="journal-recent-list" class="space-y-4 mt-4">
+        <a href="journal.html" class="block text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline text-center pt-2">
+          Voir tout le journal
         </a>
-      </h2>
-      <div id="journal-recent-list" class="space-y-4">
-        </div>
+      </div>
     </div>
 
 
@@ -230,73 +236,55 @@
       }
       
 
-      // --- NOUVEAU: Fonction pour formater la date (copiée de journal.html) ---
+    // === FONCTION 3: JOURNAL RÉCENT ===
       function formatLogDate(dateString) {
         const date = new Date(dateString);
         return date.toLocaleDateString('fr-FR', {
-          day: '2-digit',
-          month: 'short',
-          hour: '2-digit',
-          minute: '2-digit'
+          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
         }).replace('.', '');
       }
 
-      // --- NOUVEAU: Fonction pour charger le journal récent ---
       async function loadRecentJournal() {
         const listContainer = document.getElementById('journal-recent-list');
         if (!listContainer) return;
 
-        listContainer.innerHTML = `
-          <div class="flex items-center justify-center p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
-            <i data-lucide="loader-2" class="w-6 h-6 text-blue-500 animate-spin"></i>
-          </div>`;
-        lucide.createIcons();
-
+        // Note: On ne met pas de spinner ici, car le widget peut être fermé
         try {
           const { data, error } = await supabaseClient
-            .from('main_courante')
-            .select(`
-              *,
-              profiles ( full_name, avatar_url )
-            `)
-            .order('created_at', { ascending: false })
-            .limit(3); // On ne prend que les 3 derniers
-
+            .from('main_courante').select(`*, profiles ( full_name, avatar_url )`)
+            .order('created_at', { ascending: false }).limit(3);
           if (error) throw error;
           
+          let contentHtml = '';
           if (data.length === 0) {
-            listContainer.innerHTML = `<p class="text-sm text-gray-500 dark:text-gray-400 text-center p-4">Le journal est vide.</p>`;
-            return;
-          }
-
-          listContainer.innerHTML = data.map(entry => {
-            const author = entry.profiles;
-            const timestamp = formatLogDate(entry.created_at);
-            const authorName = author ? author.full_name : 'Utilisateur supprimé';
-            const authorAvatar = author ? author.avatar_url : 'https://via.placeholder.com/40';
-            
-            // HTML copié de journal.html
-            return `
-              <div class="bg-white dark:bg-gray-900 shadow border border-gray-200 dark:border-gray-700 rounded-lg flex gap-4 p-4">
-                <img src="${authorAvatar}" alt="avatar" class="w-10 h-10 rounded-full object-cover hidden sm:block">
-                <div class="flex-1">
-                  <div class="flex justify-between items-center mb-2">
-                    <div class="flex items-center gap-2">
-                      <img src="${authorAvatar}" alt="avatar" class="w-8 h-8 rounded-full object-cover sm:hidden">
-                      <span class="font-semibold text-gray-900 dark:text-gray-100">${authorName}</span>
-                      <span class="text-xs text-gray-500 dark:text-gray-400">${timestamp}</span>
+            contentHtml = `<p class="text-sm text-gray-500 dark:text-gray-400 text-center p-4">Le journal est vide.</p>`;
+          } else {
+            contentHtml = data.map(entry => {
+              const author = entry.profiles;
+              const timestamp = formatLogDate(entry.created_at);
+              const authorName = author ? author.full_name : 'Utilisateur supprimé';
+              const authorAvatar = author ? author.avatar_url : 'https://via.placeholder.com/40';
+              return `
+                <div class="bg-white dark:bg-gray-900 shadow border border-gray-200 dark:border-gray-700 rounded-lg flex gap-4 p-4 mx-4">
+                  <img src="${authorAvatar}" alt="avatar" class="w-10 h-10 rounded-full object-cover hidden sm:block">
+                  <div class="flex-1">
+                    <div class="flex justify-between items-center mb-2">
+                      <div class="flex items-center gap-2">
+                        <img src="${authorAvatar}" alt="avatar" class="w-8 h-8 rounded-full object-cover sm:hidden">
+                        <span class="font-semibold text-gray-900 dark:text-gray-100">${authorName}</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">${timestamp}</span>
+                      </div>
                     </div>
+                    <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">${entry.message_content}</p>
                   </div>
-                  <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">${entry.message_content}</p>
-                </div>
-              </div>
-            `;
-          }).join('');
-          
+                </div>`;
+            }).join('<div class="my-4"></div>'); // Ajoute un espace entre les entrées
+          }
+          // On insère le contenu avant le lien "Voir tout"
+          listContainer.insertAdjacentHTML('afterbegin', contentHtml);
           lucide.createIcons();
-
         } catch (error) {
-          listContainer.innerHTML = `<p class="text-red-500 p-4">Erreur: ${error.message}</p>`;
+          listContainer.insertAdjacentHTML('afterbegin', `<p class="text-red-500 p-4 mx-4">Erreur: ${error.message}</p>`);
         }
       }
       
@@ -337,57 +325,32 @@
         });
       }
       
-      // ==========================================================
-      // == FONCTION WIDGET PMR (inchangée)
-      // ==========================================================
+    // === FONCTION 4: WIDGET PMR ===
       async function loadPmrIssuesWidget() {
         const listContainer = document.getElementById('pmr-issues-list');
         if (!listContainer) return;
-
-        // ... (le reste de votre fonction loadPmrIssuesWidget reste EXACTEMENT LE MÊME) ...
-        // 1. Définir l'état de chargement
-        listContainer.innerHTML = `
-          <div class="col-span-full flex items-center justify-center p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
-            <i data-lucide="loader-2" class="w-6 h-6 text-blue-500 animate-spin"></i>
-            <span class="ml-3 text-gray-600 dark:text-gray-400">Chargement des problèmes en cours...</span>
-          </div>`;
-        lucide.createIcons(); // N'oubliez pas lucide ici pour le spinner
-
         try {
-          // ... (le reste de la fonction) ...
           const { data, error } = await supabaseClient
-            .from('pmr_data')
-            .select('gare, quai, etat_rampe, rampe_id')
-            .in('etat_rampe', ['HS', 'En attente'])
-            .order('gare', { ascending: true });
-
+            .from('pmr_data').select('gare, quai, etat_rampe, rampe_id')
+            .in('etat_rampe', ['HS', 'En attente']).order('gare', { ascending: true });
           if (error) throw error;
           
           if (data.length === 0) {
-            // ... (HTML pour "Aucun problème") ...
             listContainer.innerHTML = `
               <div class="col-span-full flex items-center justify-center p-6 bg-white dark:bg-gray-900 border border-green-200 dark:border-green-700 rounded-lg">
                 <i data-lucide="check-circle-2" class="w-6 h-6 text-green-500"></i>
-                <span class="ml-3 text-gray-700 dark:text-gray-200">Aucun problème signalé sur les rampes (HS ou En attente).</span>
+                <span class="ml-3 text-gray-700 dark:text-gray-200">Aucun problème signalé sur les rampes.</span>
               </div>`;
           } else {
-            // ... (HTML pour "Afficher les problèmes") ...
             listContainer.innerHTML = data.map(issue => {
-              // ... (logique d'affichage des cartes) ...
-              let etatColor = 'text-gray-600 bg-gray-100 dark:text-gray-300 dark:bg-gray-700'; // En attente
-              if (issue.etat_rampe === 'HS') {
-                etatColor = 'text-red-800 bg-red-100 dark:text-red-200 dark:bg-red-900';
-              }
-              
+              let etatColor = issue.etat_rampe === 'HS' ? 'text-red-800 bg-red-100 dark:text-red-200 dark:bg-red-900' : 'text-gray-600 bg-gray-100 dark:text-gray-300 dark:bg-gray-700';
               return `
                 <a href="pmr.html?search=${issue.rampe_id || issue.gare}" 
-                   title="Voir les détails dans la section PMR"
+                   title="Voir les détails"
                    class="block p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md transition-all">
                   <div class="flex justify-between items-center mb-2">
                     <h4 class="font-bold text-lg text-blue-700 dark:text-blue-400">${issue.gare}</h4>
-                    <span class="px-2.5 py-0.5 text-xs font-bold rounded-full ${etatColor}">
-                      ${issue.etat_rampe}
-                    </span>
+                    <span class="px-2.5 py-0.5 text-xs font-bold rounded-full ${etatColor}">${issue.etat_rampe}</span>
                   </div>
                   <p class="text-sm text-gray-600 dark:text-gray-400">
                     <i data-lucide="map-pin" class="w-3 h-3 inline-block mr-1"></i>
@@ -400,14 +363,11 @@
                 </a>`;
             }).join('');
           }
-          lucide.createIcons(); // Redessiner les icônes dans les résultats
-
+          lucide.createIcons();
         } catch (error) {
-          // ... (Gestion des erreurs)
           console.error("Erreur chargement widget PMR:", error.message);
-          listContainer.innerHTML = `...`; // Votre HTML d'erreur
+          listContainer.innerHTML = `<p class="col-span-full text-red-500">Erreur chargement widget PMR.</p>`;
         }
-        lucide.createIcons(); // Appel final
       }
       
 
@@ -566,6 +526,66 @@
           </div>
         `;
       }
+
+
+      // === NOUVEAU: LOGIQUE DE TOGGLE GÉNÉRALISÉE ===
+
+      /**
+       * Fonction générique pour initialiser un widget réductible
+       * @param {string} toggleBtnId - ID du bouton (le header)
+       * @param {string} contentId - ID du conteneur (la liste)
+       * @param {string} chevronId - ID de l'icône chevron
+       * @param {string} storageKey - Clé localStorage pour mémoriser l'état
+       * @param {boolean} defaultOpen - État par défaut (true = ouvert)
+       */
+      function setupToggableWidget(toggleBtnId, contentId, chevronId, storageKey, defaultOpen = true) {
+        const toggleBtn = document.getElementById(toggleBtnId);
+        const content = document.getElementById(contentId);
+        const chevron = document.getElementById(chevronId);
+
+        if (!toggleBtn || !content || !chevron) {
+          console.warn(`Éléments manquants pour le widget ${storageKey}`);
+          return;
+        }
+
+        // 1. Déterminer l'état initial
+        let isWidgetOpen;
+        const savedState = localStorage.getItem(storageKey);
+        if (savedState === null) {
+          isWidgetOpen = defaultOpen;
+        } else {
+          isWidgetOpen = (savedState === 'open');
+        }
+
+        // 2. Fonction pour mettre à jour l'UI
+        function updateWidgetVisuals() {
+          if (isWidgetOpen) {
+            content.classList.remove('hidden');
+            chevron.setAttribute('data-lucide', 'chevron-up');
+          } else {
+            content.classList.add('hidden');
+            chevron.setAttribute('data-lucide', 'chevron-down');
+          }
+          lucide.createIcons();
+        }
+
+        // 3. Appliquer l'état visuel initial
+        updateWidgetVisuals();
+
+        // 4. Ajouter l'écouteur d'événement
+        toggleBtn.addEventListener('click', () => {
+          isWidgetOpen = !isWidgetOpen; // Inverser l'état
+          localStorage.setItem(storageKey, isWidgetOpen ? 'open' : 'closed'); // Sauvegarder
+          updateWidgetVisuals(); // Mettre à jour l'UI
+        });
+      }
+
+      // --- APPEL DE TOUTES LES FONCTIONS ---
+
+      // Initialiser les widgets réductibles
+      setupToggableWidget('pmr-widget-toggle', 'pmr-issues-list', 'pmr-widget-chevron', 'bacoPmrWidgetState', true);
+      setupToggableWidget('journal-widget-toggle', 'journal-recent-list', 'journal-widget-chevron', 'bacoJournalWidgetState', true);
+      setupToggableWidget('fav-widget-toggle', 'favorites-list', 'fav-widget-chevron', 'bacoFavWidgetState', true);
 
 
       // --- Appel des fonctions au chargement ---
