@@ -13,7 +13,9 @@
   <script src="https://npmcdn.com/flatpickr/dist/l10n/fr.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/flatpickr/dist/flatpickr.min.css">
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script src="js/auth.js"></script> <link rel="stylesheet" href="https://unpkg.com/notyf@3/notyf.min.css">
+  <!-- <script src="js/auth.js"></script>  -->
+  
+  <link rel="stylesheet" href="https://unpkg.com/notyf@3/notyf.min.css">
   <script src="https://unpkg.com/notyf@3/notyf.min.js"></script>
 
 <script src="js/core/layout.js" type="module"></script>
@@ -484,18 +486,26 @@
 
      // --- Lancement et Abonnements ---
       
-      loadLogFeed();
-      loadUserCache(); // NOUVEAU: Charger les utilisateurs au démarrage
-      logForm.addEventListener('submit', handlePostSubmit);
-      
-      // NOUVEAU: Écouteurs pour les mentions
-      logMessageInput.addEventListener('input', handleInput);
-      logMessageInput.addEventListener('keydown', handleKeydown);
-      document.addEventListener('click', (e) => {
-        if (!logForm.contains(e.target)) {
-          hideMentionPopup();
-        }
-      });
+ loadLogFeed();
+logForm.addEventListener('submit', handlePostSubmit);
+
+// S'assurer que le cache est chargé AVANT d'attacher les écouteurs de @mention
+loadUserCache().then(() => {
+    console.log("[Mentions] Le cache est prêt. Activation des écouteurs.");
+    // On attache les écouteurs spécifiques aux mentions ICI
+    logMessageInput.addEventListener('input', handleInput);
+    logMessageInput.addEventListener('keydown', handleKeydown);
+}).catch(err => {
+    console.error("[Mentions] Échec du chargement du cache, les @mentions ne fonctionneront pas.", err);
+    notyf.error("Erreur: le service de @mention n'a pas pu démarrer.");
+});
+
+// Cet écouteur peut rester à l'extérieur
+document.addEventListener('click', (e) => {
+  if (!logForm.contains(e.target)) {
+    hideMentionPopup();
+  }
+});
       
       // Abonnements Realtime (inchangés)
       logChannel
