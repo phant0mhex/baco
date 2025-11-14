@@ -360,7 +360,7 @@
         // 1. Insérer le message dans le journal
         const { data: logEntry, error: logError } = await supabaseClient
           .from('main_courante')
-          .insert({ message_content: message, author_id: currentUserId })
+          .insert({ message_content: message, user_id: currentUserId })
           .select() // Demander le retour de l'entrée
           .single();
           
