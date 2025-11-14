@@ -93,6 +93,21 @@
       </div>
 
 
+<div id="journal-widget-container" class="mb-10">
+      <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center justify-between">
+        <span class="flex items-center gap-2">
+          <i data-lucide="book-copy" class="w-6 h-6 text-yellow-600"></i>
+          <span>Activité Récente du Journal</span>
+        </span>
+        <a href="journal.html" class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
+          Voir tout
+        </a>
+      </h2>
+      <div id="journal-recent-list" class="space-y-4">
+        </div>
+    </div>
+
+
     <!-- <div id="favorites-container" class="mb-10">
       <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
         <i data-lucide="star" class="w-6 h-6 text-yellow-500"></i>
@@ -214,6 +229,76 @@
         }
       }
       
+
+      // --- NOUVEAU: Fonction pour formater la date (copiée de journal.html) ---
+      function formatLogDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('fr-FR', {
+          day: '2-digit',
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit'
+        }).replace('.', '');
+      }
+
+      // --- NOUVEAU: Fonction pour charger le journal récent ---
+      async function loadRecentJournal() {
+        const listContainer = document.getElementById('journal-recent-list');
+        if (!listContainer) return;
+
+        listContainer.innerHTML = `
+          <div class="flex items-center justify-center p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <i data-lucide="loader-2" class="w-6 h-6 text-blue-500 animate-spin"></i>
+          </div>`;
+        lucide.createIcons();
+
+        try {
+          const { data, error } = await supabaseClient
+            .from('main_courante')
+            .select(`
+              *,
+              profiles ( full_name, avatar_url )
+            `)
+            .order('created_at', { ascending: false })
+            .limit(3); // On ne prend que les 3 derniers
+
+          if (error) throw error;
+          
+          if (data.length === 0) {
+            listContainer.innerHTML = `<p class="text-sm text-gray-500 dark:text-gray-400 text-center p-4">Le journal est vide.</p>`;
+            return;
+          }
+
+          listContainer.innerHTML = data.map(entry => {
+            const author = entry.profiles;
+            const timestamp = formatLogDate(entry.created_at);
+            const authorName = author ? author.full_name : 'Utilisateur supprimé';
+            const authorAvatar = author ? author.avatar_url : 'https://via.placeholder.com/40';
+            
+            // HTML copié de journal.html
+            return `
+              <div class="bg-white dark:bg-gray-900 shadow border border-gray-200 dark:border-gray-700 rounded-lg flex gap-4 p-4">
+                <img src="${authorAvatar}" alt="avatar" class="w-10 h-10 rounded-full object-cover hidden sm:block">
+                <div class="flex-1">
+                  <div class="flex justify-between items-center mb-2">
+                    <div class="flex items-center gap-2">
+                      <img src="${authorAvatar}" alt="avatar" class="w-8 h-8 rounded-full object-cover sm:hidden">
+                      <span class="font-semibold text-gray-900 dark:text-gray-100">${authorName}</span>
+                      <span class="text-xs text-gray-500 dark:text-gray-400">${timestamp}</span>
+                    </div>
+                  </div>
+                  <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">${entry.message_content}</p>
+                </div>
+              </div>
+            `;
+          }).join('');
+          
+          lucide.createIcons();
+
+        } catch (error) {
+          listContainer.innerHTML = `<p class="text-red-500 p-4">Erreur: ${error.message}</p>`;
+        }
+      }
       
    // ==========================================================
       // == SECTION WIDGET PMR COLLAPSIBLE
@@ -487,6 +572,7 @@
       loadUserGreeting();
       loadPmrIssuesWidget(); 
       loadFavoritesWidget();
+      loadRecentJournal();
 
 
 
