@@ -349,7 +349,7 @@
        */
     async function handlePostSubmit(e) {
       e.preventDefault();
-      const textarea = document.getElementById('log-textarea');
+      const textarea = document.getElementById('log-message');
       const message = textarea.value.trim();
       if (!message || !currentUserId) return;
 
