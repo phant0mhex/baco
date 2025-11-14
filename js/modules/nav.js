@@ -121,7 +121,7 @@ export function setupNavDropdowns() {
         }
     ];
 
-    function toggleMenu(menuToToggle, chevronToToggle) {
+    function toggleMenu(menuToToggle, chevronToToggle, button) {
         const isCurrentlyOpen = !menuToToggle.classList.contains('hidden');
 
         // 1. Fermer TOUS les menus
