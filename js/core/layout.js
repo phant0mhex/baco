@@ -50,32 +50,6 @@ function initNavCalendar() {
 }
 
 
-function setupRealtimeNotifications() {
-  if (!currentUserId) return;
-
-  const channel = supabaseClient.channel(`user-notifications:${currentUserId}`);
-  
-  channel.on(
-    'postgres_changes', 
-    { 
-      event: 'INSERT', 
-      schema: 'public', 
-      table: 'notifications', 
-      filter: `user_id_target=eq.${currentUserId}` 
-    }, 
-    (payload) => {
-      // Afficher un popup
-      notyf.success(payload.new.message || "Nouvelle notification !");
-      // Mettre à jour le badge
-      loadNotificationCount();
-    }
-  ).subscribe((status) => {
-    if (status === 'SUBSCRIBED') {
-      console.log('Connecté au canal temps réel des notifications.');
-    }
-  });
-}
-
 
 /**
  * Vérifie s'il y a de nouvelles entrées dans le journal
@@ -146,10 +120,13 @@ async function initLayout() {
     setupNavDropdowns();
     loadJournalNotificationCount(); // Charger le badge
     loadNotificationCount(); // <-- NOUVEL APPEL
-    setupRealtimeNotifications();
     updateUserHeartbeat();
 
     setInterval(pollJournalNotifications, 30000); // 30 secondes
+    setInterval(loadNotificationCount, 30000); 
+    
+    // Interroger les nouveaux messages du journal (badge) toutes les 30 secondes
+    setInterval(loadJournalNotificationCount, 30000);
   }
 
   // Charger le footer
