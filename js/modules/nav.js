@@ -84,6 +84,61 @@ export function applyAdminGlow() {
   }
 }
 
+// ==========================================================
+// == NOUVELLE FONCTION POUR CHARGER LA PRÉSENCE
+// ==========================================================
+/**
+ * Charge la liste des utilisateurs récemment actifs (moins de 5 minutes)
+ */
+async function loadPresenceDropdown() {
+  const list = document.getElementById('presence-list');
+  const counter = document.getElementById('presence-counter');
+  if (!list || !counter || !currentUserId) return;
+
+  list.innerHTML = '<p class="p-3 text-sm text-center text-gray-400">Chargement...</p>';
+  
+  try {
+    // Calculer la date d'il y a 5 minutes
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+
+    const { data, error } = await supabaseClient
+      .from('profiles')
+      .select('full_name, avatar_url')
+      .gt('last_seen', fiveMinutesAgo) // Plus récent que 5 minutes
+      .neq('id', currentUserId) // Exclure soi-même
+      .order('full_name', { ascending: true });
+
+    if (error) throw error;
+
+    if (data.length === 0) {
+      list.innerHTML = '<p class="p-3 text-sm text-center text-gray-400">Vous êtes seul en ligne.</p>';
+      counter.classList.add('hidden');
+    } else {
+      list.innerHTML = data.map(user => {
+        const displayName = user.full_name || 'Utilisateur';
+        const avatarUrl = user.avatar_url || 'https://via.placeholder.com/40';
+        return `
+          <div class="flex items-center gap-3 p-2 rounded-md">
+            <img src="${avatarUrl}" alt="${displayName}" class="w-8 h-8 rounded-full object-cover">
+            <span class="text-sm font-medium text-gray-300">${displayName}</span>
+          </div>
+        `;
+      }).join('');
+      
+      counter.textContent = data.length;
+      counter.classList.remove('hidden');
+    }
+    
+  } catch (error) {
+    console.error("[Presence] Erreur:", error.message);
+    list.innerHTML = '<p class="p-3 text-sm text-center text-red-400">Erreur de chargement.</p>';
+    counter.classList.add('hidden');
+  }
+}
+// ==========================================================
+
+
+
 /**
  * Configure la logique des menus déroulants de la navigation
  */
@@ -99,6 +154,12 @@ export function setupNavDropdowns() {
             container: document.getElementById('notifications-dropdown-container'),
             button: document.getElementById('notifications-toggle-button'),
             menu: document.getElementById('notifications-dropdown'),
+            chevron: null 
+        },
+        { // <-- AJOUTÉ
+            container: document.getElementById('presence-container'),
+            button: document.getElementById('presence-toggle-button'),
+            menu: document.getElementById('presence-dropdown'),
             chevron: null 
         },
         { 
@@ -138,6 +199,9 @@ export function setupNavDropdowns() {
            if (button && button.id === 'notifications-toggle-button') {
                 loadNotificationDropdown();
             } 
+            if (button && button.id === 'presence-toggle-button') {
+                loadPresenceDropdown(); // <-- APPEL DE LA NOUVELLE FONCTION
+           }
         }
         
         lucide.createIcons();

@@ -104,6 +104,7 @@ async function initLayout() {
     loadJournalNotificationCount(); // Charger le badge
     loadNotificationCount(); // <-- NOUVEL APPEL
     setupRealtimeNotifications();
+    updateUserHeartbeat();
   }
 
   // Charger le footer
@@ -165,6 +166,26 @@ async function checkWhatIsNew() {
     console.warn("Erreur 'Quoi de Neuf':", error.message);
   }
 }
+
+/**
+ * Envoie un "heartbeat" pour marquer l'utilisateur comme actif.
+ */
+async function updateUserHeartbeat() {
+  // currentUserId est défini dans le scope global de layout.js
+  if (!currentUserId) return; 
+
+  try {
+    // Pas besoin de 'await', laissez-le s'exécuter en arrière-plan
+    supabaseClient
+      .from('profiles')
+      .update({ last_seen: new Date().toISOString() })
+      .eq('id', currentUserId);
+  } catch (error) {
+    console.warn('Erreur heartbeat:', error.message);
+  }
+}
+
+
 /**
  * Fonction de DÉMARRAGE PRINCIPALE
  */
