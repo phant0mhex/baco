@@ -55,14 +55,21 @@
   <div class="container mx-auto p-8">
     <header class="mb-10 text-center">
       
-      <h2 id="user-greeting" 
-          class="text-2xl font-bold mb-4 
-                 bg-gradient-to-r from-blue-600 to-cyan-400 
-                 dark:from-blue-400 dark:to-cyan-300 
-                 bg-clip-text text-transparent 
-                 bg-[size:200%_auto] animate-gradient-pan" 
-          style="min-height: 2rem;">
-      </h2>
+   <div class="flex justify-center items-center gap-4 mb-4" style="min-height: 3rem;">
+        
+          <img id="user-greeting-avatar" 
+               src="https://via.placeholder.com/40" 
+               alt="Avatar" 
+               class="w-12 h-12 rounded-full object-cover hidden shadow-md border-2 border-white dark:border-gray-700">
+          
+          <h2 id="user-greeting" 
+              class="text-2xl font-bold 
+                     bg-gradient-to-r from-blue-600 to-cyan-400 
+                     dark:from-blue-400 dark:to-cyan-300 
+                     bg-clip-text text-transparent 
+                     bg-[size:200%_auto] animate-gradient-pan">
+              </h2>
+      </div>
       
       <h1 class="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2">Bienvenue sur BACO</h1>
     </header>
@@ -238,26 +245,42 @@
       
       async function loadUserGreeting() {
         const greetingElement = document.getElementById('user-greeting');
-        if (!greetingElement) return;
+        const avatarElement = document.getElementById('user-greeting-avatar'); // <-- NOUVEAU
+        if (!greetingElement || !avatarElement) return;
+
         try {
           const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
           if (authError || !user) throw authError || new Error('Utilisateur non connecté');
           
           currentUserId = user.id;
           
-          const { data, error } = await supabaseClient.from('profiles').select('full_name').eq('id', user.id).single();
+          // MODIFIÉ: Ajout de 'avatar_url' au select
+          const { data, error } = await supabaseClient
+            .from('profiles')
+            .select('full_name, avatar_url') // <-- MODIFIÉ
+            .eq('id', user.id)
+            .single();
+            
           if (error) throw error;
+
+          // Logique pour le texte (inchangée)
           if (data && data.full_name) {
             greetingElement.textContent = `Bonjour, ${data.full_name}`;
           } else {
             greetingElement.textContent = `Bonjour !`;
           }
+
+          // NOUVEAU: Logique pour l'avatar
+          if (data && data.avatar_url) {
+            avatarElement.src = data.avatar_url;
+            avatarElement.classList.remove('hidden'); // Rendre l'avatar visible
+          }
+
         } catch (error) {
           console.error("Erreur chargement salut :", error.message);
-          greetingElement.textContent = 'Bonjour !';
+          greetingElement.textContent = 'Bonjour !'; // Garder le message de secours
         }
       }
-      
 
     // === FONCTION 3: JOURNAL RÉCENT ===
       function formatLogDate(dateString) {
