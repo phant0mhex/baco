@@ -7,7 +7,7 @@ import {
   setupLogout, setupMobileMenu 
 } from '../modules/nav.js';
 import { initGlobalSearch } from '../modules/search.js';
-import { loadJournalNotificationCount } from '../modules/notifications.js';
+import { loadJournalNotificationCount, loadNotificationCount } from '../modules/notifications.js';
 import { setupThemeToggle } from '../modules/theme.js';
 import { loadComponent, loadLatestChangelog, injectCalendarStyles, setupGoToTop } from '../modules/utils.js';
 
@@ -49,6 +49,34 @@ function initNavCalendar() {
   }
 }
 
+
+function setupRealtimeNotifications() {
+  if (!currentUserId) return;
+
+  const channel = supabaseClient.channel(`user-notifications:${currentUserId}`);
+  
+  channel.on(
+    'postgres_changes', 
+    { 
+      event: 'INSERT', 
+      schema: 'public', 
+      table: 'notifications', 
+      filter: `user_id_target=eq.${currentUserId}` 
+    }, 
+    (payload) => {
+      // Afficher un popup
+      notyf.success(payload.new.message || "Nouvelle notification !");
+      // Mettre à jour le badge
+      loadNotificationCount();
+    }
+  ).subscribe((status) => {
+    if (status === 'SUBSCRIBED') {
+      console.log('Connecté au canal temps réel des notifications.');
+    }
+  });
+}
+
+
 /**
  * Fonction interne pour charger les composants de layout
  */
@@ -74,6 +102,8 @@ async function initLayout() {
     setupLogout();
     setupNavDropdowns();
     loadJournalNotificationCount(); // Charger le badge
+    loadNotificationCount(); // <-- NOUVEL APPEL
+    setupRealtimeNotifications();
   }
 
   // Charger le footer

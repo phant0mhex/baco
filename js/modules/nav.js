@@ -96,6 +96,12 @@ export function setupNavDropdowns() {
             chevron: null 
         },
         { 
+            container: document.getElementById('notifications-dropdown-container'),
+            button: document.getElementById('notifications-toggle-button'),
+            menu: document.getElementById('notifications-dropdown'),
+            chevron: null 
+        },
+        { 
             container: document.getElementById('pmr-dropdown-container'),
             button: document.getElementById('pmr-toggle-button'),
             menu: document.getElementById('pmr-dropdown'),
@@ -128,6 +134,10 @@ export function setupNavDropdowns() {
         if (!isCurrentlyOpen) {
             menuToToggle.classList.remove('hidden');
             chevronToToggle?.setAttribute('data-lucide', 'chevron-up');
+
+           if (button && button.id === 'notifications-toggle-button') {
+                loadNotificationDropdown();
+            } 
         }
         
         lucide.createIcons();
@@ -138,7 +148,7 @@ export function setupNavDropdowns() {
         if (button && menu) {
             button.onclick = (e) => {
                 e.stopPropagation();
-                toggleMenu(menu, chevron);
+                toggleMenu(menu, chevron, button);
             };
             menu.addEventListener('click', (e) => e.stopPropagation());
         }

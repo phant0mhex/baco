@@ -111,6 +111,20 @@
           </div>
         </div> -->
 
+        <div class="relative" id="notifications-dropdown-container">
+  <button id="notifications-toggle-button" title="Notifications" class="p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 relative">
+      <i data-lucide="bell" class="w-5 h-5"></i>
+      <span id="notifications-badge" class="hidden absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white">0</span>
+  </button>
+  <div id="notifications-dropdown" class="hidden absolute top-full right-0 mt-2 w-72 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-[1050]">
+      <div class="p-3 border-b border-gray-700"><h4 class="font-semibold text-sm text-gray-100">Notifications</h4></div>
+      <div id="notifications-list" class="p-2 space-y-1 max-h-60 overflow-y-auto">
+        <p class="p-3 text-sm text-center text-gray-400">Chargement...</p>
+      </div>
+  </div>
+</div>
+
+
        <div class="relative" id="profile-dropdown-container">
   
   <div id="admin-avatar-border" class="relative rounded-full"> 
