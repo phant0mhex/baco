@@ -91,9 +91,15 @@
 
       <div class="flex flex-col md:flex-row items-start md:items-center gap-4 mt-4 md:mt-0 border-t border-gray-700 pt-4 md:border-none md:pt-0 md:flex-shrink-0">
         
-        <button onclick="showGlobalSearch()" title="Recherche globale (Cmd+K / Shift+K)" class="p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 relative hidden md:block">
+       <button onclick="showGlobalSearch()" title="Recherche globale (Ctrl+K / Cmd+K)" 
+                class="px-3 py-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 relative hidden md:flex items-center gap-2">
+            
             <i data-lucide="search" class="w-5 h-5"></i>
-        </button>
+            
+            <span class="font-mono text-xs text-gray-400 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5">
+              Ctrl+K
+            </span>
+            </button>
 <!-- <button id="theme-toggle-button" title="Changer le thème" class="p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 relative hidden md:block">
             <i id="theme-toggle-icon" data-lucide="sun" class="w-5 h-5"></i>
         </button> -->
