@@ -157,7 +157,7 @@
   
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
-<script>
+  <script>
   window.pageInit = () => {
     
       // Appel initial pour les icônes de la page (loupe, etc.)
@@ -172,13 +172,10 @@
       const searchBar = document.getElementById('search-bar');
       
       let allPnData = [];
-      // let allSpiData = []; // SUPPRIMÉ
       let map;
-      let markersLayer; // Couche pour les PN
-      // let spiLayer; // SUPPRIMÉ
-      let zoneBoundariesLayer; // Couche pour les polygones de zone
+      let markersLayer; 
+      let zoneBoundariesLayer; 
       
-      // Définition des polygones de zone
       const zonePolygons = {
         'FTY': {
           coordinates: [
@@ -262,7 +259,6 @@
 
           // Initialiser les couches de données
           markersLayer = L.layerGroup().addTo(map);
-          // spiLayer = L.layerGroup().addTo(map); // SUPPRIMÉ
           zoneBoundariesLayer = L.layerGroup().addTo(map); 
 
           // Ajouter le contrôle des couches
@@ -272,13 +268,12 @@
             'Hybride': tileLayers['Hybride (Google)']
           };
           const overlayMaps = {
-            "Zone SPI": zoneBoundariesLayer,
+            "Frontières de Zone": zoneBoundariesLayer,
             "Passages à Niveau (PN)": markersLayer
-            // "Bâtiments SPI": spiLayer // SUPPRIMÉ
           };
           L.control.layers(baseMaps, overlayMaps).addTo(map);
 
-          // NOUVEAU: Initialiser la légende
+          // Initialiser la légende
           initLegend();
 
         } catch(e) {
@@ -289,7 +284,7 @@
       }
 
       /**
-       * NOUVEAU: Ajoute la légende des zones à la carte
+       * Ajoute la légende des zones à la carte
        */
       function initLegend() {
         const legend = L.control({ position: 'bottomright' });
@@ -330,13 +325,12 @@
       }
 
       /**
-       * Charge les filtres de lignes (modifié pour inclure les lignes SPI)
+       * Charge les filtres de lignes
        */
       async function loadLineFilters() {
         filterContainer.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Chargement...</p>';
         try {
-          // On garde cette logique pour que les lignes SPI (même sans PN)
-          // apparaissent dans le filtre
+          // On garde la logique de jointure pour avoir toutes les lignes
           const [pnLines, spiLines] = await Promise.all([
             supabaseClient.from('pn_data').select('ligne_nom'),
             supabaseClient.from('spi_data').select('ligne_nom')
@@ -390,26 +384,24 @@
       }
 
       /**
-       * Charge toutes les données SPI (SUPPRIMÉ)
-       */
-      // async function loadAllSpiData() { ... } // SUPPRIMÉ
-
-      /**
-       * Fonction principale pour filtrer et afficher les données (simplifié)
+       * Fonction principale pour filtrer et afficher les données
+       * (Corrigé pour supprimer la "race condition")
        */
       function filterAndDisplayData() {
-        if (allPnData.length === 0) return;
+        // === CORRECTION 1: Suppression du garde-fou ===
+        // if (allPnData.length === 0) return; // SUPPRIMÉ
         
         const checkedBoxes = filterContainer.querySelectorAll('.filter-checkbox:checked');
-        let selectedLignes = Array.from(checkedBoxes).map(cb => cb.value);
         
-        if (selectedLignes.includes('all')) {
-          selectedLignes = Array.from(filterContainer.querySelectorAll('.filter-checkbox')).map(cb => cb.value);
-        }
-
+        // === CORRECTION 2: Logique de 'selectedLignes' simplifiée ===
+        // On prend juste les lignes cochées, sans 'all'
+        const selectedLignes = Array.from(checkedBoxes)
+                                    .map(cb => cb.value)
+                                    .filter(val => val !== 'all');
+        
         const searchTerm = searchBar.value.toLowerCase().trim();
 
-        // Filtrer les données PN
+        // Le filtrage se fait sur 'allPnData', qui peut être vide au début
         const filteredPnData = allPnData.filter(pn => {
           const ligneMatch = selectedLignes.includes(pn.ligne_nom);
           const searchMatch = !searchTerm || 
@@ -418,22 +410,17 @@
           return ligneMatch && searchMatch;
         });
 
-        // Filtrer les données SPI (SUPPRIMÉ)
-        // const filteredSpiData = ... // SUPPRIMÉ
-
         updateMap(filteredPnData);
         updateList(filteredPnData);
       }
       
       /**
-       * Met à jour la carte Leaflet avec les données filtrées (simplifié)
+       * Met à jour la carte Leaflet avec les données filtrées
        */
       function updateMap(pnData) {
         if (!map || !markersLayer) return;
         
         markersLayer.clearLayers();
-        // spiLayer.clearLayers(); // SUPPRIMÉ
-        
         const markers = [];
         
         // Ajouter les marqueurs PN
@@ -455,9 +442,6 @@
           }
         });
         
-        // Ajouter les marqueurs SPI (SUPPRIMÉ)
-        // spiData.forEach(...) // SUPPRIMÉ
-        
         // Ajuster le zoom de la carte
         if (markers.length > 0) {
           const group = L.featureGroup(markers);
@@ -466,11 +450,20 @@
       }
 
       /**
-       * Met à jour la liste HTML avec les données filtrées (simplifié)
+       * Met à jour la liste HTML avec les données filtrées
+       * (Corrigé pour gérer l'état de chargement)
        */
       function updateList(pnData) {
+        
+        // === CORRECTION 3: Logique d'affichage de la liste ===
         if (pnData.length === 0) {
-          pnListContainer.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center">Aucun PN ne correspond aux filtres.</p>';
+          // Si 'allPnData' est encore vide, c'est qu'on charge
+          if (allPnData.length === 0) {
+            pnListContainer.innerHTML = ''; // Ne rien afficher pendant le chargement
+          } else {
+            // Si 'allPnData' est plein, mais 'pnData' est vide, c'est qu'il n'y a pas de résultat
+            pnListContainer.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center">Aucun PN ne correspond aux filtres.</p>';
+          }
           return;
         }
         
@@ -485,23 +478,56 @@
           </div>
         `).join('');
 
-        // Rendu HTML pour les SPI (SUPPRIMÉ)
-        // const spiHtml = ... // SUPPRIMÉ
-
-        pnListContainer.innerHTML = pnHtml; // Afficher seulement les PN
+        pnListContainer.innerHTML = pnHtml;
       }
 
       // --- Écouteurs d'événements ---
-      filterContainer.addEventListener('change', filterAndDisplayData);
+      
+      // === CORRECTION 4: Logique d'écouteur "intelligente" ===
+      filterContainer.addEventListener('change', (e) => {
+          const target = e.target;
+          if (!target.classList.contains('filter-checkbox')) return;
+
+          const allCheckbox = filterContainer.querySelector('.filter-checkbox[value="all"]');
+          
+          // Cas 1: L'utilisateur clique sur "Afficher tout"
+          if (target.value === 'all') {
+              const isChecked = target.checked;
+              // Coche/décoche toutes les autres cases
+              filterContainer.querySelectorAll('.filter-checkbox').forEach(cb => {
+                  cb.checked = isChecked;
+              });
+          } 
+          // Cas 2: L'utilisateur clique sur une autre case
+          else {
+              if (!target.checked) {
+                  // Si on décoche une ligne, on décoche "Afficher tout"
+                  allCheckbox.checked = false;
+              } else {
+                  // Si on coche une ligne, on vérifie si toutes les autres sont cochées
+                  let allAreChecked = true;
+                  filterContainer.querySelectorAll('.filter-checkbox').forEach(cb => {
+                      if (cb.value !== 'all' && !cb.checked) {
+                          allAreChecked = false;
+                      }
+                  });
+                  allCheckbox.checked = allAreChecked;
+              }
+          }
+          
+          // Dans tous les cas, on lance le filtre
+          filterAndDisplayData();
+      });
+      
       searchBar.addEventListener('input', filterAndDisplayData);
       
-      // --- Lancement Initial (simplifié) ---
+      // --- Lancement Initial ---
       initMap();
       drawZoneBoundaries(); // Dessiner les polygones
       loadLineFilters();
       
-      // Charger uniquement les données PN
       loadAllPnData().then(() => {
+        // Une fois les données chargées, on lance un premier filtre
         filterAndDisplayData();
       });
       
