@@ -313,9 +313,43 @@
       
 
 
+      /**
+       * NOUVELLE FONCTION À AJOUTER
+       * Gère l'état de chargement d'un bouton de formulaire
+       * @param {HTMLButtonElement} button - Le bouton à modifier
+       * @param {boolean} isLoading - L'état de chargement
+       */
+      function setLoading(button, isLoading) {
+        if (!button) return;
+        
+        if (isLoading) {
+          button.disabled = true;
+          // Sauvegarder le texte original s'il n'est pas déjà sauvegardé
+          if (!button.dataset.originalHtml) {
+            button.dataset.originalHtml = button.innerHTML;
+          }
+          button.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> <span>Publication...</span>';
+          lucide.createIcons(); // Redessiner la nouvelle icône
+        } else {
+          button.disabled = false;
+          // Restaurer le texte original
+          if (button.dataset.originalHtml) {
+            button.innerHTML = button.dataset.originalHtml;
+          } else {
+            // Fallback au cas où
+            button.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> <span>Publier</span>';
+            lucide.createIcons();
+          }
+        }
+      }
+
+
+      /**
+       * Gère la soumission d'un nouveau message
+       */
     async function handlePostSubmit(e) {
       e.preventDefault();
-      const textarea = document.getElementById('log-message');
+      const textarea = document.getElementById('log-textarea');
       const message = textarea.value.trim();
       if (!message || !currentUserId) return;
 
