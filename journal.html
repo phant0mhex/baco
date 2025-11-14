@@ -162,7 +162,7 @@
 
       const adminRole = sessionStorage.getItem('userRole') === 'admin';
       
-      const logChannel = supabaseClient.channel('baco-main-courante');
+      // const logChannel = supabaseClient.channel('baco-main-courante');
       
       const JOURNAL_STORAGE_KEY = 'lastJournalVisit'; 
 
@@ -345,7 +345,7 @@
           notyf.success('Message publié !');
           
           // Envoyer un signal de "nouveau post" (inchangé)
-          logChannel.send({ type: 'broadcast', event: 'new-post' });
+          // logChannel.send({ type: 'broadcast', event: 'new-post' });
           
           
           
@@ -370,7 +370,7 @@
             .eq('id', id);
           if (error) throw error;
           notyf.success('Message supprimé.');
-          logChannel.send({ type: 'broadcast', event: 'new-post' });
+          // logChannel.send({ type: 'broadcast', event: 'new-post' });
           loadLogFeed(); 
         } catch (error) {
           notyf.error("Erreur: " + error.message);
@@ -555,31 +555,31 @@ document.addEventListener('click', (e) => {
   }
 });
       
-      // Abonnements Realtime (inchangés)
-      logChannel
-        .on(
-          'broadcast', 
-          { event: 'new-post' },
-          (payload) => {
-            console.log('Nouveau message reçu, rechargement...');
-            loadLogFeed(); 
-          }
-        )
-        .on(
-          'broadcast',
-          { event: 'mention' },
-          (payload) => {
-            const { mentioned_ids, author_name, author_id } = payload.payload;
-            if (currentUserId && mentioned_ids.includes(currentUserId) && author_id !== currentUserId) {
-              notyf.success(`Vous avez été mentionné par ${author_name} dans le journal !`);
-            }
-          }
-        )
-        .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-            console.log('Connecté au canal temps réel du journal (avec mentions).');
-          }
-        });
+      // // Abonnements Realtime (inchangés)
+      // logChannel
+      //   .on(
+      //     'broadcast', 
+      //     { event: 'new-post' },
+      //     (payload) => {
+      //       console.log('Nouveau message reçu, rechargement...');
+      //       loadLogFeed(); 
+      //     }
+      //   )
+      //   .on(
+      //     'broadcast',
+      //     { event: 'mention' },
+      //     (payload) => {
+      //       const { mentioned_ids, author_name, author_id } = payload.payload;
+      //       if (currentUserId && mentioned_ids.includes(currentUserId) && author_id !== currentUserId) {
+      //         notyf.success(`Vous avez été mentionné par ${author_name} dans le journal !`);
+      //       }
+      //     }
+      //   )
+      //   .subscribe((status) => {
+      //     if (status === 'SUBSCRIBED') {
+      //       console.log('Connecté au canal temps réel du journal (avec mentions).');
+      //     }
+      //   });
 
     }; // Fin de window.pageInit
   </script>
