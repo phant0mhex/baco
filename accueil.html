@@ -113,16 +113,6 @@
       </div>
     </div>
 
-
-    <!-- <div id="favorites-container" class="mb-10">
-      <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
-        <i data-lucide="star" class="w-6 h-6 text-yellow-500"></i>
-        <span>Mes Favoris</span>
-      </h2>
-      <div id="favorites-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        </div>
-    </div> -->
-
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
            
@@ -530,20 +520,20 @@
 
       // === NOUVEAU: LOGIQUE DE TOGGLE GÉNÉRALISÉE ===
 
-      /**
+ /**
        * Fonction générique pour initialiser un widget réductible
        * @param {string} toggleBtnId - ID du bouton (le header)
        * @param {string} contentId - ID du conteneur (la liste)
-       * @param {string} chevronId - ID de l'icône chevron
+       * @param {string} chevronId - ID de l'icône chevron (IMPORTANT: doit être sur l'icône)
        * @param {string} storageKey - Clé localStorage pour mémoriser l'état
        * @param {boolean} defaultOpen - État par défaut (true = ouvert)
        */
       function setupToggableWidget(toggleBtnId, contentId, chevronId, storageKey, defaultOpen = true) {
         const toggleBtn = document.getElementById(toggleBtnId);
         const content = document.getElementById(contentId);
-        const chevron = document.getElementById(chevronId);
+        // Note: On ne sélectionne PAS le chevron ici
 
-        if (!toggleBtn || !content || !chevron) {
+        if (!toggleBtn || !content) {
           console.warn(`Éléments manquants pour le widget ${storageKey}`);
           return;
         }
@@ -557,21 +547,41 @@
           isWidgetOpen = (savedState === 'open');
         }
 
-        // 2. Fonction pour mettre à jour l'UI
-      function updateWidgetVisuals() {
-        if (isWidgetOpen) {
-          content.classList.remove('hidden');
-          chevron.setAttribute('data-lucide', 'chevron-up'); // Change l'attribut
-        } else {
-          content.classList.add('hidden');
-          chevron.setAttribute('data-lucide', 'chevron-down'); // Change l'attribut
+        // 2. Fonction pour mettre à jour l'UI (VERSION CORRIGÉE)
+        function updateWidgetVisuals() {
+          const newIconName = isWidgetOpen ? 'chevron-up' : 'chevron-down';
+          
+          if (isWidgetOpen) {
+            content.classList.remove('hidden');
+          } else {
+            content.classList.add('hidden');
+          }
+          
+          // --- DÉBUT DE LA CORRECTION ---
+          
+          // 1. Trouver l'icône actuelle (qui est un <svg> ou un <i>)
+          const currentChevron = document.getElementById(chevronId);
+          
+          if (currentChevron) {
+            // 2. Créer une NOUVELLE balise <i>
+            const newChevron = document.createElement('i');
+            
+            // 3. Lui donner les mêmes attributs que l'ancienne
+            newChevron.id = currentChevron.id;
+            newChevron.className = currentChevron.className; // Copie les classes (ex: w-6 h-6)
+            
+            // 4. Définir la NOUVELLE icône
+            newChevron.setAttribute('data-lucide', newIconName);
+            
+            // 5. Remplacer l'ancienne icône (SVG) par la nouvelle (i)
+            currentChevron.replaceWith(newChevron);
+          }
+          
+          // 6. Demander à Lucide de redessiner CETTE NOUVELLE icône
+          lucide.createIcons();
+          
+          // --- FIN DE LA CORRECTION ---
         }
-        
-        // CETTE LIGNE EST CRUCIALE !
-        // Elle redessine toutes les icônes de la page 
-        // en fonction de leurs attributs 'data-lucide' actuels.
-        lucide.createIcons(); 
-      }
 
         // 3. Appliquer l'état visuel initial
         updateWidgetVisuals();
