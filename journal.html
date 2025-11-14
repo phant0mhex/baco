@@ -35,6 +35,43 @@
   body {
     visibility: hidden;
   }
+  
+/* === NOUVEAU: Styles pour le popup de mention === */
+    #mention-popup {
+      display: none;
+      position: absolute;
+      bottom: 100%; /* S'affiche au-dessus du textarea */
+      left: 0;
+      right: 0;
+      background-color: white;
+      border: 1px solid #e5e7eb; /* border-gray-200 */
+      border-radius: 0.5rem; /* rounded-lg */
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 10;
+      margin-bottom: 0.25rem;
+    }
+    .mention-item {
+      padding: 0.5rem 0.75rem; /* p-2 px-3 */
+      cursor: pointer;
+    }
+    .mention-item:hover {
+      background-color: #f3f4f6; /* hover:bg-gray-100 */
+    }
+    .mention-item.selected {
+      background-color: #dbeafe; /* bg-blue-100 */
+      color: #1e40af; /* text-blue-800 */
+    }
+    .mention-item .username {
+      font-weight: 600; /* font-semibold */
+    }
+    .mention-item .fullname {
+      font-size: 0.875rem; /* text-sm */
+      color: #6b7280; /* text-gray-500 */
+    }
+
+
 </style>
 </head>
 <body class="flex flex-col min-h-screen bg-gray-100">
@@ -88,6 +125,31 @@
       const logChannel = supabaseClient.channel('baco-main-courante');
       
       const JOURNAL_STORAGE_KEY = 'lastJournalVisit'; 
+
+      // --- NOUVEAU: Variables pour le popup de mention ---
+      const mentionPopup = document.getElementById('mention-popup');
+      let userCache = []; // Cache pour stocker la liste des utilisateurs
+      let selectedMentionIndex = -1;
+      let currentMentionQuery = '';
+      // ---------------------------------------------------
+
+      /**
+       * NOUVEAU: Charge la liste des utilisateurs pour les mentions
+       */
+      async function loadUserCache() {
+        try {
+          const { data, error } = await supabaseClient
+            .from('profiles')
+            .select('id, username, full_name')
+            .order('username', { ascending: true });
+          if (error) throw error;
+          userCache = data;
+          console.log(`[Mentions] Cache de ${userCache.length} utilisateurs chargé.`);
+        } catch (error) {
+          console.error("Erreur chargement cache utilisateurs:", error.message);
+        }
+      }
+
 
       // --- NOUVEAU: Récupérer l'ID et le nom de l'utilisateur actuel au démarrage ---
       (async () => {
@@ -227,29 +289,7 @@
         lucide.createIcons();
         
         try {
-          // --- NOUVEAU: Analyse des mentions ---
-          // Cette regex simple trouve les @username (lettres, chiffres, underscore)
-          const regex = /@(\w+)/g;
-          const matches = [...message.matchAll(regex)];
-          const mentionedUsernames = matches.map(match => match[1]);
-          let mentionedUserIds = [];
-
-          if (mentionedUsernames.length > 0) {
-            // On va chercher les IDs des utilisateurs dont le 'username' correspond
-            // Note: On se base sur le champ 'username' de la table 'profiles'
-            const { data: users, error: userError } = await supabaseClient
-              .from('profiles')
-              .select('id')
-              .in('username', mentionedUsernames);
-              
-            if (userError) {
-              // On n'arrête pas l'envoi du message, on logue juste l'erreur
-              console.warn("Erreur lors de la recherche des mentions:", userError.message);
-            } else if (users) {
-              mentionedUserIds = users.map(u => u.id);
-            }
-          }
-          // --- FIN NOUVEAU ---
+         
 
           // Insertion du message (inchangé)
           const { error } = await supabaseClient
@@ -267,19 +307,7 @@
           // Envoyer un signal de "nouveau post" (inchangé)
           logChannel.send({ type: 'broadcast', event: 'new-post' });
           
-          // --- NOUVEAU: Envoyer le signal de "mention" ---
-          if (mentionedUserIds.length > 0) {
-            logChannel.send({ 
-              type: 'broadcast', 
-              event: 'mention', 
-              payload: { 
-                mentioned_ids: mentionedUserIds, // La liste des ID à notifier
-                author_name: currentUserFullName,  // Le nom de l'expéditeur (récupéré au chargement)
-                author_id: currentUserId         // L'ID de l'expéditeur (pour ne pas s'auto-notifier)
-              } 
-            });
-          }
-          // --- FIN NOUVEAU ---
+          
           
           loadLogFeed();
           
@@ -309,12 +337,165 @@
         }
       }
 
-      // --- Lancement et Abonnements ---
+// --- NOUVELLES FONCTIONS DE MENTION ---
+
+      /**
+       * Affiche le popup de mention avec les utilisateurs filtrés
+       */
+      function showMentionPopup(query) {
+        currentMentionQuery = query.toLowerCase();
+        
+        const filteredUsers = userCache.filter(user => 
+          user.username.toLowerCase().includes(currentMentionQuery) ||
+          (user.full_name && user.full_name.toLowerCase().includes(currentMentionQuery))
+        );
+        
+        if (filteredUsers.length === 0) {
+          hideMentionPopup();
+          return;
+        }
+
+        mentionPopup.innerHTML = filteredUsers.map((user, index) => `
+          <div class="mention-item" data-index="${index}" data-username="${user.username}" onmousedown="window.selectMention(event)">
+            <span class="username">@${user.username}</span>
+            <span class="fullname">(${user.full_name || '...'})</span>
+          </div>
+        `).join('');
+        
+        mentionPopup.style.display = 'block';
+        selectedMentionIndex = 0;
+        updateMentionSelection();
+      }
+
+      /**
+       * Met à jour la surbrillance dans le popup
+       */
+      function updateMentionSelection() {
+        mentionPopup.querySelectorAll('.mention-item').forEach((item, index) => {
+          if (index === selectedMentionIndex) {
+            item.classList.add('selected');
+            item.scrollIntoView({ block: 'nearest' });
+          } else {
+            item.classList.remove('selected');
+          }
+        });
+      }
+      
+      /**
+       * Cache le popup de mention
+       */
+      function hideMentionPopup() {
+        mentionPopup.style.display = 'none';
+        selectedMentionIndex = -1;
+      }
+
+      /**
+       * Gère la saisie dans le textarea
+       */
+      function handleInput(e) {
+        const text = logMessageInput.value;
+        const cursorPos = logMessageInput.selectionStart;
+        const textBeforeCursor = text.substring(0, cursorPos);
+        
+        const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+        
+        if (lastAtIndex === -1) {
+          hideMentionPopup();
+          return;
+        }
+
+        // Vérifier qu'il n'y a pas d'espace entre @ et le terme
+        const potentialQuery = textBeforeCursor.substring(lastAtIndex + 1);
+        if (potentialQuery.includes(' ')) {
+          hideMentionPopup();
+          return;
+        }
+
+        showMentionPopup(potentialQuery);
+      }
+
+      /**
+       * Gère la navigation au clavier dans le popup
+       */
+      function handleKeydown(e) {
+        if (mentionPopup.style.display !== 'block') return;
+
+        const items = mentionPopup.querySelectorAll('.mention-item');
+        if (items.length === 0) return;
+
+        switch (e.key) {
+          case 'ArrowDown':
+            e.preventDefault();
+            selectedMentionIndex = (selectedMentionIndex + 1) % items.length;
+            updateMentionSelection();
+            break;
+          case 'ArrowUp':
+            e.preventDefault();
+            selectedMentionIndex = (selectedMentionIndex - 1 + items.length) % items.length;
+            updateMentionSelection();
+            break;
+          case 'Enter':
+          case 'Tab':
+            e.preventDefault();
+            selectMention();
+            break;
+          case 'Escape':
+            e.preventDefault();
+            hideMentionPopup();
+            break;
+        }
+      }
+
+      /**
+       * Insère la mention sélectionnée dans le textarea
+       */
+      window.selectMention = (e) => {
+        let selectedItem;
+        if (e) { // Clic de la souris
+          selectedItem = e.currentTarget;
+        } else { // Touche Entrée
+          selectedItem = mentionPopup.querySelector('.mention-item.selected');
+        }
+
+        if (!selectedItem) return;
+
+        const username = selectedItem.dataset.username;
+        const text = logMessageInput.value;
+        const cursorPos = logMessageInput.selectionStart;
+        const textBeforeCursor = text.substring(0, cursorPos);
+        const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+        const textBefore = text.substring(0, lastAtIndex);
+        const textAfter = text.substring(cursorPos);
+
+        logMessageInput.value = textBefore + `@${username} ` + textAfter;
+        
+        // Replacer le curseur
+        const newCursorPos = (textBefore + `@${username} `).length;
+        logMessageInput.focus();
+        logMessageInput.setSelectionRange(newCursorPos, newCursorPos);
+
+        hideMentionPopup();
+      }
+
+
+
+     // --- Lancement et Abonnements ---
       
       loadLogFeed();
+      loadUserCache(); // NOUVEAU: Charger les utilisateurs au démarrage
       logForm.addEventListener('submit', handlePostSubmit);
       
-      // --- MODIFICATION: Ajout du nouvel écouteur ---
+      // NOUVEAU: Écouteurs pour les mentions
+      logMessageInput.addEventListener('input', handleInput);
+      logMessageInput.addEventListener('keydown', handleKeydown);
+      document.addEventListener('click', (e) => {
+        if (!logForm.contains(e.target)) {
+          hideMentionPopup();
+        }
+      });
+      
+      // Abonnements Realtime (inchangés)
       logChannel
         .on(
           'broadcast', 
@@ -324,30 +505,23 @@
             loadLogFeed(); 
           }
         )
-        // --- NOUVEL ÉCOUTEUR POUR LES MENTIONS ---
         .on(
           'broadcast',
           { event: 'mention' },
           (payload) => {
             const { mentioned_ids, author_name, author_id } = payload.payload;
-            
-            // Vérifier si:
-            // 1. L'ID de l'utilisateur actuel est connu
-            // 2. L'ID de l'utilisateur actuel est dans la liste des mentionnés
-            // 3. L'auteur de la mention n'est pas l'utilisateur actuel (pas d'auto-notification)
             if (currentUserId && mentioned_ids.includes(currentUserId) && author_id !== currentUserId) {
               notyf.success(`Vous avez été mentionné par ${author_name} dans le journal !`);
             }
           }
         )
-        // --- FIN NOUVEL ÉCOUTEUR ---
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') {
             console.log('Connecté au canal temps réel du journal (avec mentions).');
           }
         });
 
-    }; // Fin de DOMContentLoaded
+    }; // Fin de window.pageInit
   </script>
 
 </body>
