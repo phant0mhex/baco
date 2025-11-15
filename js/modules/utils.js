@@ -23,6 +23,43 @@ export async function loadComponent(placeholderId, htmlFilePath) {
   }
 }
 
+// ================= NOUVELLE FONCTION AJOUTÉE =================
+/**
+ * Formate un numéro de téléphone belge brut (ex: 0490101010) en un format lisible (ex: 0490/10.10.10).
+ * @param {string} phone Le numéro de téléphone brut.
+ * @returns {string} Le numéro formaté, ou le numéro d'origine s'il est invalide.
+ */
+export function formatPhoneNumber(phone) {
+  if (!phone || typeof phone !== 'string') return phone;
+  
+  const digits = phone.replace(/\D/g, ''); // Nettoyer le numéro au cas où
+
+  if (digits.length === 10) {
+    // Mobiles (04xx) ou 0800 10 chiffres (ex: 0490/10.10.10)
+    if (digits.startsWith('04') || digits.startsWith('0800')) {
+      return `${digits.substring(0, 4)}/${digits.substring(4, 6)}.${digits.substring(6, 8)}.${digits.substring(8, 10)}`;
+    }
+  }
+  if (digits.length === 9) {
+    // Lignes fixes (065, 071, etc.) (ex: 065/12.34.56)
+    if (digits.startsWith('0') && !digits.startsWith('0800') && !digits.startsWith('02')) {
+      return `${digits.substring(0, 3)}/${digits.substring(3, 5)}.${digits.substring(5, 7)}.${digits.substring(7, 9)}`;
+    }
+    // Lignes fixes (02) (ex: 02/123.45.67)
+    if (digits.startsWith('02')) {
+      return `${digits.substring(0, 2)}/${digits.substring(2, 5)}.${digits.substring(5, 7)}.${digits.substring(7, 9)}`;
+    }
+    // 0800 9 chiffres (ex: 0800/12.345)
+    if (digits.startsWith('0800')) {
+      return `${digits.substring(0, 4)}/${digits.substring(4, 6)}.${digits.substring(6, 9)}`;
+    }
+  }
+  
+  // Si aucun format ne correspond, retourner le numéro d'origine (nettoyé ou non)
+  return phone; 
+}
+
+
 /**
  * Charge la dernière entrée du changelog dans le footer
  */

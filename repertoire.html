@@ -486,7 +486,8 @@ window.toggleGroup = (contentId, headerElement) => {
           // --- Rendu en LIGNE (style DaisyUI) ---
           const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
           const displayName = highlightText(p.nom, searchTerm);
-          const displayTel = p.tel ? highlightText(p.tel, searchTerm) : '(manquant)';
+          const formattedTel = p.tel ? window.formatPhoneNumber(p.tel) : '(manquant)';
+          const displayTel = highlightText(formattedTel, searchTerm);
           const displayEmail = p.email ? highlightText(p.email, searchTerm) : '';
           const isFavorited = favoritedContactIds.has(p.id.toString());
           const starClass = isFavorited ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400';
@@ -502,8 +503,7 @@ window.toggleGroup = (contentId, headerElement) => {
                   
                   <div class="flex flex-col sm:flex-row sm:items-center sm:gap-4 sm:flex-wrap mt-1">
                     
-                    ${p.tel ? `<a href="etrali:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 flex-shrink-0"><i data-lucide="phone" class="w-4 h-4"></i><span>${displayTel}</span></a>` : ''}
-                    
+${p.tel ? `<a href="etrali:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 flex-shrink-0"><i data-lucide="phone" class="w-4 h-4"></i><span>${displayTel}</span></a>` : ''}                    
                     ${p.email ? `
                       <a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800 min-w-0" title="${p.email}">
                         <i data-lucide="mail" class="w-4 h-4 flex-shrink-0"></i>
@@ -572,15 +572,11 @@ window.toggleGroup = (contentId, headerElement) => {
           // ... (Le code de votre carte-contact bg-gray-50 reste ici, inchangé)
           const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
           const displayName = highlightText(p.nom, searchTerm);
-          const displayTel = p.tel ? highlightText(p.tel, searchTerm) : '(manquant)';
-          const telHtml = (p.tel === '(manquant)' || !p.tel) ? `...` : `<a href="etrali:${p.tel}">...</a>`;
-          // ... (code complet pour telHtml, emailHtml, favoriteButton, etc.)
-          // ... (omission pour la brièveté, c'est votre code existant)
-          // ...
-          const telHtmlFull = (p.tel === '(manquant)' || !p.tel)
+         const formattedTel = p.tel ? window.formatPhoneNumber(p.tel) : '(manquant)';
+          const displayTel = (formattedTel === '(manquant)' || !p.tel)
             ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500"><i data-lucide="phone-off" class="w-4 h-4"></i><span>(manquant)</span></span>`
-            : `<a href="etrali:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors"><i data-lucide="phone" class="w-4 h-4"></i><span>${displayTel}</span></a>`;
-          const displayEmail = p.email ? highlightText(p.email, searchTerm) : '';
+            : `<a href="etrali:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors"><i data-lucide="phone" class="w-4 h-4"></i><span>${highlightText(formattedTel, searchTerm)}</span></a>`;
+          // --- FIN MODIFICATION ---
           const emailHtml = p.email
             ? `<a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800 transition-colors" title="${p.email}"><i data-lucide="mail" class="w-4 h-4"></i><span class="truncate" style="max-width: 200px;">${displayEmail}</span></a>`
             : '';
@@ -611,7 +607,10 @@ window.toggleGroup = (contentId, headerElement) => {
                 </div>
               </div>
               <div class="p-3 flex flex-col gap-2">
-                ${telHtmlFull}
+               ${telHtmlFull.replace(highlightText(p.tel, searchTerm), displayTel)} ${(p.tel === '(manquant)' || !p.tel)
+                    ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500"><i data-lucide="phone-off" class="w-4 h-4"></i><span>(manquant)</span></span>`
+                    : `<a href="etrali:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors"><i data-lucide="phone" class="w-4 h-4"></i><span>${highlightText(window.formatPhoneNumber(p.tel), searchTerm)}</span></a>`
+                  }
                 ${emailHtml}
               </div>
             </div>`;

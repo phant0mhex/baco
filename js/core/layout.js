@@ -9,7 +9,7 @@ import {
 import { initGlobalSearch } from '../modules/search.js';
 import { loadJournalNotificationCount, loadNotificationCount } from '../modules/notifications.js';
 import { setupThemeToggle } from '../modules/theme.js';
-import { loadComponent, loadLatestChangelog, injectCalendarStyles, setupGoToTop } from '../modules/utils.js';
+import { loadComponent, loadLatestChangelog, injectCalendarStyles, setupGoToTop, formatPhoneNumber } from '../modules/utils.js';
 
 // --- EXPORTS GLOBAUX ---
 // (Ces exports sont utilisés par les autres modules)
@@ -29,6 +29,9 @@ if (typeof Notyf !== 'undefined') {
 }
 
 export let currentUserId = null;
+
+// NOUVEL AJOUT: Rendre la fonction de formatage globale
+window.formatPhoneNumber = formatPhoneNumber;
 // -------------------------
 
 /**
