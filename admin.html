@@ -85,6 +85,29 @@
     </div>
   </div>
 
+  <div id="infraction-history-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50" style="display: none;">
+  <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl">
+    <div class="flex justify-between items-center p-4 border-b">
+      <h3 id="history-modal-title" class="text-xl font-semibold text-gray-800">Casier de...</h3>
+      <button type="button" onclick="hideInfractionHistoryModal()" class="p-1 rounded-full text-gray-500 hover:bg-gray-200">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+    
+    <div id="infraction-history-list" class="p-6 space-y-3 max-h-[60vh] overflow-y-auto">
+      <div class="flex justify-center items-center py-10">
+          <i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i>
+      </div>
+    </div>
+    
+    <div class="flex justify-end items-center p-4 bg-gray-50 border-t rounded-b-lg">
+      <button type="button" onclick="hideInfractionHistoryModal()" class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">
+        Fermer
+      </button>
+    </div>
+  </div>
+</div>
+
   <div id="infraction-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50" style="display: none;">
   <div class="bg-white rounded-lg shadow-xl w-full max-w-lg">
     <form id="infraction-form">
@@ -188,7 +211,132 @@ window.hideInfractionModal = () => {
     infractionModal.style.display = 'none';
 }
 
+// ==========================================================
+    // == LOGIQUE DU MODAL "CASIER D'INFRACTIONS"
+    // ==========================================================
+    
+    const historyModal = document.getElementById('infraction-history-modal');
+    const historyModalTitle = document.getElementById('history-modal-title');
+    const historyModalList = document.getElementById('infraction-history-list');
+    let historyModalCurrentUserId = null; // Pour savoir qui rafraîchir
 
+    /**
+     * Ouvre le modal du casier et charge les infractions de l'utilisateur
+     */
+    window.showInfractionHistory = async (userId, userName) => {
+        historyModalCurrentUserId = userId;
+        historyModalTitle.textContent = `Casier de : ${userName}`;
+        historyModal.style.display = 'flex';
+        historyModalList.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
+        lucide.createIcons();
+        
+        try {
+            const { data, error } = await supabaseClient
+                .from('infractions')
+                .select('*, admin:admin_id ( full_name )') // Récupère le nom de l'admin
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            
+            if (data.length === 0) {
+                 historyModalList.innerHTML = '<p class="text-gray-500 text-sm text-center">Cet utilisateur n\'a aucune infraction.</p>';
+                 return;
+            }
+            
+            historyModalList.innerHTML = data.map(renderAdminCardRow).join('');
+            lucide.createIcons();
+
+        } catch (error) {
+            historyModalList.innerHTML = `<p class="text-red-500 text-sm">Erreur: ${error.message}</p>`;
+        }
+    }
+    
+    /**
+     * Ferme le modal du casier
+     */
+    window.hideInfractionHistoryModal = () => {
+        historyModal.style.display = 'none';
+        historyModalCurrentUserId = null;
+    }
+
+    /**
+     * (Copie de profil.html) Génère le HTML pour une ligne d'infraction
+     * AVEC le bouton "Pardonner"
+     */
+    function renderAdminCardRow(card) {
+        const icon = card.card_type === 'yellow' ? 'file-warning' : 'file-alert';
+        const isCardActive = card.is_active && (card.card_type === 'red' || new Date(card.expires_at) > new Date());
+        
+        const color = isCardActive ? (card.card_type === 'yellow' ? 'text-yellow-600' : 'text-red-600') : 'text-gray-400';
+        const bgColor = isCardActive ? 'bg-gray-50' : 'bg-gray-100 opacity-75';
+        
+        const adminName = card.admin ? card.admin.full_name : 'un admin';
+        const date = new Date(card.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+        
+        let status = '';
+        if (!isCardActive) {
+            status = `<span class="text-xs font-medium text-gray-500 ml-2">(${card.is_active ? 'Expiré' : 'Inactif/Pardonné'})</span>`;
+        }
+
+        return `
+        <div class="flex items-start gap-3 p-3 ${bgColor} rounded-lg border">
+          <i data-lucide="${icon}" class="w-5 h-5 ${color} flex-shrink-0 mt-0.5"></i>
+          <div class="flex-grow">
+            <p class="font-medium text-gray-800">
+              Carton ${card.card_type === 'yellow' ? 'Jaune' : 'Rouge'} ${status}
+            </p>
+            <p class="text-sm text-gray-600 italic">"${card.reason || 'Aucune raison spécifiée'}"</p>
+            <p class="text-xs text-gray-500 mt-1">Donné par ${adminName} le ${date}</p>
+          </div>
+          <div class="flex-shrink-0">
+            ${isCardActive ? `
+            <button 
+              onclick="admin_pardon_card('${card.id}')"
+              class="p-1 text-green-600 rounded-full hover:bg-green-100" 
+              title="Pardonner cette infraction">
+              <i data-lucide="shield-check" class="w-4 h-4"></i>
+            </button>
+            ` : ''}
+          </div>
+        </div>
+        `;
+    }
+
+    /**
+     * (Déplacé depuis profil.html) Appelle la RPC pour pardonner un carton
+     */
+    window.admin_pardon_card = async (infractionId) => {
+        if (!confirm("Êtes-vous sûr de vouloir pardonner ce carton ? Le statut de ban de l'utilisateur sera recalculé.")) {
+            return;
+        }
+        
+        try {
+            const { error } = await supabaseClient.rpc('admin_pardon_infraction', {
+                p_infraction_id: infractionId
+            });
+            if (error) throw error;
+            
+            notyf.success("Carton pardonné ! Recalcul du statut...");
+            
+            // Recharger la liste des utilisateurs (car le statut Banni a peut-être changé)
+            loadUsers(); 
+            
+            // Recharger la liste dans le modal
+            const currentUserName = historyModalTitle.textContent.replace('Casier de : ', '');
+            if (historyModalCurrentUserId) {
+                window.showInfractionHistory(historyModalCurrentUserId, currentUserName);
+            }
+            
+        } catch (error) {
+            notyf.error("Erreur RPC: " + error.message);
+        }
+    }
+    // ==========================================================
+    // == FIN DE LA LOGIQUE DU MODAL "CASIER"
+    // ==========================================================
+
+    
 // Gérer le clic sur le bouton de type de carte
 infractionCardType.addEventListener('change', (e) => {
     if (e.target.value === 'red') {
@@ -486,11 +634,18 @@ infractionForm.addEventListener('submit', async (e) => {
                   <i data-lucide="${currentRole === 'admin' ? 'user-minus' : 'user-plus'}" class="w-4 h-4"></i>
                 </button>
                 <button 
-      onclick="window.showInfractionModal('${user.user_id}', '${user.email}')"
-      class="p-2 rounded-md ${isBanned ? 'text-red-600' : 'text-yellow-600'} hover:bg-yellow-100"
-      title="Ajouter une infraction">
-      <i data-lucide="file-warning" class="w-4 h-4"></i>
-    </button>
+                  onclick="window.showInfractionModal('${user.user_id}', '${user.email}')"
+                  class="p-2 rounded-md ${isBanned ? 'text-red-600' : 'text-yellow-600'} hover:bg-yellow-100"
+                  title="Ajouter une infraction">
+                  <i data-lucide="file-warning" class="w-4 h-4"></i>
+                </button>
+
+                <button 
+                  onclick="window.showInfractionHistory('${user.user_id}', '${user.full_name || user.email}')"
+                  class="p-2 rounded-md text-gray-600 hover:bg-gray-100"
+                  title="Voir le casier / Historique">
+                  <i data-lucide="history" class="w-4 h-4"></i>
+                </button>
                 <button 
                   onclick="window.handleBanUser('${user.user_id}', ${!isBanned})"
                   class="p-2 rounded-md ${isBanned ? 'text-green-600 hover:bg-green-100' : 'text-red-600 hover:bg-red-100'}"
