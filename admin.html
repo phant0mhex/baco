@@ -218,10 +218,11 @@ infractionForm.addEventListener('submit', async (e) => {
 
     try {
         const { data, error } = await supabaseClient.rpc('admin_add_infraction', {
-            target_user_id: targetUserId,
-            card_type: cardType,
-            reason: reason
-        });
+                target_user_id: targetUserId, // Correspond à target_user_id UUID
+                p_card_type: cardType,       // Correspond à p_card_type TEXT
+                p_reason: reason           // Correspond à p_reason TEXT
+                // (duration_months_if_yellow est omis, donc il utilisera la valeur 6 par défaut)
+            });
 
         if (error) throw error;
 
