@@ -282,7 +282,7 @@ const infractionsList = document.getElementById('infractions-list');
 function renderCardRow(card) {
         const icon = card.card_type === 'yellow' ? 'file-warning' : 'file-alert';
         const color = card.card_type === 'yellow' ? 'text-yellow-600' : 'text-red-600';
-        const adminName = card.admin ? card.admin.full_name : 'un admin';
+       const adminName = 'un administrateur';
         const date = new Date(card.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
 
         // On n'affiche plus de statut, car seuls les actifs sont montrés
@@ -306,19 +306,20 @@ async function loadInfractions(userId) {
     if (!userId) return;
 
     try {
-       let query = supabaseClient
+            // --- DÉBUT DE LA MODIFICATION ---
+            // On ne demande PLUS le nom de l'admin
+            let query = supabaseClient
                 .from('infractions')
-                .select('*, admin:admin_id ( full_name )')
+                .select('*') // MODIFIÉ : On ne fait plus la jointure vers 'profiles'
                 .eq('user_id', userId)
-                .eq('is_active', true) // Règle 1: Doit être actif
+                .eq('is_active', true) 
                 .order('created_at', { ascending: false });
+            // --- FIN DE LA MODIFICATION ---
 
-          // Règle 2: Doit être un rouge ACTIF OU un jaune ACTIF ET non-expiré
             query = query.or(
                 'card_type.eq.red',
                 'and(card_type.eq.yellow,expires_at.gt.now())'
             );
-                
             const { data, error } = await query;
 
       if (error) throw error;
