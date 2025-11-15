@@ -336,7 +336,7 @@ window.hideInfractionModal = () => {
     // == FIN DE LA LOGIQUE DU MODAL "CASIER"
     // ==========================================================
 
-    
+
 // Gérer le clic sur le bouton de type de carte
 infractionCardType.addEventListener('change', (e) => {
     if (e.target.value === 'red') {
@@ -612,6 +612,26 @@ infractionForm.addEventListener('submit', async (e) => {
               </span>
             </td>
             
+<td class="px-6 py-4 whitespace-nowrap">
+              <div class="flex items-center gap-3">
+                ${user.active_yellow_cards > 0 ? `
+                <span class="flex items-center gap-1 text-yellow-600" title="${user.active_yellow_cards} carton(s) jaune(s) actif(s)">
+                  <i data-lucide="file-warning" class="w-5 h-5"></i>
+                  <span class="text-sm font-bold">${user.active_yellow_cards}</span>
+                </span>
+                ` : ''}
+                ${user.active_red_cards > 0 ? `
+                <span class="flex items-center gap-1 text-red-600" title="${user.active_red_cards} carton(s) rouge(s) actif(s)">
+                  <i data-lucide="file-alert" class="w-5 h-5"></i>
+                  <span class="text-sm font-bold">${user.active_red_cards}</span>
+                </span>
+                ` : ''}
+                ${user.active_yellow_cards == 0 && user.active_red_cards == 0 ? `
+                <span class="text-gray-400 text-xs">Aucune</span>
+                ` : ''}
+              </div>
+            </td>
+
             <td class="px-6 py-4 whitespace-nowrap">
               <div class="text-sm text-gray-700">${lastLogin}</div>
             </td>
@@ -683,6 +703,7 @@ infractionForm.addEventListener('submit', async (e) => {
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilisateur</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rôle</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Infractions</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dernière Connexion</th>
                     <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
