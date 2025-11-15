@@ -588,6 +588,14 @@ infractionForm.addEventListener('submit', async (e) => {
         const isBanned = user.banned_until && user.banned_until.length > 0;
         const lastLogin = formatAdminDate(user.last_sign_in_at);
 
+        // NOUVEAU: Définition du SVG pour le carton de football
+        const cardSvg = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-5" viewBox="0 0 14 20" fill="currentColor">
+            <path d="M1 3C1 1.89543 1.89543 1 3 1H11C12.1046 1 13 1.89543 13 3V17C13 18.1046 12.1046 19 11 19H3C1.89543 19 1 18.1046 1 17V3Z" />
+          </svg>
+        `;
+
+
         return `
           <tr>
             <td class="px-6 py-4 whitespace-nowrap">
@@ -615,14 +623,14 @@ infractionForm.addEventListener('submit', async (e) => {
 <td class="px-6 py-4 whitespace-nowrap">
               <div class="flex items-center gap-3">
                 ${user.active_yellow_cards > 0 ? `
-                <span class="flex items-center gap-1 text-yellow-600" title="${user.active_yellow_cards} carton(s) jaune(s) actif(s)">
-                  <i data-lucide="file-warning" class="w-5 h-5"></i>
+                <span class="flex items-center gap-1.5 text-yellow-500" title="${user.active_yellow_cards} carton(s) jaune(s) actif(s)">
+                  ${cardSvg}
                   <span class="text-sm font-bold">${user.active_yellow_cards}</span>
                 </span>
                 ` : ''}
                 ${user.active_red_cards > 0 ? `
-                <span class="flex items-center gap-1 text-red-600" title="${user.active_red_cards} carton(s) rouge(s) actif(s)">
-                  <i data-lucide="file-alert" class="w-5 h-5"></i>
+                <span class="flex items-center gap-1.5 text-red-600" title="${user.active_red_cards} carton(s) rouge(s) actif(s)">
+                  ${cardSvg}
                   <span class="text-sm font-bold">${user.active_red_cards}</span>
                 </span>
                 ` : ''}
