@@ -301,30 +301,28 @@ function renderCardRow(card) {
     }
 
 
-// --- NOUVELLE FONCTION à ajouter ---
 async function loadInfractions(userId) {
-    if (!userId) return;
+        if (!userId) return;
 
-    try {
-            // --- DÉBUT DE LA MODIFICATION ---
-            // On ne demande PLUS le nom de l'admin
-            let query = supabaseClient
+        try {
+            // --- DÉBUT DE LA CORRECTION ---
+            // Tous les filtres sont maintenant chaînés en une seule requête.
+            const { data, error } = await supabaseClient
                 .from('infractions')
-                .select('*') // MODIFIÉ : On ne fait plus la jointure vers 'profiles'
-                .eq('user_id', userId)
-                .eq('is_active', true) 
-               .or(
+                .select('*') // On ne fait pas la jointure vers les admins
+                .eq('user_id', userId) // Filtre 1: Pour cet utilisateur
+                .eq('is_active', true) // Filtre 2: Qui sont actifs
+                .or(
                     'card_type.eq.red, and(card_type.eq.yellow,expires_at.gt.now())'
                 ) // Filtre 3: Et qui sont (un Rouge) OU (un Jaune non-expiré)
                 .order('created_at', { ascending: false });
             // --- FIN DE LA CORRECTION ---
 
-          
+            if (error) throw error;
 
-            // Si data est vide, l'utilisateur n'a aucune infraction ACTIVE
             if (data.length === 0) {
                 banMeterFill.style.width = '100%';
-                banMeterFill.className = 'h-5 rounded-full text-right text-xs text-white font-bold pr-2 transition-all duration-1000 ease-out bg-gradient-to-r from-green-400 to-green-600'; // Classe complète pour le vert
+                banMeterFill.className = 'h-5 rounded-full text-right text-xs text-white font-bold pr-2 transition-all duration-1000 ease-out bg-gradient-to-r from-green-400 to-green-600';
                 banMeterStatus.textContent = "Votre dossier est impeccable !";
                 infractionsList.innerHTML = '<p class="text-gray-500 text-sm">Aucune infraction active enregistrée.</p>';
                 return;
@@ -334,54 +332,40 @@ async function loadInfractions(userId) {
             let redPoints = 0;
             const maxPoints = 6; 
 
-            infractionsList.innerHTML = '';
+            infractionsList.innerHTML = ''; 
 
-       data.forEach(card => {
-                // Remplir la liste (la fonction renderCardRow est maintenant simplifiée)
+            data.forEach(card => {
                 infractionsList.innerHTML += renderCardRow(card);
-                
-                // La requête a déjà filtré, on peut compter directement
-                if (card.card_type === 'yellow') {
-                    yellowPoints += 1;
-                }
-                if (card.card_type === 'red') {
-                    redPoints += 1;
-                }
+                if (card.card_type === 'yellow') yellowPoints += 1;
+                if (card.card_type === 'red') redPoints += 1;
             });
             
             lucide.createIcons();
-            // (La vérification admin n'est plus nécessaire ici)
 
-            // Mettre à jour le "Ban Meter"
+            // (Le reste de la fonction est inchangé et gère le "Ban Meter")
             const totalPoints = (redPoints * maxPoints) + yellowPoints;
             let percentage = 100 - ((totalPoints / maxPoints) * 100);
             if (percentage < 0) percentage = 0;
-
             setTimeout(() => { banMeterFill.style.width = `${percentage}%`; }, 100);
-
-            // (Logique des couleurs et des statuts inchangée)
-
-       if (totalPoints === 0) {
+            if (totalPoints === 0) {
                  banMeterFill.className = 'h-5 rounded-full text-right text-xs text-white font-bold pr-2 transition-all duration-1000 ease-out bg-gradient-to-r from-green-400 to-green-600';
                  banMeterStatus.textContent = "Niveau de confiance excellent (compteur à zéro).";
-            } else if (totalPoints < 3) { // 1 ou 2 jaunes
+            } else if (totalPoints < 3) { 
                 banMeterFill.className = 'h-5 rounded-full text-right text-xs text-black font-bold pr-2 transition-all duration-1000 ease-out bg-gradient-to-r from-yellow-300 to-yellow-400';
                 banMeterStatus.textContent = "Niveau de confiance moyen. Attention.";
-            } else if (totalPoints < 6) { // 3, 4, ou 5 jaunes (Ban 72h)
+            } else if (totalPoints < 6) { 
                  banMeterFill.className = 'h-5 rounded-full text-right text-xs text-white font-bold pr-2 transition-all duration-1000 ease-out bg-gradient-to-r from-orange-500 to-orange-600';
                  banMeterStatus.textContent = "Niveau de confiance bas. Ban temporaire actif.";
-            } else { // 6+ points (Ban Définitif)
+            } else { 
                 banMeterFill.className = 'h-5 rounded-full text-right text-xs text-white font-bold pr-2 transition-all duration-1000 ease-out bg-gradient-to-r from-red-600 to-red-700';
                 banMeterStatus.textContent = "Niveau de confiance critique. Compte banni.";
             }
-            
             banMeterFill.textContent = `${Math.round(percentage)}%`;
 
         } catch (error) {
             infractionsList.innerHTML = `<p class="text-red-500 text-sm">Erreur: ${error.message}</p>`;
         }
     }
-
 
       // --- NOUVELLE FONCTION: Changer le mot de passe ---
       async function updatePassword(event) {
