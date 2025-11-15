@@ -210,7 +210,7 @@
       const contactIdInput = document.getElementById('modal-contact-id');
 
       let currentSortOrder = 'az';
-      let favoritedContactIds = new Set();
+
       
      // NOUVEAU: Fonctions pour gérer le sélecteur de vue
   function updateViewToggleUI() {
@@ -369,20 +369,7 @@ window.toggleGroup = (contentId, headerElement) => {
         resultDisplay.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
         lucide.createIcons();
 
-        try {
-          // currentUserId est défini par layout.js
-          const { data: favs, error: favError } = await supabaseClient
-            .from('favoris')
-            .select('id_contenu')
-            .eq('user_id', currentUserId) 
-            .eq('type_contenu', 'repertoire');
-            
-          if (favError) throw favError;
-          favoritedContactIds = new Set(favs.map(f => f.id_contenu));
-        } catch (error) {
-          resultDisplay.innerHTML = `<p class='text-red-600'>Erreur (auth/favs): ${error.message}</p>`;
-          return;
-        }
+        
 
         const mainChecked = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
         const zoneSubChecked = Array.from(document.querySelectorAll('#zoneSubCategories input:checked')).map(cb => cb.value);
@@ -496,8 +483,9 @@ window.toggleGroup = (contentId, headerElement) => {
          
 
           const displayEmail = p.email ? highlightText(p.email, searchTerm) : '';
-          const isFavorited = favoritedContactIds.has(p.id.toString());
-          const starClass = isFavorited ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400';
+         
+          
+          
 
          return `
             <div class="flex items-center justify-between p-4 hover:bg-gray-50">
@@ -522,9 +510,7 @@ ${p.tel ? `<a href="etrali:${cleanedPhoneList}" class="flex items-center gap-2 t
               </div>
 
               <div class="flex items-center gap-1 flex-shrink-0 ml-4">
-                <button onclick="window.toggleFavorite(this, 'repertoire', '${p.id}', ${isFavorited});" class="p-1 rounded-full hover:bg-yellow-100" title="Mettre en favori">
-                  <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
-                </button>
+               
                 <div class="admin-only flex items-center gap-1">
                   <button onclick="showContactModal(${contactJson})" class="p-1 text-blue-600 rounded hover:bg-blue-100" title="Modifier">
                     <i data-lucide="pencil" class="w-4 h-4"></i>
@@ -594,13 +580,10 @@ const rawPhoneGrid = p.tel;
           const emailHtml = p.email
             ? `<a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800 transition-colors" title="${p.email}"><i data-lucide="mail" class="w-4 h-4"></i><span class="truncate" style="max-width: 200px;">${displayEmail}</span></a>`
             : '';
-          const isFavorited = favoritedContactIds.has(p.id.toString());
-          const starClass = isFavorited ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400';
-          const favoriteButton = `
-            <button onclick="window.toggleFavorite(this, 'repertoire', '${p.id}', ${isFavorited})" class="p-1 rounded-full hover:bg-yellow-100" title="Mettre en favori">
-              <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
-            </button>
-          `;
+
+            
+        
+          
           return `
             <div class="bg-gray-50 rounded-lg border border-gray-200 transition-all hover:shadow-sm">
               <div class="flex items-center justify-between p-3 border-b border-gray-100">
@@ -609,7 +592,7 @@ const rawPhoneGrid = p.tel;
                    <span>${displayName}</span>
                 </span>
                 <div class="flex items-center gap-1">
-                  ${favoriteButton}
+
                   <div class="admin-only flex items-center gap-2">
                     <button onclick="showContactModal(${contactJson})" class="p-1 text-blue-600 rounded hover:bg-blue-100" title="Modifier">
                       <i data-lucide="pencil" class="w-4 h-4"></i>
@@ -791,7 +774,7 @@ outputHTML += '</div>'; // Ferme le conteneur grid
           notyf.error("Erreur: " + error.message);
         } else {
           notyf.success("Contact supprimé !");
-          await supabaseClient.from('favoris').delete().match({ id_contenu: id.toString(), type_contenu: 'repertoire' });
+
           allContactsData = []; // Vider le cache
           loadMainCategories(); // Recharger les catégories
           updateDisplay(); // Recharger l'affichage
