@@ -321,8 +321,6 @@ async function loadInfractions(userId) {
 
           
 
-      if (error) throw error;
-
             // Si data est vide, l'utilisateur n'a aucune infraction ACTIVE
             if (data.length === 0) {
                 banMeterFill.style.width = '100%';
