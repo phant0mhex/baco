@@ -282,7 +282,11 @@ function renderClientRow(client, searchTerm) {
 
   const displayName = highlightText(`${client.prenom || ''} ${client.nom}`, searchTerm);
   const displayType = highlightText(client.type, searchTerm);
-  const displayTel = highlightText(client.telephone, searchTerm);
+
+const rawPhone = client.telephone;
+  const cleanedPhone = window.cleanPhoneNumber(rawPhone);
+  const formattedPhone = client.telephone ? window.formatPhoneNumber(cleanedPhone) : null;
+  const displayTel = highlightText(formattedPhone, searchTerm);
 
   const isFavorited = favoritedClientIds.has(client.id);
   const starClass = isFavorited ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400';
@@ -302,8 +306,8 @@ function renderClientRow(client, searchTerm) {
       <td class="px-6 py-4 whitespace-nowrap">
         <div class="text-sm font-medium text-gray-900">${displayName}</div>
       </td>
-      <td class="px-6 py-4 whitespace-nowrap">
-        ${client.telephone ? `<a href="etrali:${client.telephone}" class="text-sm text-blue-600 hover:text-blue-800">${displayTel}</a>` : `<span class="text-sm text-gray-400">N/A</span>`}
+     <td class="px-6 py-4 whitespace-nowrap">
+        ${client.telephone ? `<a href="etrali:${cleanedPhone}" class="text-sm text-blue-600 hover:text-blue-800">${displayTel}</a>` : `<span class="text-sm text-gray-400">N/A</span>`}
       </td>
       <td class="px-6 py-4 whitespace-nowrap">
         ${client.type ? `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${typeClass}">${displayType}</span>` : ''}
@@ -480,7 +484,11 @@ function setView(view) {
         
         const displayName = highlightText(`${client.prenom || ''} ${client.nom}`, searchTerm);
         const displayType = highlightText(client.type, searchTerm);
-        const displayTel = highlightText(client.telephone, searchTerm);
+
+        const rawPhoneCard = client.telephone;
+  const cleanedPhoneCard = window.cleanPhoneNumber(rawPhoneCard);
+  const formattedPhoneCard = client.telephone ? window.formatPhoneNumber(cleanedPhoneCard) : null;
+  const displayTelCard = highlightText(formattedPhoneCard, searchTerm);
         
         const isFavorited = favoritedClientIds.has(client.id);
         const starClass = isFavorited ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400';
@@ -531,12 +539,12 @@ function setView(view) {
               </div>
             </div>
             
-            <div class="p-4 space-y-3">
-              ${client.telephone ? `
-              <a href="etrali:${client.telephone}" class="flex items-center gap-3">
-                <i data-lucide="phone" class="w-4 h-4 text-gray-500 flex-shrink-0"></i>
-                <span class="text-sm font-medium text-gray-800 hover:text-blue-600">${displayTel}</span>
-              </a>` : ''}
+           <div class="p-4 space-y-3">
+        ${client.telephone ? `
+        <a href="etrali:${cleanedPhoneCard}" class="flex items-center gap-3">
+          <i data-lucide="phone" class="w-4 h-4 text-gray-500 flex-shrink-0"></i>
+          <span class="text-sm font-medium text-gray-800 hover:text-blue-600">${displayTelCard}</span>
+        </a>` : ''}
               
               ${hasRemarques ? `
               <div class="flex items-start gap-3 pt-3 border-t border-gray-100">

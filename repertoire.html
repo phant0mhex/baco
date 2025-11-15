@@ -486,7 +486,15 @@ window.toggleGroup = (contentId, headerElement) => {
           // --- Rendu en LIGNE (style DaisyUI) ---
           const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
           const displayName = highlightText(p.nom, searchTerm);
-          const formattedTel = p.tel ? window.formatPhoneNumber(p.tel) : '(manquant)';
+
+// --- MODIFIÉ ICI ---
+            const rawPhoneList = p.tel;
+            const cleanedPhoneList = window.cleanPhoneNumber(rawPhoneList);
+            const formattedPhoneList = p.tel ? window.formatPhoneNumber(cleanedPhoneList) : '(manquant)';
+            const displayTelList = highlightText(formattedPhoneList, searchTerm);
+            // --- FIN MODIFICATION ---
+         
+
           const displayEmail = p.email ? highlightText(p.email, searchTerm) : '';
           const isFavorited = favoritedContactIds.has(p.id.toString());
           const starClass = isFavorited ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400';
@@ -502,7 +510,8 @@ window.toggleGroup = (contentId, headerElement) => {
                   
                   <div class="flex flex-col sm:flex-row sm:items-center sm:gap-4 sm:flex-wrap mt-1">
                     
-${p.tel ? `<a href="etrali:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 flex-shrink-0"><i data-lucide="phone" class="w-4 h-4"></i><span>${displayTel}</span></a>` : ''}                    
+${p.tel ? `<a href="etrali:${cleanedPhoneList}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 flex-shrink-0"><i data-lucide="phone" class="w-4 h-4"></i><span>${displayTelList}</span></a>` : ''}
+                    
                     ${p.email ? `
                       <a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800 min-w-0" title="${p.email}">
                         <i data-lucide="mail" class="w-4 h-4 flex-shrink-0"></i>
@@ -571,11 +580,17 @@ ${p.tel ? `<a href="etrali:${p.tel}" class="flex items-center gap-2 text-sm font
           // ... (Le code de votre carte-contact bg-gray-50 reste ici, inchangé)
           const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
           const displayName = highlightText(p.nom, searchTerm);
-         const formattedTel = p.tel ? window.formatPhoneNumber(p.tel) : '(manquant)';
-          const displayTel = (formattedTel === '(manquant)' || !p.tel)
-            ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500"><i data-lucide="phone-off" class="w-4 h-4"></i><span>(manquant)</span></span>`
-            : `<a href="etrali:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors"><i data-lucide="phone" class="w-4 h-4"></i><span>${highlightText(formattedTel, searchTerm)}</span></a>`;
-          // --- FIN MODIFICATION ---
+
+const rawPhoneGrid = p.tel;
+              const cleanedPhoneGrid = window.cleanPhoneNumber(rawPhoneGrid);
+              const formattedPhoneGrid = p.tel ? window.formatPhoneNumber(cleanedPhoneGrid) : '(manquant)';
+              const displayTelGrid = highlightText(formattedPhoneGrid, searchTerm);
+
+              const telHtmlFull = (formattedPhoneGrid === '(manquant)' || !p.tel)
+                ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500"><i data-lucide="phone-off" class="w-4 h-4"></i><span>(manquant)</span></span>`
+                : `<a href="etrali:${cleanedPhoneGrid}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors"><i data-lucide="phone" class="w-4 h-4"></i><span>${displayTelGrid}</span></a>`;
+              // --- FIN MODIFICATION ---
+
           const emailHtml = p.email
             ? `<a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800 transition-colors" title="${p.email}"><i data-lucide="mail" class="w-4 h-4"></i><span class="truncate" style="max-width: 200px;">${displayEmail}</span></a>`
             : '';
@@ -605,14 +620,9 @@ ${p.tel ? `<a href="etrali:${p.tel}" class="flex items-center gap-2 text-sm font
                   </div>
                 </div>
               </div>
-            <div class="p-3 flex flex-col gap-2">
-                
-                 ${(p.tel === '(manquant)' || !p.tel)
-                    ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500"><i data-lucide="phone-off" class="w-4 h-4"></i><span>(manquant)</span></span>`
-                    : `<a href="etrali:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors"><i data-lucide="phone" class="w-4 h-4"></i><span>${highlightText(window.formatPhoneNumber(p.tel), searchTerm)}</span></a>`
-                  }
-                ${emailHtml}
-              </div>
+           <div class="p-3 flex flex-col gap-2">
+                    ${telHtmlFull} ${emailHtml}
+                  </div>
             </div>`;
         }).join('');
     

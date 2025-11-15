@@ -25,6 +25,18 @@ export async function loadComponent(placeholderId, htmlFilePath) {
 
 // ================= NOUVELLE FONCTION AJOUTÉE =================
 /**
+ * Nettoie un numéro de téléphone pour ne garder que les chiffres.
+ * @param {string} phone Le numéro de téléphone (ex: "0490/10.10.10").
+ * @returns {string} Le numéro nettoyé (ex: "0490101010").
+ */
+export function cleanPhoneNumber(phone) {
+  if (!phone || typeof phone !== 'string') return '';
+  return phone.replace(/\D/g, ''); // Supprime tout ce qui n'est pas un chiffre
+}
+// ==============================================================
+
+// ================= NOUVELLE FONCTION AJOUTÉE =================
+/**
  * Formate un numéro de téléphone belge brut (ex: 0490101010) en un format lisible (ex: 0490/10.10.10).
  * @param {string} phone Le numéro de téléphone brut.
  * @returns {string} Le numéro formaté, ou le numéro d'origine s'il est invalide.
