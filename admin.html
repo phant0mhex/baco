@@ -85,6 +85,44 @@
     </div>
   </div>
 
+  <div id="infraction-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50" style="display: none;">
+  <div class="bg-white rounded-lg shadow-xl w-full max-w-lg">
+    <form id="infraction-form">
+      <div class="flex justify-between items-center p-4 border-b">
+        <h3 class="text-xl font-semibold text-gray-800">Ajouter une Infraction</h3>
+        <button type="button" onclick="hideInfractionModal()" class="p-1 rounded-full text-gray-500 hover:bg-gray-200">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <input type="hidden" id="infraction-user-id">
+        <p>Utilisateur: <strong id="infraction-user-email"></strong></p>
+
+        <div>
+          <label for="infraction-card-type" class="block text-sm font-medium text-gray-700">Type de Carton</label>
+          <select id="infraction-card-type" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            <option value="yellow">Jaune</option>
+            <option value="red">Rouge</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="infraction-reason" class="block text-sm font-medium text-gray-700">Raison</label>
+          <textarea id="infraction-reason" rows="3" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500" placeholder="Ex: Non-respect de la procédure X..."></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end items-center p-4 bg-gray-50 border-t rounded-b-lg">
+        <button type="button" onclick="hideInfractionModal()" class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">Annuler</button>
+        <button type="submit" id="confirm-infraction-button" class="ml-3 px-4 py-2 bg-yellow-500 text-white border border-transparent rounded-md shadow-sm hover:bg-yellow-600">
+          Donner le Carton
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div id="reset-password-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50" style="display: none;">
   <div class="bg-white rounded-lg shadow-xl w-full max-w-lg">
     <div class="flex justify-between items-center p-4 border-b">
@@ -126,6 +164,80 @@
   <script>
     window.pageInit = () => {
     
+
+const infractionModal = document.getElementById('infraction-modal');
+const infractionForm = document.getElementById('infraction-form');
+const infractionUserEmail = document.getElementById('infraction-user-email');
+const infractionUserIdInput = document.getElementById('infraction-user-id');
+const infractionCardType = document.getElementById('infraction-card-type');
+const infractionReason = document.getElementById('infraction-reason');
+const confirmInfractionButton = document.getElementById('confirm-infraction-button');
+
+
+// Fonction pour AFFICHER le modal
+window.showInfractionModal = (userId, email) => {
+    infractionUserIdInput.value = userId;
+    infractionUserEmail.textContent = email;
+    infractionForm.reset();
+    infractionModal.style.display = 'flex';
+    lucide.createIcons();
+}
+
+// Fonction pour CACHER le modal
+window.hideInfractionModal = () => {
+    infractionModal.style.display = 'none';
+}
+
+
+// Gérer le clic sur le bouton de type de carte
+infractionCardType.addEventListener('change', (e) => {
+    if (e.target.value === 'red') {
+        confirmInfractionButton.classList.remove('bg-yellow-500', 'hover:bg-yellow-600');
+        confirmInfractionButton.classList.add('bg-red-600', 'hover:bg-red-700');
+    } else {
+        confirmInfractionButton.classList.add('bg-yellow-500', 'hover:bg-yellow-600');
+        confirmInfractionButton.classList.remove('bg-red-600', 'hover:bg-red-700');
+    }
+});
+
+// Gérer la SOUMISSION du formulaire
+infractionForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const targetUserId = infractionUserIdInput.value;
+    const cardType = infractionCardType.value;
+    const reason = infractionReason.value;
+
+    if (!targetUserId || !cardType || !reason) {
+        notyf.error("Tous les champs sont requis.");
+        return;
+    }
+
+    confirmInfractionButton.disabled = true;
+    confirmInfractionButton.textContent = 'Enregistrement...';
+
+    try {
+        const { data, error } = await supabaseClient.rpc('admin_add_infraction', {
+            target_user_id: targetUserId,
+            card_type: cardType,
+            reason: reason
+        });
+
+        if (error) throw error;
+
+        notyf.success(`Carton ${cardType} ajouté. Statut mis à jour.`);
+        hideInfractionModal();
+        loadUsers(); // Recharger la liste des utilisateurs
+
+    } catch (error) {
+        notyf.error("Erreur RPC: " + error.message);
+    } finally {
+        confirmInfractionButton.disabled = false;
+        confirmInfractionButton.textContent = 'Donner le Carton';
+    }
+});
+
+
       // --- GARDE DE SÉCURITÉ ---
       const userRole = sessionStorage.getItem('userRole');
       if (userRole !== 'admin') {
@@ -365,12 +477,19 @@
                   title="Réinitialiser le mot de passe">
                   <i data-lucide="key-round" class="w-4 h-4"></i>
                 </button>
+
                 <button 
                   onclick="window.handleRoleChange('${user.user_id}', '${currentRole === 'admin' ? 'user' : 'admin'}')"
                   class="p-2 rounded-md ${currentRole === 'admin' ? 'text-yellow-600 hover:bg-yellow-100' : 'text-blue-600 hover:bg-blue-100'}"
                   title="${currentRole === 'admin' ? 'Rétrograder' : 'Promouvoir'}">
                   <i data-lucide="${currentRole === 'admin' ? 'user-minus' : 'user-plus'}" class="w-4 h-4"></i>
                 </button>
+                <button 
+      onclick="window.showInfractionModal('${user.user_id}', '${user.email}')"
+      class="p-2 rounded-md ${isBanned ? 'text-red-600' : 'text-yellow-600'} hover:bg-yellow-100"
+      title="Ajouter une infraction">
+      <i data-lucide="file-warning" class="w-4 h-4"></i>
+    </button>
                 <button 
                   onclick="window.handleBanUser('${user.user_id}', ${!isBanned})"
                   class="p-2 rounded-md ${isBanned ? 'text-green-600 hover:bg-green-100' : 'text-red-600 hover:bg-red-100'}"

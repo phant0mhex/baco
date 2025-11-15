@@ -94,6 +94,29 @@
       </form>
     </div>
 
+
+<div class="bg-white p-6 rounded-lg shadow border border-gray-200 mb-8">
+  <h2 class="text-xl font-semibold text-gray-900 mb-4">Mon Casier d'Infractions</h2>
+
+  <div class="mb-6">
+    <label class="block text-sm font-medium text-gray-700 mb-2">Niveau de Confiance</label>
+    <div class="w-full bg-gray-200 rounded-full h-5 overflow-hidden shadow-inner">
+      <div id="ban-meter-fill" 
+           class="h-5 rounded-full text-right text-xs text-white font-bold pr-2 transition-all duration-1000 ease-out"
+           style="width: 100%;"
+           >
+           </div>
+    </div>
+    <p class="text-xs text-gray-500 mt-1 text-center" id="ban-meter-status">Chargement...</p>
+  </div>
+
+  <h3 class="text-lg font-medium text-gray-800 mb-3">Historique des cartons :</h3>
+  <div id="infractions-list" class="space-y-3 max-h-60 overflow-y-auto pr-2">
+    <p class="text-gray-500 text-sm">Chargement de votre historique...</p>
+  </div>
+</div>
+
+
     <div class="bg-white p-6 rounded-lg shadow border border-gray-200">
       <h2 class="text-xl font-semibold text-gray-900 mb-4">Sécurité</h2>
       <form id="password-form" class="space-y-4">
@@ -150,6 +173,10 @@
       const newPasswordInput = document.getElementById('new-password');
       const confirmPasswordInput = document.getElementById('confirm-password');
       const passwordSaveButton = document.getElementById('password-save-button');
+
+      const banMeterFill = document.getElementById('ban-meter-fill');
+const banMeterStatus = document.getElementById('ban-meter-status');
+const infractionsList = document.getElementById('infractions-list');
       
       let currentUserId = null;
       let uploading = false;
@@ -164,6 +191,7 @@
           if (authError || !user) throw authError || new Error('Utilisateur non trouvé');
           currentUserId = user.id;
           emailInput.value = user.email;
+          loadInfractions(currentUserId);
           const { data, error, status } = await supabaseClient.from('profiles').select(`username, full_name, avatar_url`).eq('id', user.id).single();
           if (error && status !== 406) throw error;
           if (data) {
@@ -247,6 +275,114 @@
           uploading = false;
         }
       }
+
+
+    // --- NOUVELLE FONCTION UTILITAIRE ---
+
+function renderCardRow(card) {
+    const icon = card.card_type === 'yellow' ? 'file-warning' : 'file-alert';
+    const color = card.card_type === 'yellow' ? 'text-yellow-600' : 'text-red-600';
+    const adminName = card.admin ? card.admin.full_name : 'un admin';
+    const date = new Date(card.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+
+    let status = '';
+    if (!card.is_active) {
+        status = '<span class="text-xs font-medium text-gray-500 ml-2">(Pardonné)</span>';
+    } else if (card.card_type === 'yellow' && new Date(card.expires_at) < new Date()) {
+        status = '<span class="text-xs font-medium text-gray-500 ml-2">(Expiré)</span>';
+    }
+
+    return `
+    <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border">
+      <i data-lucide="${icon}" class="w-5 h-5 ${color} flex-shrink-0 mt-0.5"></i>
+      <div>
+        <p class="font-medium text-gray-800">
+          Carton ${card.card_type === 'yellow' ? 'Jaune' : 'Rouge'} ${status}
+        </p>
+        <p class="text-sm text-gray-600 italic">"${card.reason || 'Aucune raison spécifiée'}"</p>
+        <p class="text-xs text-gray-500 mt-1">Donné par ${adminName} le ${date}</p>
+      </div>
+    </div>
+    `;
+}
+
+
+
+// --- NOUVELLE FONCTION à ajouter ---
+async function loadInfractions(userId) {
+    if (!userId) return;
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('infractions')
+            .select('*, admin:admin_id ( full_name )') // Récupère le nom de l'admin
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (data.length === 0) {
+            banMeterFill.style.width = '100%';
+            banMeterFill.classList.add('bg-green-500');
+            banMeterStatus.textContent = "Votre dossier est impeccable !";
+            infractionsList.innerHTML = '<p class="text-gray-500 text-sm">Aucune infraction enregistrée.</p>';
+            return;
+        }
+
+        let yellowPoints = 0;
+        let redPoints = 0;
+        const maxPoints = 9; // 3 jaunes = 1 rouge (3pts), 3 rouges = ban (9pts)
+
+        infractionsList.innerHTML = ''; // Vider le chargement
+
+        data.forEach(card => {
+            // Remplir la liste
+            infractionsList.innerHTML += renderCardRow(card);
+
+            // Calculer les points
+            if (card.is_active && card.card_type === 'yellow' && new Date(card.expires_at) > new Date()) {
+                yellowPoints += 1;
+            }
+            if (card.is_active && card.card_type === 'red') {
+                redPoints += 3; // 1 rouge vaut 3 jaunes
+            }
+        });
+
+        lucide.createIcons(); // Dessiner les icônes dans la liste
+
+        // Mettre à jour le "Ban Meter"
+        const totalPoints = yellowPoints + redPoints;
+        let percentage = 100 - ((totalPoints / maxPoints) * 100);
+        if (percentage < 0) percentage = 0;
+
+        // Animation
+        setTimeout(() => {
+            banMeterFill.style.width = `${percentage}%`;
+        }, 100); // Léger délai pour que l'animation se lance
+
+        // Couleur du "meter"
+        if (percentage > 66) {
+            banMeterFill.className = 'h-5 rounded-full text-right text-xs text-white font-bold pr-2 transition-all duration-1000 ease-out bg-gradient-to-r from-green-400 to-green-600';
+            banMeterStatus.textContent = "Niveau de confiance excellent.";
+        } else if (percentage > 33) {
+            banMeterFill.className = 'h-5 rounded-full text-right text-xs text-black font-bold pr-2 transition-all duration-1000 ease-out bg-gradient-to-r from-yellow-300 to-yellow-500';
+            banMeterStatus.textContent = "Niveau de confiance moyen. Attention.";
+        } else {
+            banMeterFill.className = 'h-5 rounded-full text-right text-xs text-white font-bold pr-2 transition-all duration-1000 ease-out bg-gradient-to-r from-orange-500 to-red-600';
+            banMeterStatus.textContent = "Niveau de confiance critique. Bientôt banni.";
+        }
+        if (percentage <= 0) {
+             banMeterStatus.textContent = "Compte banni.";
+        }
+        banMeterFill.textContent = `${Math.round(percentage)}%`;
+
+
+    } catch (error) {
+        infractionsList.innerHTML = `<p class="text-red-500 text-sm">Erreur: ${error.message}</p>`;
+    }
+}
+
+
 
       // --- NOUVELLE FONCTION: Changer le mot de passe ---
       async function updatePassword(event) {
