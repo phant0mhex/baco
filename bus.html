@@ -178,7 +178,6 @@
       const busIdInput = document.getElementById('modal-bus-id');
       const contentContainer = document.getElementById('content');
       
-      let favoritedItemIds = new Set();
 
       // Exposer les fonctions à 'onclick'
       window.updateSocieteDisplay = updateSocieteDisplay;
@@ -198,14 +197,7 @@
 
         try {
           // currentUserId est maintenant défini globalement par layout.js
-          const { data: favs, error: favError } = await supabaseClient
-            .from('favoris')
-            .select('id_contenu')
-            .eq('user_id', currentUserId)
-            .in('type_contenu', ['bus_contact', 'bus_chauffeur']);
-          
-          if (favError) throw favError;
-          favoritedItemIds = new Set(favs.map(f => f.id_contenu));
+         
           
         } catch (error) {
           contentContainer.innerHTML = `<p class='text-red-600'>Erreur (auth/favs): ${error.message}</p>`;
@@ -306,13 +298,9 @@
           '<h3 class="text-2xl font-semibold text-gray-800 mb-4">Contacts de la société :</h3>' +
           '<ul class="list-none p-0 grid grid-cols-1 md:grid-cols-2 gap-3">' +
           contactList.map(c => {
-            const isFavorited = favoritedItemIds.has(c.id.toString());
-            const starClass = isFavorited ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400';
-            const favoriteButton = `
-              <button onclick="window.toggleFavorite(this, 'bus_contact', '${c.id}', ${isFavorited})" class="p-1 rounded-full hover:bg-yellow-100" title="Mettre en favori">
-                <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
-              </button>
-            `;
+            const cleanedPhoneContact = window.cleanPhoneNumber(c.tel);
+            const formattedPhoneContact = window.formatPhoneNumber(cleanedPhoneContact);
+           
             
             return `<li class="bg-gray-50 rounded-lg border border-gray-200 p-3 flex items-center justify-between">
               <span class="flex items-center gap-2 text-sm font-medium text-gray-900">
@@ -320,11 +308,11 @@
                 ${c.nom} <span class="font-normal text-gray-500">(${c.societes_bus.nom})</span>
               </span>
               <div class="flex items-center gap-2">
-                <a href="etrali:${c.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800">
+                <a href=""etrali:0${cleanedPhoneContact}"" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800">
                   <i data-lucide="phone" class="w-4 h-4"></i>
-                  <span>${c.tel}</span>
+                  <span>${formattedPhoneContact}</span>
                 </a>
-                ${favoriteButton}
+               
               </div>
             </li>`
           }).join('') + '</ul>';
@@ -333,25 +321,23 @@
           '<h3 class="text-2xl font-semibold text-gray-800 mb-4 mt-8">Chauffeurs à contacter :</h3>' +
           '<ul class="list-none p-0 grid grid-cols-1 md:grid-cols-2 gap-3">' +
           chauffeursList.map(c => {
-            const isFavorited = favoritedItemIds.has(c.id.toString());
-            const starClass = isFavorited ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400';
-            const favoriteButton = `
-              <button onclick="window.toggleFavorite(this, 'bus_chauffeur', '${c.id}', ${isFavorited})" class="p-1 rounded-full hover:bg-yellow-100" title="Mettre en favori">
-                <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
-              </button>
-            `;
-            
+           
+            // --- MODIFIÉ ICI ---
+            const cleanedPhoneChauffeur = window.cleanPhoneNumber(c.tel);
+            const formattedPhoneChauffeur = window.formatPhoneNumber(cleanedPhoneChauffeur);
+            // --- FIN MODIFICATION ---
+
+
             return `<li class="bg-gray-50 rounded-lg border border-gray-200 p-3 flex items-center justify-between">
               <span class="flex items-center gap-2 text-sm font-medium text-gray-900">
                 <i data-lucide="user" class="w-4 h-4 text-gray-500"></i>
                 ${c.nom} <span class="font-normal text-gray-500">(${c.societes_bus.nom})</span>
               </span>
               <div class="flex items-center gap-2">
-                <a href="etrali:${c.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800">
+                <a href="etrali:0${cleanedPhoneChauffeur}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800">
                   <i data-lucide="phone" class="w-4 h-4"></i>
-                  <span>${c.tel}</span>
+                  <span>${formattedPhoneChauffeur}</span>
                 </a>
-                ${favoriteButton}
               </div>
             </li>`
           }).join('') + '</ul>';
@@ -465,14 +451,12 @@
           const allIds = [...contactIds, ...chauffeurIds];
           
           if (allIds.length > 0) {
-            await supabaseClient.from('favoris')
-              .delete()
-              .in('id_contenu', allIds)
-              .in('type_contenu', ['bus_contact', 'bus_chauffeur']);
+          
           }
           
         } catch (favError) {
-           console.warn("Erreur suppression favori:", favError.message);
+          
+
         }
 
         const { error } = await supabaseClient.rpc('delete_societe_bus', { societe_id_to_delete: id });

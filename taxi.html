@@ -82,9 +82,6 @@
 </div>
   
 <script>
-    // Variables globales pour les favoris
-   
-    let favoritedTaxiIds = new Set();
 
     // On attend que TOUT le HTML soit chargé (y compris le modal à la fin)
     document.addEventListener('DOMContentLoaded', async () => {
@@ -161,7 +158,6 @@
         contentContainer.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
         lucide.createIcons();
         
-        // --- Récupérer les favoris ---
         try {
           if (!currentUserId) {
             const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
@@ -169,14 +165,9 @@
             currentUserId = user.id;
           }
           
-          const { data: favs, error: favError } = await supabaseClient
-            .from('favoris')
-            .select('id_contenu')
-            .eq('user_id', currentUserId)
-            .eq('type_contenu', 'taxi');
           
           if (favError) throw favError;
-          favoritedTaxiIds = new Set(favs.map(f => f.id_contenu));
+         
           
         } catch (error) {
           contentContainer.innerHTML = `<p class='text-red-600'>Erreur (auth/favs): ${error.message}</p>`;
@@ -214,13 +205,17 @@
               `<span class="px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700 text-sm font-medium">${lieu}</span>`
             ).join('');
 
-            const contactsHtml = (taxi.contacts.length === 0 || taxi.contacts[0] === 'nihil') ? '' :
-              taxi.contacts.map(num =>
-              `<a href="etrali:${num}" class="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
-                 <i data-lucide="phone" class="w-4 h-4 text-blue-700 flex-shrink-0"></i>
-                 <span class="font-mono text-sm font-medium text-blue-800">${num}</span>
-               </a>`
-              ).join('');
+          const contactsHtml = (taxi.contacts.length === 0 || taxi.contacts[0] === 'nihil') ? '' :
+              taxi.contacts.map(num => {
+                // --- MODIFIÉ ICI ---
+                const cleanedPhoneTaxi = window.cleanPhoneNumber(num);
+                const formattedPhoneTaxi = window.formatPhoneNumber(cleanedPhoneTaxi);
+                // --- FIN MODIFICATION ---
+                return `<a href="etrali:0${cleanedPhoneTaxi}" class="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+                   <i data-lucide="phone" class="w-4 h-4 text-blue-700 flex-shrink-0"></i>
+                   <span class="font-mono text-sm font-medium text-blue-800">${formattedPhoneTaxi}</span>
+                 </a>`
+              }).join('');
 
             const mailsHtml = (taxi.mail.length === 0 || taxi.mail[0] === 'nihil') ? '' :
               taxi.mail.map(email =>
@@ -247,15 +242,9 @@
                  </div>`
               ).join('') + '</div>';
 
-            // --- Logique Favori ---
-            const isFavorited = favoritedTaxiIds.has(taxi.id);
-            const starClass = isFavorited ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400';
-            const favoriteButton = `
-              <button onclick="window.toggleFavorite(this, 'taxi', ${taxi.id}, ${isFavorited})" class="p-2 rounded-full hover:bg-yellow-100" title="Mettre en favori">
-                <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
-              </button>
-            `;
 
+              
+            
             return `<div class="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col transition-all duration-200 hover:shadow-md hover:-translate-y-1">
                       <div class="p-5 flex-grow">
                         <h3 class="text-xl font-semibold text-gray-900 flex items-center gap-2.5">
@@ -273,7 +262,7 @@
                         ${remarquesHtml}
                       </div>
                       <div class="p-3 bg-gray-50 border-t flex justify-end gap-1">
-                        ${favoriteButton}
+
                         <div class="admin-only flex gap-2">
                           <button onclick='showTaxiModal(${taxiJson})' class="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-blue-600 bg-blue-100 rounded hover:bg-blue-200">
                             <i data-lucide="pencil" class="w-3 h-3"></i> Modifier
@@ -382,9 +371,9 @@
         }
         
         try {
-          await supabaseClient.from('favoris').delete().match({ id_contenu: id, type_contenu: 'taxi' });
+        
         } catch (favError) {
-          console.warn("Erreur suppression favori:", favError.message);
+         
         }
         
         const { error } = await supabaseClient
