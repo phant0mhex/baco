@@ -487,7 +487,6 @@ window.toggleGroup = (contentId, headerElement) => {
           const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
           const displayName = highlightText(p.nom, searchTerm);
           const formattedTel = p.tel ? window.formatPhoneNumber(p.tel) : '(manquant)';
-          const displayTel = highlightText(formattedTel, searchTerm);
           const displayEmail = p.email ? highlightText(p.email, searchTerm) : '';
           const isFavorited = favoritedContactIds.has(p.id.toString());
           const starClass = isFavorited ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400';
@@ -606,8 +605,9 @@ ${p.tel ? `<a href="etrali:${p.tel}" class="flex items-center gap-2 text-sm font
                   </div>
                 </div>
               </div>
-              <div class="p-3 flex flex-col gap-2">
-               ${telHtmlFull.replace(highlightText(p.tel, searchTerm), displayTel)} ${(p.tel === '(manquant)' || !p.tel)
+            <div class="p-3 flex flex-col gap-2">
+                
+                 ${(p.tel === '(manquant)' || !p.tel)
                     ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500"><i data-lucide="phone-off" class="w-4 h-4"></i><span>(manquant)</span></span>`
                     : `<a href="etrali:${p.tel}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors"><i data-lucide="phone" class="w-4 h-4"></i><span>${highlightText(window.formatPhoneNumber(p.tel), searchTerm)}</span></a>`
                   }
