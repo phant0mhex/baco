@@ -145,7 +145,6 @@
       updateTaxiDisplay();
 
 
-      // --- FONCTION PRINCIPALE (Mise à jour pour les favoris) ---
       async function updateTaxiDisplay() {
         const lieuxSelectionnes = Array.from(document.querySelectorAll('#lieuCheckboxes input:checked'))
           .map(cb => cb.value);
@@ -166,7 +165,7 @@
           }
           
           
-          if (favError) throw favError;
+        
          
           
         } catch (error) {
@@ -370,11 +369,8 @@
           return;
         }
         
-        try {
         
-        } catch (favError) {
-         
-        }
+        
         
         const { error } = await supabaseClient
           .from('taxis')

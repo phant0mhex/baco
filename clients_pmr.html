@@ -196,7 +196,6 @@
     
     let searchTimer;
    
-    let favoritedClientIds = new Set();
     
     // --- NOUVELLES VARIABLES D'ÉTAT POUR LA PAGINATION ---
     let currentPage = 1;
@@ -288,13 +287,6 @@ const rawPhone = client.telephone;
   const formattedPhone = client.telephone ? window.formatPhoneNumber(cleanedPhone) : null;
   const displayTel = highlightText(formattedPhone, searchTerm);
 
-  const isFavorited = favoritedClientIds.has(client.id);
-  const starClass = isFavorited ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400';
-  const favoriteButton = `
-    <button onclick="window.toggleFavorite(this, 'client_pmr', ${client.id}, ${isFavorited})" class="p-1 rounded-full text-gray-500 hover:bg-yellow-100" title="Mettre en favori">
-      <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
-    </button>
-  `;
 
   // Classes pour le type
   let typeClass = 'bg-gray-100 text-gray-800';
@@ -316,7 +308,6 @@ const rawPhone = client.telephone;
         ${client.remarques || ''}
       </td>
       <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-1">
-        ${favoriteButton}
         <button onclick="showPmrClientModal(${clientJson})" class="p-1 text-blue-600 rounded-full hover:bg-blue-100" title="Modifier">
           <i data-lucide="pencil" class="w-4 h-4"></i>
         </button>
@@ -380,14 +371,9 @@ function setView(view) {
           // MODIFICATION : Le 'if (!currentUserId)' est supprimé.
           // currentUserId est GARANTI d'exister ici.
           
-          const { data: favs, error: favError } = await supabaseClient
-            .from('favoris')
-            .select('id_contenu')
-            .eq('user_id', window.currentUserId) // Utiliser window.currentUserId
-            .eq('type_contenu', 'client_pmr');
           
-          if (favError) throw favError;
-          favoritedClientIds = new Set(favs.map(f => f.id_contenu));
+          
+         
           
         } catch (error) {
           statusMsg.innerHTML = `<p class="text-red-600 text-center">Erreur (auth/favs): ${error.message}</p>`;
@@ -490,14 +476,6 @@ function setView(view) {
   const formattedPhoneCard = client.telephone ? window.formatPhoneNumber(cleanedPhoneCard) : null;
   const displayTelCard = highlightText(formattedPhoneCard, searchTerm);
         
-        const isFavorited = favoritedClientIds.has(client.id);
-        const starClass = isFavorited ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400';
-       const favoriteButton = `
-  <button onclick="window.toggleFavorite(this, 'client_pmr', ${client.id}, ${isFavorited})" class="p-2 rounded-full hover:bg-yellow-100" title="Mettre en favori">
-    <i data-lucide="star" class="w-4 h-4 ${starClass}"></i>
-  </button>
-`;
-        
         let traceabilityHtml = '';
         if (client.updated_at && client.profiles) {
             const date = formatTraceabilityDate(client.updated_at);
@@ -529,7 +507,6 @@ function setView(view) {
               </div>
 
               <div class="flex items-center flex-shrink-0 gap-0">
-                ${favoriteButton}
                 <button onclick="showPmrClientModal(${clientJson})" class="p-2 text-blue-600 rounded-full hover:bg-blue-100" title="Modifier">
                   <i data-lucide="pencil" class="w-4 h-4"></i>
                 </button>
@@ -611,14 +588,7 @@ function setView(view) {
           return;
         }
         try {
-          await supabaseClient.from('favoris').delete().match({ id_contenu: id, type_contenu: 'client_pmr' });
-          const { error } = await supabaseClient
-            .from('pmr_clients')
-            .delete()
-            .eq('id', id);
-          if (error) throw error;
-          notyf.success("Client supprimé !");
-          loadData();
+         
         } catch (error) {
            notyf.error("Erreur: " + error.message);
         }
