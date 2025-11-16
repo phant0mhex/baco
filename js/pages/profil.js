@@ -17,26 +17,23 @@ window.pageInit = () => {
   const avatarPreview = document.getElementById('avatar-preview');
   const avatarFileInput = document.getElementById('avatar-file');
   const avatarStatus = document.getElementById('avatar-upload-status');
-  const avatarUploadLabel = document.getElementById('avatar-upload-label');
+  // Correction : L'ID de l'Upload Label est 'avatar-upload-label'
+  const avatarUploadLabel = document.querySelector('.avatar-upload-label'); 
   const passwordSection = document.getElementById('password-section');
   const passwordForm = document.getElementById('password-form');
   const passwordSaveButton = document.getElementById('password-save-button');
   const adminBadge = document.getElementById('admin-badge');
   
-  // Références pour le "Ban Meter"
   const banMeterFill = document.getElementById('ban-meter-fill');
   const banMeterStatus = document.getElementById('ban-meter-status');
   const infractionsList = document.getElementById('infractions-list');
 
-  let currentUserId = null; // L'ID de la personne qui REGARDE
-  let targetUserId = null;  // L'ID de la personne qu'on REGARDE
-  let isMyProfile = false;  // Est-ce qu'on regarde notre propre profil ?
+  let currentUserId = null;
+  let targetUserId = null;
+  let isMyProfile = false;
   let uploading = false;
 
   
-  /**
-   * Charge le profil (le sien ou celui d'un autre)
-   */
   async function getProfile() {
     try {
       // 1. Identifier l'utilisateur actuel
@@ -56,10 +53,10 @@ window.pageInit = () => {
         isMyProfile = true;
       }
 
-      // 3. Récupérer les données du profil CIBLE
+      // 3. Récupérer les données du profil CIBLE (sans l'email)
       const { data, error, status } = await supabaseClient
         .from('profiles')
-        .select(`username, full_name, avatar_url, role, email`) // On a besoin de l'email depuis profiles maintenant
+        .select(`username, full_name, avatar_url, role`) // <-- 'email' est supprimé d'ici
         .eq('id', targetUserId)
         .single();
         
@@ -69,11 +66,10 @@ window.pageInit = () => {
       if (data) {
         usernameInput.value = data.username || '';
         fullNameInput.value = data.full_name || '';
-        emailInput.value = data.email || ''; // Utiliser l'email du profil
         roleInput.value = (data.role || 'user').charAt(0).toUpperCase() + (data.role || 'user').slice(1);
         if (data.avatar_url) avatarPreview.src = data.avatar_url + `?t=${new Date().getTime()}`;
 
-        // Afficher le badge admin si l'utilisateur VU est admin
+        // Afficher le badge admin
         if (data.role === 'admin' && adminBadge) {
           adminBadge.innerHTML = `
             <span title="Administrateur Certifié" class="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white text-sm font-semibold rounded-full shadow-md">
@@ -83,10 +79,29 @@ window.pageInit = () => {
         }
       }
       
-      // 5. Charger les infractions pour l'utilisateur CIBLE
+      // 5. Gérer l'Email (logique corrigée)
+      if (isMyProfile) {
+        // Si c'est mon profil, je le prends de la session
+        emailInput.value = user.email || '';
+      } else {
+        // Si c'est le profil d'un autre, seul un admin peut voir l'email
+        if (sessionStorage.getItem('userRole') === 'admin') {
+          try {
+            const { data: emailData, error: rpcError } = await supabaseClient.rpc('admin_get_user_email', { p_user_id: targetUserId });
+            if (rpcError) throw rpcError;
+            emailInput.value = emailData || 'Email non trouvé';
+          } catch (e) {
+            emailInput.value = 'Erreur chargement email';
+          }
+        } else {
+          emailInput.value = 'Confidentiel';
+        }
+      }
+
+      // 6. Charger les infractions pour l'utilisateur CIBLE
       loadInfractions(targetUserId);
       
-      // 6. Configurer la page
+      // 7. Configurer la page
       setupPageMode();
 
     } catch (error) {
@@ -96,45 +111,28 @@ window.pageInit = () => {
     }
   }
 
-  /**
-   * Configure l'UI si on regarde son profil ou celui d'un autre
-   */
   function setupPageMode() {
     if (isMyProfile) {
       pageTitle.innerHTML = 'Mon Profil <span id="admin-badge" class="ml-2"></span>';
-      
-      // Activer les formulaires
       profileForm.addEventListener('submit', handleProfileUpdate);
       passwordForm.addEventListener('submit', updatePassword);
       avatarFileInput.addEventListener('change', handleAvatarUpload);
-      
     } else {
       pageTitle.innerHTML = `Profil de ${fullNameInput.value || 'Utilisateur'}`;
-      
-      // Cacher les sections sensibles
       passwordSection.style.display = 'none';
       saveButton.style.display = 'none';
-      avatarUploadLabel.style.cursor = 'default';
+      if (avatarUploadLabel) avatarUploadLabel.style.cursor = 'default';
       avatarFileInput.disabled = true;
-      
-      // Cacher l'overlay de l'avatar
-      const overlay = avatarUploadLabel.querySelector('.avatar-overlay');
+      const overlay = avatarUploadLabel ? avatarUploadLabel.querySelector('.avatar-overlay') : null;
       if (overlay) overlay.style.display = 'none';
-      
-      // Désactiver les champs
       usernameInput.disabled = true;
       fullNameInput.disabled = true;
     }
-    // (L'email et le rôle sont toujours désactivés, c'est correct)
   }
 
-  /**
-   * Gère la MISE À JOUR du profil (uniquement pour soi-même)
-   */
   async function handleProfileUpdate(e) {
     e.preventDefault();
-    if (!isMyProfile) return; // Sécurité
-    
+    if (!isMyProfile) return;
     try {
       saveButton.disabled = true;
       saveButton.textContent = 'Enregistrement...';
@@ -155,9 +153,6 @@ window.pageInit = () => {
     }
   }
   
-  /**
-   * Gère l'UPLOAD d'avatar (uniquement pour soi-même)
-   */
   async function handleAvatarUpload(event) {
     if (!isMyProfile || uploading) return;
     const file = event.target.files[0];
@@ -187,16 +182,11 @@ window.pageInit = () => {
     }
   }
 
-  /**
-   * Gère le CHANGEMENT DE MDP (uniquement pour soi-même)
-   */
   async function updatePassword(event) {
     event.preventDefault();
     if (!isMyProfile) return;
-    
     const newPassword = document.getElementById('new-password').value;
     const confirmPassword = document.getElementById('confirm-password').value;
-
     if (newPassword.length < 6) {
       notyf.error('Le mot de passe doit faire au moins 6 caractères.');
       return;
@@ -205,14 +195,10 @@ window.pageInit = () => {
       notyf.error('Les mots de passe ne correspondent pas.');
       return;
     }
-
     passwordSaveButton.disabled = true;
     passwordSaveButton.textContent = 'Enregistrement...';
-
     try {
-      const { error } = await supabaseClient.auth.updateUser({
-        password: newPassword
-      });
+      const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
       if (error) throw error;
       notyf.success('Mot de passe mis à jour avec succès !');
       passwordForm.reset(); 
@@ -225,14 +211,9 @@ window.pageInit = () => {
     }
   }
   
-  /**
-   * Charge les infractions de l'utilisateur CIBLE
-   */
   async function loadInfractions(userId) {
     if (!userId) return;
-
     try {
-      // Ne charge que les infractions actives
       const { data, error } = await supabaseClient
         .from('infractions')
         .select('*')
@@ -240,7 +221,6 @@ window.pageInit = () => {
         .eq('is_active', true)
         .or('card_type.eq.red, and(card_type.eq.yellow,expires_at.gt.now())')
         .order('created_at', { ascending: false });
-
       if (error) throw error;
 
       if (data.length === 0) {
@@ -250,27 +230,22 @@ window.pageInit = () => {
         infractionsList.innerHTML = '<p class="text-gray-500 text-sm">Aucune infraction active enregistrée.</p>';
         return;
       }
-
       let yellowPoints = 0;
       let redPoints = 0;
       const maxPoints = 6; 
       infractionsList.innerHTML = ''; 
-
       data.forEach(card => {
-        infractionsList.innerHTML += renderCardRow(card); // Utilise la version simplifiée
+        infractionsList.innerHTML += renderCardRow(card);
         if (card.card_type === 'yellow') yellowPoints += 1;
         if (card.card_type === 'red') redPoints += 1;
       });
-      
       lucide.createIcons();
 
-      // (Logique du Ban Meter inchangée)
       const totalPoints = (redPoints * maxPoints) + yellowPoints;
       let percentage = 100 - ((totalPoints / maxPoints) * 100);
       if (percentage < 0) percentage = 0;
       setTimeout(() => { banMeterFill.style.width = `${percentage}%`; }, 100);
       
-      // (Logique des couleurs inchangée)
       if (totalPoints === 0) {
            banMeterFill.className = 'h-5 rounded-full text-right text-xs text-white font-bold pr-2 transition-all duration-1000 ease-out bg-gradient-to-r from-green-400 to-green-600';
            banMeterStatus.textContent = "Niveau de confiance excellent (compteur à zéro).";
@@ -285,20 +260,15 @@ window.pageInit = () => {
           banMeterStatus.textContent = "Niveau de confiance critique. Compte banni.";
       }
       banMeterFill.textContent = `${Math.round(percentage)}%`;
-
     } catch (error) {
       infractionsList.innerHTML = `<p class="text-red-500 text-sm">Erreur: ${error.message}</p>`;
     }
   }
   
-  /**
-   * Affiche une ligne d'infraction (version simple, sans nom d'admin)
-   */
   function renderCardRow(card) {
     const icon = card.card_type === 'yellow' ? 'file-warning' : 'file-alert';
     const color = card.card_type === 'yellow' ? 'text-yellow-600' : 'text-red-600';
-    const date = window.formatDate(card.created_at, 'long'); // Utilise la fonction globale
-
+    const date = window.formatDate(card.created_at, 'long');
     return `
     <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border">
       <i data-lucide="${icon}" class="w-5 h-5 ${color} flex-shrink-0 mt-0.5"></i>
