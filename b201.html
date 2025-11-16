@@ -68,137 +68,136 @@
       </div>
     </header>
 
-    <div class="container mx-auto p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+   <div class="container mx-auto p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
       
-      <aside class="lg:col-span-1 space-y-6">
-        <div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-          <label for="b201-calendar" class="block text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">Date</label>
-          <div class="relative">
-            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <i data-lucide="calendar" class="w-5 h-5 text-gray-400"></i>
-            </div>
-            <input type="text" id="b201-calendar" placeholder="Sélectionner une date..." class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 pl-10 cursor-pointer">
-          </div>
+  <aside class="lg:col-span-1 space-y-6">
+    <div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+      <label for="b201-calendar" class="block text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">Date</label>
+      <div class="relative">
+        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+          <i data-lucide="calendar" class="w-5 h-5 text-gray-400"></i>
         </div>
-        
-        <div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-          <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">Prestation</h3>
-          <div id="shift-tabs-container" class="flex justify-around gap-2">
-            <button class="shift-tab" data-shift="matin">Matin</button>
-            <button class="shift-tab" data-shift="apres-midi">Après-midi</button>
-            <button class="shift-tab" data-shift="nuit">Nuit</button>
-          </div>
-        </div>
-      </aside>
-      
-      <main class="lg:col-span-2 space-y-6">
-        <div id="loading-spinner" class="hidden flex justify-center py-20">
-          <i data-lucide="loader-2" class="w-12 h-12 text-blue-600 animate-spin"></i>
-        </div>
-        
-        <div id="remise-content" class="hidden space-y-6">
-          <div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-            <label for="message-general" class="text-xl font-semibold text-gray-800 dark:text-gray-100 block">Message de Remise</label>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Infos clés pour le collègue suivant...</p>
-            <textarea id="message-general" rows="6" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Signaler pannes, retards structurels, infos SGI..."></textarea>
-            <div class="text-right">
-              <span id="save-status" class="text-sm text-gray-500 dark:text-gray-400 italic mt-1 block"></span>
-            </div>
-          </div>
-          
-          <div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-            <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">Bus Commandés</h3>
-            <form id="form-bus" class="grid grid-cols-2 gap-4 mb-4">
-              <input type="text" id="bus-societe" list="bus-societes-list" placeholder="Société" class="col-span-2 w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-              <input type="text" id="bus-depart" list="gares-list" placeholder="Gare départ" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-              <input type="text" id="bus-arrivee" list="gares-list" placeholder="Gare arrivée" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-              <div class="flex flex-col">
-                <label for="bus-heure-appel" class="text-xs font-medium text-gray-500 dark:text-gray-400">Heure d'appel</label>
-                <input type="time" id="bus-heure-appel" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-              </div>
-              <input type="text" id="bus-motif" placeholder="Motif" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-              <button type="submit" class="col-span-2 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Ajouter Bus</button>
-            </form>
-            <div id="list-bus" class="space-y-2 max-h-60 overflow-y-auto"></div>
-          </div>
-          
-          <div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-            <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">Taxis Commandés</h3>
-            <form id="form-taxi" class="grid grid-cols-2 gap-4 mb-4">
-              <input type="text" id="taxi-societe" placeholder="Société" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-              <div class="flex items-center gap-2 px-1 self-end mb-2">
-                <input type="checkbox" id="taxi-pmr" class="rounded text-blue-600 shadow-sm focus:ring-blue-500">
-                <label for="taxi-pmr" class="text-sm font-medium text-gray-700 dark:text-gray-300">PMR</label>
-              </div>
-              <input type="text" id="taxi-depart" list="gares-list" placeholder="Gare départ" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-              <input type="text" id="taxi-arrivee" list="gares-list" placeholder="Gare arrivée" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-              <div class="flex flex-col">
-                <label for="taxi-heure-appel" class="text-xs font-medium text-gray-500 dark:text-gray-400">Heure d'appel</label>
-                <input type="time" id="taxi-heure-appel" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-              </div>
-              <input type="text" id="taxi-motif" placeholder="Motif" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-              <button type="submit" class="col-span-2 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Ajouter Taxi</button>
-            </form>
-            <div id="list-taxi" class="space-y-2 max-h-60 overflow-y-auto"></div>
-          </div>
-          
-          <div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-            <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">Interventions (OPI/SPI)</h3>
-            <form id="form-intervention" class="grid grid-cols-3 gap-4 mb-4">
-              <input type="text" id="int-gare" list="gares-list" placeholder="Gare" required class="col-span-2 w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-              <select id="int-type" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                <option value="OPI">OPI</option>
-                <option value="SPI">SPI</option>
-              </select>
-              <div class="flex flex-col">
-                <label for="int-heure-appel" class="text-xs font-medium text-gray-500 dark:text-gray-400">H. Appel</label>
-                <input type="time" id="int-heure-appel" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-              </div>
-              <div class="flex flex-col">
-                <label for="int-heure-arrivee" class="text-xs font-medium text-gray-500 dark:text-gray-400">H. Arrivée</label>
-                <input type="time" id="int-heure-arrivee" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-              </div>
-              <div class="flex flex-col">
-                <label for="int-heure-fin" class="text-xs font-medium text-gray-500 dark:text-gray-400">H. Fin</label>
-                <input type="time" id="int-heure-fin" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-              </div>
-              <input type="text" id="int-motif" placeholder="Motif" class="col-span-3 w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-              <button type="submit" class="col-span-3 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Ajouter Intervention</button>
-            </form>
-            <div id="list-intervention" class="space-y-2 max-h-60 overflow-y-auto"></div>
-          </div>
-
-          <div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-            <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">PMR (Imprévues / Short Notice)</h3>
-            <form id="form-pmr" class="grid grid-cols-2 gap-4 mb-4">
-              <select id="pmr-type" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                <option value="Imprevue">Imprévue</option>
-                <option value="ShortNotice">Short Notice</option>
-              </select>
-              <div class="flex flex-col">
-                <label for="pmr-heure" class="text-xs font-medium text-gray-500 dark:text-gray-400">Heure</label>
-                <input type="time" id="pmr-heure" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-              </div>
-              <input type="text" id="pmr-depart" list="gares-list" placeholder="Gare départ" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-              <input type="text" id="pmr-arrivee" list="gares-list" placeholder="Gare arrivée" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-              <input type="text" id="pmr-dossier" placeholder="N° dossier" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-              <input type="text" id="pmr-remarque" placeholder="Remarque" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-              <button type="submit" class="col-span-2 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Ajouter PMR</button>
-            </form>
-            <div id="list-pmr" class="space-y-2 max-h-60 overflow-y-auto"></div>
-          </div>
-          
-        </div>
-      </main>
+        <input type="text" id="b201-calendar" placeholder="Sélectionner une date..." class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 pl-10 cursor-pointer">
+      </div>
     </div>
+    
+    <div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+      <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">Prestation</h3>
+      <div id="shift-tabs-container" class="flex justify-around gap-2">
+        <button class="shift-tab" data-shift="matin">Matin</button>
+        <button class="shift-tab" data-shift="apres-midi">Après-midi</button>
+        <button class="shift-tab" data-shift="nuit">Nuit</button>
+      </div>
+    </div>
+  </aside>
+  
+  <main class="lg:col-span-2 space-y-6">
+    <div id="loading-spinner" class="hidden flex justify-center py-20">
+      <i data-lucide="loader-2" class="w-12 h-12 text-blue-600 animate-spin"></i>
+    </div>
+    
+    <div id="remise-content" class="hidden space-y-6">
+      <div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <label for="message-general" class="text-xl font-semibold text-gray-800 dark:text-gray-100 block">Message de Remise</label>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Infos clés pour le collègue suivant...</p>
+        <textarea id="message-general" rows="6" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Signaler pannes, retards structurels, infos SGI..."></textarea>
+        <div class="text-right">
+          <span id="save-status" class="text-sm text-gray-500 dark:text-gray-400 italic mt-1 block"></span>
+        </div>
+      </div>
+      
+      <div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">Bus Commandés</h3>
+        <form id="form-bus" class="grid grid-cols-2 gap-4 mb-4">
+          <input type="text" id="bus-societe" placeholder="Société" autocomplete="off" class="col-span-2 w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          
+          <input type="text" id="bus-depart" placeholder="Gare départ" autocomplete="off" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          <input type="text" id="bus-arrivee" placeholder="Gare arrivée" autocomplete="off" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          
+          <div class="flex flex-col">
+            <label for="bus-heure-appel" class="text-xs font-medium text-gray-500 dark:text-gray-400">Heure d'appel</label>
+            <input type="time" id="bus-heure-appel" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          </div>
+          <input type="text" id="bus-motif" placeholder="Motif" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          <button type="submit" class="col-span-2 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Ajouter Bus</button>
+        </form>
+        <div id="list-bus" class="space-y-2 max-h-60 overflow-y-auto"></div>
+      </div>
+      
+      <div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">Taxis Commandés</h3>
+        <form id="form-taxi" class="grid grid-cols-2 gap-4 mb-4">
+          <input type="text" id="taxi-societe" placeholder="Société" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          <div class="flex items-center gap-2 px-1 self-end mb-2">
+            <input type="checkbox" id="taxi-pmr" class="rounded text-blue-600 shadow-sm focus:ring-blue-500">
+            <label for="taxi-pmr" class="text-sm font-medium text-gray-700 dark:text-gray-300">PMR</label>
+          </div>
+          <input type="text" id="taxi-depart"  placeholder="Gare départ" autocomplete="off" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          <input type="text" id="taxi-arrivee"  placeholder="Gare arrivée" autocomplete="off" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          <div class="flex flex-col">
+            <label for="taxi-heure-appel" class="text-xs font-medium text-gray-500 dark:text-gray-400">Heure d'appel</label>
+            <input type="time" id="taxi-heure-appel" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          </div>
+          <input type="text" id="taxi-motif" placeholder="Motif" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          <button type="submit" class="col-span-2 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Ajouter Taxi</button>
+        </form>
+        <div id="list-taxi" class="space-y-2 max-h-60 overflow-y-auto"></div>
+      </div>
+      
+      <div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">Interventions (OPI/SPI)</h3>
+        <form id="form-intervention" class="grid grid-cols-3 gap-4 mb-4">
+          <input type="text" id="int-gare"  placeholder="Gare" required autocomplete="off" class="col-span-2 w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          <select id="int-type" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <option value="OPI">OPI</option>
+            <option value="SPI">SPI</option>
+          </select>
+          <div class="flex flex-col">
+            <label for="int-heure-appel" class="text-xs font-medium text-gray-500 dark:text-gray-400">H. Appel</label>
+            <input type="time" id="int-heure-appel" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          </div>
+          <div class="flex flex-col">
+            <label for="int-heure-arrivee" class="text-xs font-medium text-gray-500 dark:text-gray-400">H. Arrivée</label>
+            <input type="time" id="int-heure-arrivee" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          </div>
+          <div class="flex flex-col">
+            <label for="int-heure-fin" class="text-xs font-medium text-gray-500 dark:text-gray-400">H. Fin</label>
+            <input type="time" id="int-heure-fin" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          </div>
+          <input type="text" id="int-motif" placeholder="Motif" class="col-span-3 w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          <button type="submit" class="col-span-3 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Ajouter Intervention</button>
+        </form>
+        <div id="list-intervention" class="space-y-2 max-h-60 overflow-y-auto"></div>
+      </div>
+
+      <div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">PMR (Imprévues / Short Notice)</h3>
+        <form id="form-pmr" class="grid grid-cols-2 gap-4 mb-4">
+          <select id="pmr-type" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <option value="Imprevue">Imprévue</option>
+            <option value="ShortNotice">Short Notice</option>
+          </select>
+          <div class="flex flex-col">
+            <label for="pmr-heure" class="text-xs font-medium text-gray-500 dark:text-gray-400">Heure</label>
+            <input type="time" id="pmr-heure" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          </div>
+          <input type="text" id="pmr-depart"  placeholder="Gare départ" autocomplete="off" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          <input type="text" id="pmr-arrivee"  placeholder="Gare arrivée" autocomplete="off" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          <input type="text" id="pmr-dossier" placeholder="N° dossier" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          <input type="text" id="pmr-remarque" placeholder="Remarque" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          <button type="submit" class="col-span-2 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Ajouter PMR</button>
+        </form>
+        <div id="list-pmr" class="space-y-2 max-h-60 overflow-y-auto"></div>
+      </div>
+      
+    </div>
+  </main>
+</div>
   </div>
   
   <div id="footer-placeholder"></div>
   
-  <datalist id="gares-list">
-    </datalist>
-  <datalist id="bus-societes-list">
-    </datalist>
+ 
   
   <script src="js/pages/b201.js" type="module"></script>
 </body>

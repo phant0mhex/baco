@@ -7,7 +7,7 @@ window.pageInit = () => {
     : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
 
   // --- Références DOM ---
-  const calendarEl = document.getElementById('b201-calendar'); // MODIFIÉ (c'est maintenant un input)
+  const calendarEl = document.getElementById('b201-calendar');
   const shiftTabsContainer = document.getElementById('shift-tabs-container');
   const contentEl = document.getElementById('remise-content');
   const loadingSpinner = document.getElementById('loading-spinner');
@@ -24,17 +24,88 @@ window.pageInit = () => {
   const formIntervention = document.getElementById('form-intervention');
   const formPmr = document.getElementById('form-pmr');
   
+  // --- État de l'application ---
   let selectedDate = new Date();
   let selectedShift = 'matin';
   let currentRemiseId = null;
   let saveTimer = null;
   let currentUserId = null;
+  
+  // --- NOUVEAU : Caches pour l'autocomplétion ---
+  let garesCache = [];
+  let societesCache = [];
 
-  // --- Fonctions de chargement des listes (Datalists) ---
+  // ==========================================================
+  // == GESTION DE L'AUTOCOMPLÉTION STYLISÉE
+  // ==========================================================
+  
+  /**
+   * Crée un popup d'autocomplétion stylisé sous un champ <input>
+   * @param {string} inputId - L'ID de l'input à écouter
+   * @param {Array<string>} dataCache - L'array de strings pour les suggestions
+   */
+  function setupAutocomplete(inputId, dataCache) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+
+    // 1. Créer le popup de suggestions
+    const suggestionsList = document.createElement('div');
+    suggestionsList.className = 'autocomplete-suggestions hidden absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-y-auto';
+    
+    // 2. Envelopper l'input dans un conteneur 'relative'
+    const wrapper = document.createElement('div');
+    wrapper.className = 'relative autocomplete-container';
+    input.parentNode.insertBefore(wrapper, input);
+    wrapper.appendChild(input);
+    wrapper.appendChild(suggestionsList);
+
+    // 3. Écouter la saisie
+    input.addEventListener('input', () => {
+      const query = input.value.toLowerCase();
+      if (query.length === 0) {
+        suggestionsList.classList.add('hidden');
+        return;
+      }
+      
+      const filteredData = dataCache.filter(item => 
+        item.toLowerCase().includes(query)
+      );
+      
+      if (filteredData.length === 0) {
+        suggestionsList.classList.add('hidden');
+        return;
+      }
+      
+      // 4. Afficher les suggestions (stylisées Tailwind)
+      suggestionsList.innerHTML = filteredData.map(item => `
+        <div class_name="suggestion-item p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-800 dark:text-gray-200" data-value="${item}">
+          ${item}
+        </div>
+      `).join('');
+      suggestionsList.classList.remove('hidden');
+    });
+    
+    // 5. Gérer le clic sur une suggestion
+    suggestionsList.addEventListener('click', (e) => {
+      if (e.target.classList.contains('suggestion-item')) {
+        input.value = e.target.dataset.value;
+        suggestionsList.classList.add('hidden');
+      }
+    });
+    
+    // 6. Cacher si on clique en dehors
+    document.addEventListener('click', (e) => {
+      if (!wrapper.contains(e.target)) {
+        suggestionsList.classList.add('hidden');
+      }
+    });
+  }
+
+  // ==========================================================
+  // == Fonctions de chargement des données
+  // ==========================================================
   
   async function loadPtCarGares() {
-    const datalist = document.getElementById('gares-list');
-    if (!datalist) return;
     try {
       const { data, error } = await supabaseClient
         .from('ptcar_abbreviations')
@@ -42,27 +113,22 @@ window.pageInit = () => {
         .not('ptcar_fr', 'is', null)
         .order('ptcar_fr', { ascending: true });
       if (error) throw error;
-      const uniqueGares = [...new Set(data.map(item => item.ptcar_fr))];
-      datalist.innerHTML = uniqueGares.map(gare => 
-        `<option value="${gare}"></option>`
-      ).join('');
+      // Remplir le cache au lieu du datalist
+      garesCache = [...new Set(data.map(item => item.ptcar_fr))];
     } catch (error) {
       console.error("Erreur chargement gares (PtCar):", error.message);
     }
   }
   
   async function loadBusSocietes() {
-    const datalist = document.getElementById('bus-societes-list');
-    if (!datalist) return;
     try {
       const { data, error } = await supabaseClient
         .from('societes_bus')
         .select('nom')
         .order('nom', { ascending: true });
       if (error) throw error;
-      datalist.innerHTML = data.map(societe => 
-        `<option value="${societe.nom}"></option>`
-      ).join('');
+      // Remplir le cache au lieu du datalist
+      societesCache = data.map(societe => societe.nom);
     } catch (error) {
       console.error("Erreur chargement sociétés bus:", error.message);
     }
@@ -70,15 +136,13 @@ window.pageInit = () => {
   
   // --- Initialisation ---
 
-  // 1. Initialiser Flatpickr (MODIFIÉ)
+  // 1. Initialiser Flatpickr
   const calendar = flatpickr(calendarEl, {
-    // inline: false, // Plus besoin de 'inline: true'
     defaultDate: selectedDate,
     locale: "fr",
-    dateFormat: "d/m/Y", // Format plus lisible
-    appendTo: document.body, // S'assure qu'il s'affiche au-dessus de tout
+    dateFormat: "d/m/Y",
+    appendTo: document.body, 
     onReady: (selectedDates, dateStr, instance) => {
-      // Appliquer le thème sombre (copié de layout.js)
       instance.calendarContainer.classList.add('font-sans', 'baco-theme');
     },
     onChange: (dates) => {
@@ -87,7 +151,7 @@ window.pageInit = () => {
     }
   });
 
-  // 2. Initialiser les onglets de Shift (inchangé)
+  // 2. Initialiser les onglets de Shift
   shiftTabsContainer.addEventListener('click', (e) => {
     if (e.target.classList.contains('shift-tab')) {
       shiftTabsContainer.querySelectorAll('.shift-tab').forEach(tab => tab.classList.remove('active'));
@@ -97,13 +161,12 @@ window.pageInit = () => {
     }
   });
   
-  // 3. Définir le shift actuel par défaut (inchangé)
+  // 3. Définir le shift actuel par défaut
   const currentHour = new Date().getHours();
-  if (currentHour >= 5 && currentHour < 13) {
-    selectedShift = 'matin';
-  } else if (currentHour >= 13 && currentHour < 21) {
-    selectedShift = 'apres-midi';
-  } else {
+  // ... (logique des shifts inchangée) ...
+  if (currentHour >= 5 && currentHour < 13) { selectedShift = 'matin'; }
+  else if (currentHour >= 13 && currentHour < 21) { selectedShift = 'apres-midi'; }
+  else {
     selectedShift = 'nuit';
     if (currentHour < 5) {
       selectedDate.setDate(selectedDate.getDate() - 1);
@@ -112,15 +175,30 @@ window.pageInit = () => {
   }
   shiftTabsContainer.querySelector(`.shift-tab[data-shift="${selectedShift}"]`).classList.add('active');
   
-  // 4. Récupérer l'ID utilisateur et charger TOUTES les données (inchangé)
+  // 4. Récupérer l'ID utilisateur et charger TOUTES les données (MODIFIÉ)
   (async () => {
       const { data: { user } } = await supabaseClient.auth.getUser();
       if (user) currentUserId = user.id;
-      Promise.all([
-        loadRemiseData(),
+      
+      // 1. Charger les listes de cache
+      await Promise.all([
         loadPtCarGares(),
         loadBusSocietes()
       ]);
+      
+      // 2. MAINTENANT, attacher les listeners d'autocomplétion
+      setupAutocomplete('bus-societe', societesCache);
+      setupAutocomplete('bus-depart', garesCache);
+      setupAutocomplete('bus-arrivee', garesCache);
+      // 'taxi-societe' n'a pas de cache, on le laisse
+      setupAutocomplete('taxi-depart', garesCache);
+      setupAutocomplete('taxi-arrivee', garesCache);
+      setupAutocomplete('int-gare', garesCache);
+      setupAutocomplete('pmr-depart', garesCache);
+      setupAutocomplete('pmr-arrivee', garesCache);
+      
+      // 3. Enfin, charger les données de la remise
+      loadRemiseData();
   })();
 
   // --- Fonctions Principales (inchangées) ---
@@ -213,7 +291,6 @@ window.pageInit = () => {
   });
 
   // --- Gestionnaires de formulaires (inchangés) ---
-
   formBus.addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = {
