@@ -395,12 +395,14 @@ window.pageInit = () => {
             <div class="flex-shrink-0 h-10 w-10">
               <img class="h-10 w-10 rounded-full object-cover" src="${avatarSrc}" alt="">
             </div>
-            <div class="ml-4">
-              <div class="text-sm font-medium text-gray-900">${user.full_name || user.username || 'N/A'}</div>
-              <div class="text-sm text-gray-500">${user.email}</div>
-            </div>
-          </div>
-        </td>
+           <div class="ml-4">
+                  <a href="profil.html?id=${user.user_id}" class="text-sm font-medium text-gray-900 hover:text-blue-600" title="Voir le profil">
+                    ${user.full_name || user.username || 'N/A'}
+                  </a>
+                  <div class="text-sm text-gray-500">${user.email}</div>
+                </div>
+              </div>
+            </td>
         <td class="px-6 py-4 whitespace-nowrap">
           <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${currentRole === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">
             ${currentRole}
