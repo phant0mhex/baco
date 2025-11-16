@@ -94,7 +94,7 @@ async function checkInfractionWarning(userId) {
     const { data, error, count } = await supabaseClient
       .from('infractions')
       .select('id', { count: 'exact' }) // On a juste besoin de compter
-      .eq('user_id', userId)
+      .eq('id', currentUserId)
       .eq('is_active', true)
       .eq('card_type', 'yellow')
       .gt('expires_at', new Date().toISOString()); // 'gt' = greater than
@@ -188,7 +188,7 @@ async function initLayout() {
     setupNavDropdowns();
     loadJournalNotificationCount(); // Charger le badge
     loadNotificationCount(); // <-- NOUVEL APPEL
-    checkInfractionWarning(user.id);
+    checkInfractionWarning(currentUserId);
     updateUserHeartbeat();
 
     setInterval(pollJournalNotifications, 30000); // 30 secondes
