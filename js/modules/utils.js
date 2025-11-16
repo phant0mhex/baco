@@ -72,6 +72,60 @@ export function formatPhoneNumber(phone) {
 }
 
 
+// ==========================================================
+// == NOUVELLE FONCTION CENTRALISÉE : formatDate
+// ==========================================================
+/**
+ * Formate une date selon différents formats prédéfinis.
+ * @param {string} dateString - La date en format ISO (ex: '2025-11-15T10:30:00')
+ * @param {'short' | 'long' | 'admin'} format - Le format désiré.
+ */
+export function formatDate(dateString, format = 'short') {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  
+  let options = {};
+
+  switch (format) {
+    case 'long':
+      // Pour le changelog (ex: 15 novembre 2025)
+      options = { day: '2-digit', month: 'long', year: 'numeric' };
+      break;
+    case 'admin':
+      // Pour l'audit (ex: 15 nov. 2025, 10:30)
+      options = { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+      break;
+    case 'short':
+    default:
+      // Pour le journal (ex: 15 nov., 10:30)
+      options = { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' };
+  }
+
+  return date.toLocaleDateString('fr-FR', options).replace('.', '');
+}
+
+// ==========================================================
+// == NOUVELLE FONCTION CENTRALISÉE : highlightText
+// ==========================================================
+/**
+ * Surligne un terme de recherche dans un texte.
+ * @param {string} text - Le texte dans lequel chercher.
+ * @param {string} term - Le terme à surligner.
+ */
+export function highlightText(text, term) {
+  if (!term || !text) return text;
+  try {
+    // Échapper les caractères spéciaux pour la regex
+    const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escapedTerm})`, 'gi');
+    return text.replace(regex, '<mark class="bg-yellow-200 rounded px-0.5">$1</mark>');
+  } catch (e) {
+    // En cas d'erreur regex (ex: terme de recherche invalide), retourner le texte original
+    return text;
+  }
+}
+
+
 /**
  * Charge la dernière entrée du changelog dans le footer
  */

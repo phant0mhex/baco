@@ -173,14 +173,6 @@
             minHeight: "150px"
       });
       
-      function formatLogDate(dateString) {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('fr-FR', {
-          day: '2-digit',
-          month: 'long',
-          year: 'numeric'
-        });
-      }
       
       function getTypeBadge(type) {
         switch (type) {
@@ -248,7 +240,7 @@
 
           feed.innerHTML = data.map(entry => {
             const author = entry.profiles;
-            const timestamp = formatLogDate(entry.created_at);
+            const timestamp = window.formatDate(entry.created_at, 'long')
             const badgeClasses = getTypeBadge(entry.type);
             
             const authorName = author ? author.full_name : 'Utilisateur';

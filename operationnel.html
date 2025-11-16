@@ -213,22 +213,7 @@
         notyf.error("Erreur: L'éditeur de texte n'a pas pu charger.");
       }
 
-      /**
-       * Surligne le terme de recherche dans un texte
-       */
-      function highlightText(text, term) {
-        if (!term || !text) {
-          return text;
-        }
-        try {
-          const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const regex = new RegExp(`(${escapedTerm})`, 'gi');
-          return text.replace(regex, '<mark class="bg-yellow-200 rounded px-0.5">$1</mark>');
-        } catch (e) {
-          console.error("Erreur de surlignage:", e);
-          return text;
-        }
-      }
+     
 
       /**
        * Formate la date de traçabilité
@@ -335,8 +320,8 @@
             const entryJson = JSON.stringify(entry).replace(/"/g, "&quot;");
             const contentHtml = window.marked.parse(entry.contenu || '');
             
-            const displayTitle = highlightText(entry.titre, searchTerm);
-            const displayCategory = highlightText(entry.categorie, searchTerm);
+            const displayTitle = window.highlightText(entry.titre, searchTerm);
+            const displayCategory = window.highlightText(entry.categorie, searchTerm);
             
             // ======================= NOUVEL AJOUT : Logique de traçabilité =======================
             let traceabilityHtml = '';

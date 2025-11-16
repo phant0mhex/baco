@@ -343,18 +343,8 @@ window.toggleGroup = (contentId, headerElement) => {
         updateDisplay();
       }
 
-      /**
-       * Surligne le terme de recherche
-       */
-      function highlightText(text, term) {
-        if (!term || !text) return text;
-        try {
-          const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const regex = new RegExp(`(${escapedTerm})`, 'gi');
-          return text.replace(regex, '<mark class="bg-yellow-200 rounded px-0.5">$1</mark>');
-        } catch (e) { return text; }
-      }
-
+     
+ 
 
       // NOUVEAU: Mettre à jour les boutons de vue
     updateViewToggleUI();
@@ -459,7 +449,7 @@ window.toggleGroup = (contentId, headerElement) => {
       outputHTML = '<div class="space-y-6">'; // Un simple conteneur
       
       for (const col of sortedKeys) {
-        const colName = highlightText(col, searchTerm);
+        const colName = window.highlightText(col, searchTerm);
         
         // Conteneur de groupe
         outputHTML += `<div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">`;
@@ -471,17 +461,17 @@ window.toggleGroup = (contentId, headerElement) => {
         outputHTML += columns[col].map(p => {
           // --- Rendu en LIGNE (style DaisyUI) ---
           const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
-          const displayName = highlightText(p.nom, searchTerm);
+          const displayName = window.highlightText(p.nom, searchTerm);
 
 // --- MODIFIÉ ICI ---
             const rawPhoneList = p.tel;
             const cleanedPhoneList = window.cleanPhoneNumber(rawPhoneList);
             const formattedPhoneList = p.tel ? window.formatPhoneNumber(cleanedPhoneList) : '(manquant)';
-            const displayTelList = highlightText(formattedPhoneList, searchTerm);
+            const displayTelList = window.highlightText(formattedPhoneList, searchTerm);
             // --- FIN MODIFICATION ---
          
 
-          const displayEmail = p.email ? highlightText(p.email, searchTerm) : '';
+          const displayEmail = p.email ? window.highlightText(p.email, searchTerm) : '';
          
           
           
@@ -535,7 +525,7 @@ ${p.tel ? `<a href="etrali:${cleanedPhoneList}" class="flex items-center gap-2 t
       
       for (const col of sortedKeys) {
         const groupId = `group-content-${col.replace(/[^a-zA-Z0-9]/g, '-')}`;
-        const colName = highlightText(col, searchTerm);
+        const colName = window.highlightText(col, searchTerm);
 
         // 1. LE CONTENEUR (bg-white)
         outputHTML += `<div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">`; 
@@ -564,12 +554,12 @@ ${p.tel ? `<a href="etrali:${cleanedPhoneList}" class="flex items-center gap-2 t
         outputHTML += columns[col].map(p => {
           // ... (Le code de votre carte-contact bg-gray-50 reste ici, inchangé)
           const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
-          const displayName = highlightText(p.nom, searchTerm);
+          const displayName = window.highlightText(p.nom, searchTerm);
 
 const rawPhoneGrid = p.tel;
               const cleanedPhoneGrid = window.cleanPhoneNumber(rawPhoneGrid);
               const formattedPhoneGrid = p.tel ? window.formatPhoneNumber(cleanedPhoneGrid) : '(manquant)';
-              const displayTelGrid = highlightText(formattedPhoneGrid, searchTerm);
+              const displayTelGrid = window.highlightText(formattedPhoneGrid, searchTerm);
 
               const telHtmlFull = (formattedPhoneGrid === '(manquant)' || !p.tel)
                 ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500"><i data-lucide="phone-off" class="w-4 h-4"></i><span>(manquant)</span></span>`

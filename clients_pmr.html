@@ -229,22 +229,7 @@
   const viewPreferenceKey = 'baco-client-view'; // Clé localStorage
   let currentView = localStorage.getItem(viewPreferenceKey) || 'grid'; // 'grid' ou 'list'
 
-      /**
-       * Surligne le terme de recherche dans un texte
-       */
-      function highlightText(text, term) {
-        // ... (votre fonction highlightText existante, inchangée)
-        if (!term || !text) {
-          return text;
-        }
-        try {
-          const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const regex = new RegExp(`(${escapedTerm})`, 'gi');
-          return text.replace(regex, '<mark class="bg-yellow-200 rounded px-0.5">$1</mark>');
-        } catch (e) {
-          return text;
-        }
-      }
+    
       
       /**
        * Formate la date de traçabilité
@@ -279,13 +264,13 @@
 function renderClientRow(client, searchTerm) {
   const clientJson = JSON.stringify(client).replace(/"/g, "&quot;");
 
-  const displayName = highlightText(`${client.prenom || ''} ${client.nom}`, searchTerm);
-  const displayType = highlightText(client.type, searchTerm);
+  const displayName = window.highlightText(`${client.prenom || ''} ${client.nom}`, searchTerm);
+  const displayType = window.highlightText(client.type, searchTerm);
 
 const rawPhone = client.telephone;
   const cleanedPhone = window.cleanPhoneNumber(rawPhone);
   const formattedPhone = client.telephone ? window.formatPhoneNumber(cleanedPhone) : null;
-  const displayTel = highlightText(formattedPhone, searchTerm);
+  const displayTel = window.highlightText(formattedPhone, searchTerm);
 
 
   // Classes pour le type
@@ -468,13 +453,13 @@ function setView(view) {
 
         const hasRemarques = client.remarques && client.remarques.trim() !== '';
         
-        const displayName = highlightText(`${client.prenom || ''} ${client.nom}`, searchTerm);
-        const displayType = highlightText(client.type, searchTerm);
+        const displayName = window.highlightText(`${client.prenom || ''} ${client.nom}`, searchTerm);
+        const displayType = window.highlightText(client.type, searchTerm);
 
         const rawPhoneCard = client.telephone;
   const cleanedPhoneCard = window.cleanPhoneNumber(rawPhoneCard);
   const formattedPhoneCard = client.telephone ? window.formatPhoneNumber(cleanedPhoneCard) : null;
-  const displayTelCard = highlightText(formattedPhoneCard, searchTerm);
+  const displayTelCard = window.highlightText(formattedPhoneCard, searchTerm);
         
         let traceabilityHtml = '';
         if (client.updated_at && client.profiles) {

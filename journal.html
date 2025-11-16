@@ -225,16 +225,7 @@
         }
       }
 
-      // ... (La fonction formatLogDate reste inchangée) ...
-      function formatLogDate(dateString) {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('fr-FR', {
-          day: '2-digit',
-          month: 'short',
-          hour: '2-digit',
-          minute: '2-digit'
-        }).replace('.', '');
-      }
+   
 
       /**
        * Charge le fil des messages
@@ -275,7 +266,7 @@
           
           logFeed.innerHTML = data.map(entry => {
             const author = entry.profiles; 
-            const timestamp = formatLogDate(entry.created_at);
+            const timestamp = window.formatDate(entry.created_at, 'short')
             const authorName = author ? author.full_name : 'Utilisateur supprimé';
             const authorAvatar = author ? author.avatar_url : 'https://api.dicebear.com/9.x/micah/svg?seed=deleted';
             const canDelete = adminRole || (currentUserId && currentUserId === entry.user_id);

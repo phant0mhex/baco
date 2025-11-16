@@ -9,7 +9,8 @@ import {
 import { initGlobalSearch } from '../modules/search.js';
 import { loadJournalNotificationCount, loadNotificationCount } from '../modules/notifications.js';
 import { setupThemeToggle } from '../modules/theme.js';
-import { loadComponent, loadLatestChangelog, injectCalendarStyles, setupGoToTop, cleanPhoneNumber, formatPhoneNumber } from '../modules/utils.js';
+import { loadComponent, loadLatestChangelog, injectCalendarStyles, setupGoToTop, cleanPhoneNumber, formatPhoneNumber, formatDate, 
+  highlightText  } from '../modules/utils.js';
 
 // --- EXPORTS GLOBAUX ---
 // (Ces exports sont utilisés par les autres modules)
@@ -33,6 +34,8 @@ export let currentUserId = null;
 // NOUVEL AJOUT: Rendre la fonction de nettoyage et formatage globale
 window.cleanPhoneNumber = cleanPhoneNumber;
 window.formatPhoneNumber = formatPhoneNumber;
+window.formatDate = formatDate;          // <-- AJOUTER
+window.highlightText = highlightText;    // <-- AJOUTER
 // -------------------------
 
 /**
