@@ -1,0 +1,12 @@
+{
+  "name": "baco-project",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
+    "next": "^16.0.3"
+  }
+}

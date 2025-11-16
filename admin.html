@@ -387,14 +387,6 @@ infractionForm.addEventListener('submit', async (e) => {
 });
 
 
-      // --- GARDE DE SÉCURITÉ ---
-      const userRole = sessionStorage.getItem('userRole');
-      if (userRole !== 'admin') {
-        alert("Accès refusé. Vous devez être administrateur pour voir cette page.");
-        window.location.replace('accueil.html');
-        return; 
-      }
-      // --------------------------
 
       const notyf = (typeof Notyf !== 'undefined') 
         ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })

@@ -109,15 +109,7 @@
   <div id="footer-placeholder"></div>
 
   <script>
-    // --- GARDE DE SÉCURITÉ ---
-    // S'assure que seul un admin peut voir cette page
-    const userRole = sessionStorage.getItem('userRole');
-    if (userRole !== 'admin') {
-      alert("Accès refusé. Vous devez être administrateur pour voir cette page.");
-      // Redirige vers l'accueil plutôt que la page de connexion
-      window.location.replace('accueil.html');
-    }
-    // --------------------------
+   
   
     window.pageInit = () => {
     
