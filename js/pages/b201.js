@@ -7,7 +7,7 @@ window.pageInit = () => {
     : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
 
   // --- Références DOM ---
-  const calendarEl = document.getElementById('b201-calendar');
+  const calendarEl = document.getElementById('b201-calendar-container');
   const shiftTabsContainer = document.getElementById('shift-tabs-container');
   const contentEl = document.getElementById('remise-content');
   const loadingSpinner = document.getElementById('loading-spinner');
