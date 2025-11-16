@@ -539,4 +539,4 @@ window.pageInit = () => {
     }
   }
 
-}; // Fin de window.pageInit
+}; 
