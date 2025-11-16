@@ -108,9 +108,12 @@
 <!-- <button id="theme-toggle-button" title="Changer le thème" class="p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 relative hidden md:block">
             <i id="theme-toggle-icon" data-lucide="sun" class="w-5 h-5"></i>
         </button> -->
-        <button id="calendar-toggle-button" title="Calendrier" class="p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 relative hidden md:block">
+       <div class="relative hidden md:block">
+          <button id="nav-calendar-trigger" title="Calendrier" class="p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700">
             <i data-lucide="calendar-days" class="w-5 h-5"></i>
-        </button>
+          </button>
+          <input type="text" id="nav-calendar-input" class="absolute w-0 h-0 top-0 left-0 opacity-0 pointer-events-none">
+        </div>
         <!-- <div class="relative hidden md:block" id="presence-container">
           <button id="presence-toggle-button" class="p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 relative">
               <i data-lucide="users" class="w-5 h-5"></i>

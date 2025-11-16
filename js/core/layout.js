@@ -42,9 +42,13 @@ window.highlightText = highlightText;    // <-- AJOUTER
  * Initialise le calendrier Flatpickr sur le bouton de la nav
  */
 function initNavCalendar() {
-  const calendarButton = document.getElementById('calendar-toggle-button');
-  if (calendarButton && typeof flatpickr !== 'undefined' && flatpickr.l10ns.fr) {
-    flatpickr(calendarButton, {
+  const calendarButton = document.getElementById('nav-calendar-trigger'); // Cible le nouveau bouton
+  const calendarInput = document.getElementById('nav-calendar-input'); // Cible le nouvel input caché
+
+  if (calendarButton && calendarInput && typeof flatpickr !== 'undefined' && flatpickr.l10ns.fr) {
+    
+    // 1. Initialiser flatpickr sur l'input caché
+    const calendarInstance = flatpickr(calendarInput, {
       weekNumbers: true,
       locale: "fr",
       position: 'auto right',
@@ -53,9 +57,14 @@ function initNavCalendar() {
         instance.calendarContainer.classList.add('font-sans', 'baco-theme');
       }
     });
+
+    // 2. Utiliser le bouton (icône) pour ouvrir le calendrier
+    calendarButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      calendarInstance.open();
+    });
   }
 }
-
 
 
 /**
