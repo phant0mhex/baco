@@ -46,10 +46,8 @@
     .shift-tab:not(.active):hover {
       background-color: #E5E7EB; /* bg-gray-200 */
     }
-    /* Style pour les input avec datalist */
-    .form-input {
-      @apply w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500;
-    }
+    
+    
   </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -93,72 +91,78 @@
             </div>
           </div>
           
-          <div class="bg-white p-4 rounded-lg shadow border">
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">Bus Commandés</h3>
-            <form id="form-bus" class="grid grid-cols-2 gap-4 mb-4">
-              <input type="text" id="bus-societe" list="bus-societes-list" placeholder="Société" class="form-input col-span-2">
-              <input type="text" id="bus-depart" list="gares-list" placeholder="Gare départ" class="form-input">
-              <input type="text" id="bus-arrivee" list="gares-list" placeholder="Gare arrivée" class="form-input">
-              
-              <input type="time" id="bus-heure-appel" class="form-input">
-              <input type="text" id="bus-motif" placeholder="Motif" class="form-input col-span-2">
-              <button type="submit" class="col-span-2 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Ajouter Bus</button>
-            </form>
-            <div id="list-bus" class="space-y-2 max-h-60 overflow-y-auto"></div>
-          </div>
-          
-          <div class="bg-white p-4 rounded-lg shadow border">
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">Taxis Commandés</h3>
-            <form id="form-taxi" class="grid grid-cols-2 gap-4 mb-4">
-              <input type="text" id="taxi-societe" placeholder="Société" class="form-input">
-              <div class="flex items-center gap-2">
-                <input type="checkbox" id="taxi-pmr" class="rounded text-blue-600 shadow-sm">
-                <label for="taxi-pmr">PMR</label>
-              </div>
-              <input type="text" id="taxi-depart" list="gares-list" placeholder="Gare départ" class="form-input">
-              <input type="text" id="taxi-arrivee" list="gares-list" placeholder="Gare arrivée" class="form-input">
-              
-              <input type="time" id="taxi-heure-appel" class="form-input">
-              <input type="text" id="taxi-motif" placeholder="Motif" class="form-input col-span-2">
-              <button type="submit" class="col-span-2 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Ajouter Taxi</button>
-            </form>
-            <div id="list-taxi" class="space-y-2 max-h-60 overflow-y-auto"></div>
-          </div>
-          
-          <div class="bg-white p-4 rounded-lg shadow border">
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">Interventions (OPI/SPI)</h3>
-            <form id="form-intervention" class="grid grid-cols-3 gap-4 mb-4">
-              <input type="text" id="int-gare" list="gares-list" placeholder="Gare" required class="form-input col-span-2">
-              <select id="int-type" class="form-input">
-                <option value="OPI">OPI</option>
-                <option value="SPI">SPI</option>
-              </select>
-              <input type="time" id="int-heure-appel" class="form-input">
-              <input type="time" id="int-heure-arrivee" class="form-input">
-              <input type="time" id="int-heure-fin" class="form-input">
-              <input type="text" id="int-motif" placeholder="Motif" class="form-input col-span-3">
-              <button type="submit" class="col-span-3 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Ajouter Intervention</button>
-            </form>
-            <div id="list-intervention" class="space-y-2 max-h-60 overflow-y-auto"></div>
-          </div>
+         <div class="bg-white p-4 rounded-lg shadow border">
+  <h3 class="text-xl font-semibold text-gray-800 mb-4">Bus Commandés</h3>
+  <form id="form-bus" class="grid grid-cols-2 gap-4 mb-4">
+    <input type="text" id="bus-societe" list="bus-societes-list" placeholder="Société" class="col-span-2 w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    <input type="text" id="bus-depart" list="gares-list" placeholder="Gare départ" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    <input type="text" id="bus-arrivee" list="gares-list" placeholder="Gare arrivée" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    <input type="time" id="bus-heure-appel" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    <input type="text" id="bus-motif" placeholder="Motif" class="col-span-2 w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    <button type="submit" class="col-span-2 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Ajouter Bus</button>
+  </form>
+  <div id="list-bus" class="space-y-2 max-h-60 overflow-y-auto"></div>
+</div>
 
-          <div class="bg-white p-4 rounded-lg shadow border">
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">PMR (Imprévues / Short Notice)</h3>
-            <form id="form-pmr" class="grid grid-cols-2 gap-4 mb-4">
-              <select id="pmr-type" class="form-input">
-                <option value="Imprevue">Imprévue</option>
-                <option value="ShortNotice">Short Notice</option>
-              </select>
-              <input type="time" id="pmr-heure" class="form-input">
-              <input type="text" id="pmr-depart" list="gares-list" placeholder="Gare départ" class="form-input">
-              <input type="text" id="pmr-arrivee" list="gares-list" placeholder="Gare arrivée" class="form-input">
-              
-              <input type="text" id="pmr-dossier" placeholder="N° dossier" class="form-input">
-              <input type="text" id="pmr-remarque" placeholder="Remarque" class="form-input">
-              <button type="submit" class="col-span-2 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Ajouter PMR</button>
-            </form>
-            <div id="list-pmr" class="space-y-2 max-h-60 overflow-y-auto"></div>
-          </div>
+<div class="bg-white p-4 rounded-lg shadow border">
+  <h3 class="text-xl font-semibold text-gray-800 mb-4">Taxis Commandés</h3>
+  <form id="form-taxi" class="grid grid-cols-2 gap-4 mb-4">
+    <input type="text" id="taxi-societe" placeholder="Société" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    <div class="flex items-center gap-2 px-1">
+      <input type="checkbox" id="taxi-pmr" class="rounded text-blue-600 shadow-sm focus:ring-blue-500">
+      <label for="taxi-pmr" class="text-sm font-medium text-gray-700">PMR</label>
+    </div>
+    <input type="text" id="taxi-depart" list="gares-list" placeholder="Gare départ" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    <input type="text" id="taxi-arrivee" list="gares-list" placeholder="Gare arrivée" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    <input type="time" id="taxi-heure-appel" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    <input type="text" id="taxi-motif" placeholder="Motif" class="col-span-2 w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    <button type="submit" class="col-span-2 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Ajouter Taxi</button>
+  </form>
+  <div id="list-taxi" class="space-y-2 max-h-60 overflow-y-auto"></div>
+</div>
+
+<div class="bg-white p-4 rounded-lg shadow border">
+  <h3 class="text-xl font-semibold text-gray-800 mb-4">Interventions (OPI/SPI)</h3>
+  <form id="form-intervention" class="grid grid-cols-2 gap-4 mb-4">
+    <input type="text" id="int-gare" list="gares-list" placeholder="Gare" required class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    <select id="int-type" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+      <option value="OPI">OPI</option>
+      <option value="SPI">SPI</option>
+    </select>
+    <div class="flex flex-col">
+      <label for="int-heure-appel" class="text-xs font-medium text-gray-500">H. Appel</label>
+      <input type="time" id="int-heure-appel" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    </div>
+    <div class="flex flex-col">
+      <label for="int-heure-arrivee" class="text-xs font-medium text-gray-500">H. Arrivée</label>
+      <input type="time" id="int-heure-arrivee" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    </div>
+    <div class="flex flex-col col-span-2">
+      <label for="int-heure-fin" class="text-xs font-medium text-gray-500">H. Fin</label>
+      <input type="time" id="int-heure-fin" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    </div>
+    <input type="text" id="int-motif" placeholder="Motif" class="col-span-2 w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    <button type="submit" class="col-span-2 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Ajouter Intervention</button>
+  </form>
+  <div id="list-intervention" class="space-y-2 max-h-60 overflow-y-auto"></div>
+</div>
+
+<div class="bg-white p-4 rounded-lg shadow border">
+  <h3 class="text-xl font-semibold text-gray-800 mb-4">PMR (Imprévues / Short Notice)</h3>
+  <form id="form-pmr" class="grid grid-cols-2 gap-4 mb-4">
+    <select id="pmr-type" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+      <option value="Imprevue">Imprévue</option>
+      <option value="ShortNotice">Short Notice</option>
+    </select>
+    <input type="time" id="pmr-heure" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    <input type="text" id="pmr-depart" list="gares-list" placeholder="Gare départ" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    <input type="text" id="pmr-arrivee" list="gares-list" placeholder="Gare arrivée" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    <input type="text" id="pmr-dossier" placeholder="N° dossier" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    <input type="text" id="pmr-remarque" placeholder="Remarque" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    <button type="submit" class="col-span-2 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Ajouter PMR</button>
+  </form>
+  <div id="list-pmr" class="space-y-2 max-h-60 overflow-y-auto"></div>
+</div>
           
         </div>
       </main>
