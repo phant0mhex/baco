@@ -6,7 +6,7 @@ window.pageInit = () => {
     ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
     : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
 
-  // --- Références DOM (Complétées) ---
+  // --- Références DOM ---
   const calendarEl = document.getElementById('b201-calendar');
   const shiftTabsContainer = document.getElementById('shift-tabs-container');
   const contentEl = document.getElementById('remise-content');
@@ -14,13 +14,11 @@ window.pageInit = () => {
   const messageGeneralEl = document.getElementById('message-general');
   const saveStatusEl = document.getElementById('save-status');
   
-  // DOM Listes (Complétées)
   const listBus = document.getElementById('list-bus');
   const listTaxi = document.getElementById('list-taxi');
   const listIntervention = document.getElementById('list-intervention');
   const listPmr = document.getElementById('list-pmr');
 
-  // DOM Formulaires (Complétés)
   const formBus = document.getElementById('form-bus');
   const formTaxi = document.getElementById('form-taxi');
   const formIntervention = document.getElementById('form-intervention');
@@ -32,6 +30,68 @@ window.pageInit = () => {
   let currentRemiseId = null;
   let saveTimer = null;
   let currentUserId = null;
+
+  // ==========================================================
+  // == NOUVELLES FONCTIONS DE CHARGEMENT DES DONNÉES
+  // ==========================================================
+  
+  /**
+   * Charge la liste de toutes les gares depuis ptcar_abbreviations
+   * et les insère dans la <datalist id="gares-list">
+   */
+  async function loadPtCarGares() {
+    const datalist = document.getElementById('gares-list');
+    if (!datalist) return;
+    
+    try {
+      const { data, error } = await supabaseClient
+        .from('ptcar_abbreviations')
+        .select('ptcar_fr')
+        .not('ptcar_fr', 'is', null) // Ne pas prendre les gares sans nom
+        .order('ptcar_fr', { ascending: true });
+        
+      if (error) throw error;
+      
+      // Utiliser un Set pour garantir l'unicité
+      const uniqueGares = [...new Set(data.map(item => item.ptcar_fr))];
+      
+      datalist.innerHTML = uniqueGares.map(gare => 
+        `<option value="${gare}"></option>`
+      ).join('');
+      
+    } catch (error) {
+      console.error("Erreur chargement gares (PtCar):", error.message);
+    }
+  }
+  
+  /**
+   * Charge la liste des sociétés de bus depuis societes_bus
+   * et les insère dans la <datalist id="bus-societes-list">
+   */
+  async function loadBusSocietes() {
+    const datalist = document.getElementById('bus-societes-list');
+    if (!datalist) return;
+    
+    try {
+      const { data, error } = await supabaseClient
+        .from('societes_bus')
+        .select('nom')
+        .order('nom', { ascending: true });
+        
+      if (error) throw error;
+      
+      datalist.innerHTML = data.map(societe => 
+        `<option value="${societe.nom}"></option>`
+      ).join('');
+      
+    } catch (error) {
+      console.error("Erreur chargement sociétés bus:", error.message);
+    }
+  }
+  
+  // ==========================================================
+  // == FIN DES NOUVELLES FONCTIONS
+  // ==========================================================
 
   // --- Initialisation ---
 
@@ -71,32 +131,34 @@ window.pageInit = () => {
   }
   shiftTabsContainer.querySelector(`.shift-tab[data-shift="${selectedShift}"]`).classList.add('active');
   
-  // 4. Récupérer l'ID utilisateur et charger les données
+  // 4. Récupérer l'ID utilisateur et charger TOUTES les données
   (async () => {
       const { data: { user } } = await supabaseClient.auth.getUser();
       if (user) currentUserId = user.id;
-      loadRemiseData();
+      
+      // --- APPELS MODIFIÉS ---
+      // Lancer tout en parallèle pour un chargement plus rapide
+      Promise.all([
+        loadRemiseData(),       // Charger les données de la remise
+        loadPtCarGares(),       // Charger la liste des gares
+        loadBusSocietes()       // Charger la liste des sociétés de bus
+      ]);
+      // --- FIN MODIFICATION ---
   })();
 
   // --- Fonctions Principales ---
 
-  /**
-   * Charge toutes les données pour la date et le shift sélectionnés.
-   */
   async function loadRemiseData() {
     contentEl.classList.add('hidden');
     loadingSpinner.classList.remove('hidden');
     saveStatusEl.textContent = '';
-    
     const dateString = selectedDate.toISOString().split('T')[0];
 
     try {
-      // 1. Essayer de trouver la remise
       let { data: remise, error } = await supabaseClient
         .from('remises')
         .select(`
-          id,
-          message_general,
+          id, message_general,
           remise_bus(*, profiles(full_name)),
           remise_taxi(*, profiles(full_name)),
           remise_intervention(*, profiles(full_name)),
@@ -106,11 +168,8 @@ window.pageInit = () => {
         .eq('shift', selectedShift)
         .single();
         
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
+      if (error && error.code !== 'PGRST116') throw error;
       
-      // 2. Si elle n'existe pas, la créer
       if (!remise) {
         notyf.success(`Création d'une nouvelle remise pour ${selectedShift}...`);
         const { data: newRemise, error: createError } = await supabaseClient
@@ -118,16 +177,13 @@ window.pageInit = () => {
           .insert({ date: dateString, shift: selectedShift, user_id: currentUserId })
           .select('id, message_general')
           .single();
-          
         if (createError) throw createError;
         remise = { ...newRemise, remise_bus: [], remise_taxi: [], remise_intervention: [], remise_pmr: [] };
       }
       
-      // 3. Remplir l'UI
       currentRemiseId = remise.id;
       messageGeneralEl.value = remise.message_general || '';
       
-      // 4. Remplir les listes (Complété)
       renderList(listBus, remise.remise_bus.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)), 'bus');
       renderList(listTaxi, remise.remise_taxi.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)), 'taxi');
       renderList(listIntervention, remise.remise_intervention.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)), 'intervention');
@@ -141,9 +197,6 @@ window.pageInit = () => {
     }
   }
 
-  /**
-   * Fonction générique pour afficher une liste d'événements (Complétée)
-   */
   function renderList(listElement, items, type) {
     if (!items || items.length === 0) {
       listElement.innerHTML = `<p class="text-sm text-gray-400 text-center">Aucune entrée.</p>`;
@@ -153,7 +206,6 @@ window.pageInit = () => {
       let summary = '';
       const author = item.profiles ? item.profiles.full_name.split(' ')[0] : '...';
       
-      // Personnalisation de l'affichage par type
       if (type === 'bus') {
         summary = `<b>${item.societe || 'N/A'}</b>: ${item.gare_depart} ➔ ${item.gare_arrivee} (${item.heure_appel || 'N/A'}) - <i>${item.motif || '...'}</i>`;
       } else if (type === 'taxi') {
@@ -167,7 +219,7 @@ window.pageInit = () => {
       return `
         <div class="p-2 bg-gray-50 border rounded-md flex justify-between items-center text-sm">
           <div class="flex-1 min-w-0">
-            <p class="truncate">${summary}</p>
+            <p class="truncate" title="${summary.replace(/<[^>]*>?/gm, '')}">${summary}</p>
             <p class="text-xs text-gray-500">Ajouté par ${author}</p>
           </div>
           <button onclick="window.deleteRemiseItem('${type}', '${item.id}')" class="flex-shrink-0 ml-2 p-1 text-red-500 hover:bg-red-100 rounded-full">
@@ -179,9 +231,6 @@ window.pageInit = () => {
     lucide.createIcons();
   }
 
-  /**
-   * Gère la sauvegarde "debounce" du message général
-   */
   messageGeneralEl.addEventListener('input', () => {
     saveStatusEl.textContent = 'Saisie...';
     clearTimeout(saveTimer);
@@ -191,7 +240,6 @@ window.pageInit = () => {
         .from('remises')
         .update({ message_general: messageGeneralEl.value, updated_at: new Date(), user_id: currentUserId })
         .eq('id', currentRemiseId);
-        
       if (error) {
         saveStatusEl.textContent = 'Erreur sauvegarde.';
         notyf.error(error.message);
@@ -201,7 +249,7 @@ window.pageInit = () => {
     }, 1000);
   });
 
-  // --- Gestionnaires de formulaires (Complétés) ---
+  // --- Gestionnaires de formulaires ---
 
   formBus.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -214,7 +262,6 @@ window.pageInit = () => {
       heure_appel: e.target.elements['bus-heure-appel'].value || null,
       motif: e.target.elements['bus-motif'].value,
     };
-    
     const { error } = await supabaseClient.from('remise_bus').insert(formData);
     if (error) notyf.error(error.message);
     else {
@@ -236,7 +283,6 @@ window.pageInit = () => {
       heure_appel: e.target.elements['taxi-heure-appel'].value || null,
       motif: e.target.elements['taxi-motif'].value,
     };
-    
     const { error } = await supabaseClient.from('remise_taxi').insert(formData);
     if (error) notyf.error(error.message);
     else {
@@ -246,7 +292,6 @@ window.pageInit = () => {
     }
   });
   
-  // NOUVEAU
   formIntervention.addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = {
@@ -259,7 +304,6 @@ window.pageInit = () => {
       motif: e.target.elements['int-motif'].value,
       heure_fin: e.target.elements['int-heure-fin'].value || null,
     };
-    
     const { error } = await supabaseClient.from('remise_intervention').insert(formData);
     if (error) notyf.error(error.message);
     else {
@@ -269,7 +313,6 @@ window.pageInit = () => {
     }
   });
   
-  // NOUVEAU
   formPmr.addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = {
@@ -282,7 +325,6 @@ window.pageInit = () => {
       dossier_id: e.target.elements['pmr-dossier'].value,
       remarque: e.target.elements['pmr-remarque'].value,
     };
-    
     const { error } = await supabaseClient.from('remise_pmr').insert(formData);
     if (error) notyf.error(error.message);
     else {
@@ -292,9 +334,6 @@ window.pageInit = () => {
     }
   });
 
-  /**
-   * Supprime un item d'une liste (Complété)
-   */
   window.deleteRemiseItem = async (type, id) => {
     if (!confirm("Voulez-vous vraiment supprimer cet élément ?")) return;
     
@@ -311,7 +350,7 @@ window.pageInit = () => {
       notyf.error(error.message);
     } else {
       notyf.success("Élément supprimé.");
-      loadRemiseData(); // Recharger
+      loadRemiseData();
     }
   }
 
