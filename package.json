@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "@supabase/auth-helpers-nextjs": "^0.10.0",
-    "next": "^16.0.3"
+    "next": "^14.2.33"
   },
   "description": "",
   "main": "middleware.js",
