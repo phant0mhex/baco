@@ -8,5 +8,19 @@
   "dependencies": {
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "next": "^16.0.3"
-  }
+  },
+  "description": "",
+  "main": "middleware.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/phant0mhex/baco.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/phant0mhex/baco/issues"
+  },
+  "homepage": "https://github.com/phant0mhex/baco#readme"
 }
