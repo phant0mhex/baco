@@ -234,10 +234,10 @@ window.pageInit = () => {
         allProfiles = data;
       }
 
-      // 2. Récupérer les présences pour CE jour et CE shift
       const { data: presences, error: presenceError } = await supabaseClient
         .from('presences')
-        .select('id, user_id, service, check_in_time, check_out_time, profiles(full_name)')
+        // CORRECTION : On dit à Supabase d'utiliser la colonne 'user_id' pour la jointure
+        .select('id, user_id, service, check_in_time, check_out_time, profiles:profiles!user_id(full_name)')
         .eq('date', dateString)
         .eq('shift', shift);
       if (presenceError) throw presenceError;
