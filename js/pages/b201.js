@@ -1,7 +1,8 @@
-// js/pages/remise.js
 
 window.pageInit = () => {
 
+
+    
   const notyf = (typeof Notyf !== 'undefined') 
     ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
     : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
