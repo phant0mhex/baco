@@ -6,12 +6,13 @@ window.pageInit = () => {
     ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
     : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
 
-  // --- Références DOM ---
+  // --- Références DOM (Principales) ---
   const calendarEl = document.getElementById('b201-calendar');
   const shiftTabsContainer = document.getElementById('shift-tabs-container');
   const contentEl = document.getElementById('remise-content');
   const loadingSpinner = document.getElementById('loading-spinner');
   
+  // --- Références DOM (Remise) ---
   const messageGeneralEl = document.getElementById('message-general');
   const saveStatusEl = document.getElementById('save-status');
   const listBus = document.getElementById('list-bus');
@@ -23,14 +24,13 @@ window.pageInit = () => {
   const formIntervention = document.getElementById('form-intervention');
   const formPmr = document.getElementById('form-pmr');
 
-  // --- NOUVEAU: Références DOM (Présence) ---
-  const myPresenceStatus = document.getElementById('my-presence-status');
-  const rccaNuitWarning = document.getElementById('rcca-nuit-warning');
-  const adminPresenceLoading = document.getElementById('admin-presence-loading');
-  const adminPresenceLists = document.getElementById('admin-presence-lists');
-  const adminListPaco = document.getElementById('admin-list-paco');
-  const adminListRcca = document.getElementById('admin-list-rcca');
-  const adminListAbsent = document.getElementById('admin-list-absent');
+  // --- MODIFIÉ: Références DOM (Présence) ---
+  const myPresenceStatus = document.getElementById('my-presence-status'); // (Sidebar)
+  const presentListContainer = document.getElementById('present-list-container'); // (Sidebar)
+  const rccaNuitWarning = document.getElementById('rcca-nuit-warning'); // (Admin)
+  const adminPresenceLoading = document.getElementById('admin-presence-loading'); // (Admin)
+  const adminPresenceLists = document.getElementById('admin-presence-lists'); // (Admin)
+  const adminListAbsent = document.getElementById('admin-list-absent'); // (Admin)
   
   // --- État de l'application ---
   let selectedDate = new Date();
@@ -142,7 +142,6 @@ window.pageInit = () => {
         currentUserRole = user.user_metadata.role || 'user';
       }
       await Promise.all([ loadPtCarGares(), loadBusSocietes(), loadTaxiSocietes() ]);
-      
       setupAutocomplete('bus-societe', societesCache);
       setupAutocomplete('bus-depart', garesCache);
       setupAutocomplete('bus-arrivee', garesCache);
@@ -152,7 +151,6 @@ window.pageInit = () => {
       setupAutocomplete('int-gare', garesCache);
       setupAutocomplete('pmr-depart', garesCache);
       setupAutocomplete('pmr-arrivee', garesCache);
-      
       loadPageData();
   })();
 
@@ -164,19 +162,21 @@ window.pageInit = () => {
     loadingSpinner.classList.remove('hidden');
     
     // Gérer la logique d'affichage de la présence
-    const isAdmin = (currentUserRole === 'admin');
-    if (isAdmin) {
+    myPresenceStatus.innerHTML = '<div class="flex justify-center items-center py-2"><i data-lucide="loader-2" class="w-5 h-5 text-blue-600 animate-spin"></i></div>';
+    presentListContainer.innerHTML = '<p class="text-sm text-gray-400">Chargement...</p>';
+    if (currentUserRole === 'admin') {
       adminPresenceLists.classList.add('hidden');
       adminPresenceLoading.classList.remove('hidden');
     }
+    lucide.createIcons();
 
     Promise.all([
       loadRemiseData(dateString, selectedShift),
-      loadPresenceData(dateString, selectedShift, isAdmin) // Transmet le rôle
+      loadPresenceData(dateString, selectedShift, currentUserRole === 'admin') // Transmet le rôle
     ]).finally(() => {
       loadingSpinner.classList.add('hidden');
       contentEl.classList.remove('hidden');
-      if (isAdmin) {
+      if (currentUserRole === 'admin') {
         adminPresenceLoading.classList.add('hidden');
         adminPresenceLists.classList.remove('hidden');
       }
@@ -213,15 +213,14 @@ window.pageInit = () => {
   }
   
   // ==========================================================
-  // == NOUVELLE LOGIQUE DE PRÉSENCE
+  // == NOUVELLE LOGIQUE DE PRÉSENCE (REFACTORISÉE)
   // ==========================================================
   
   async function loadPresenceData(dateString, shift, isAdmin) {
     
     // Gérer la règle "RCCA Nuit"
     const isRccaNuit = (shift === 'nuit');
-    rccaNuitWarning.style.display = isRccaNuit ? 'block' : 'none';
-
+    
     try {
       // 1. Récupérer TOUS les profils (pour la vue admin)
       let allProfiles = [];
@@ -234,20 +233,23 @@ window.pageInit = () => {
         allProfiles = data;
       }
 
+      // 2. Récupérer les présences pour CE jour et CE shift
       const { data: presences, error: presenceError } = await supabaseClient
         .from('presences')
-        // CORRECTION : On dit à Supabase d'utiliser la colonne 'user_id' pour la jointure
         .select('id, user_id, service, check_in_time, check_out_time, profiles:profiles!user_id(full_name)')
         .eq('date', dateString)
         .eq('shift', shift);
       if (presenceError) throw presenceError;
       
-      // 3. Rendre la liste "Mon Pointage"
+      // 3. Rendre "Mon Pointage" (Sidebar)
       renderMyStatus(presences, isRccaNuit, shift);
       
-      // 4. Rendre les listes Admin (si admin)
+      // 4. Rendre "Personnel Présent" (Sidebar)
+      renderPresentList(presences, isRccaNuit);
+      
+      // 5. Rendre les listes Admin (si admin)
       if (isAdmin) {
-        renderAdminLists(allProfiles, presences, isRccaNuit, shift);
+        renderAdminAbsentList(allProfiles, presences, isRccaNuit, shift);
       }
 
     } catch (error) {
@@ -256,18 +258,24 @@ window.pageInit = () => {
   }
 
   /**
-   * Met à jour le bloc "Mon Pointage"
+   * Met à jour le bloc "Mon Pointage" (Sidebar)
    */
   function renderMyStatus(presences, isRccaNuit, shift) {
     const myPresence = presences.find(p => p.user_id === currentUserId);
     const isPresent = myPresence && !myPresence.check_out_time;
 
     if (isRccaNuit) {
-      myPresenceStatus.innerHTML = `<p class="text-sm text-gray-500 italic">Pointage non requis.</p>`;
-      return;
-    }
-
-    if (isPresent) {
+      myPresenceStatus.innerHTML = `<p class="text-sm text-gray-500 italic">Pointage non requis pour RCCA Nuit.</p>`;
+      // On autorise quand même le pointage PACO
+      if (!isPresent) {
+         myPresenceStatus.innerHTML += `
+            <button onclick="window.handleMyPresenceClick(null, 'checkin', 'PACO')"
+                    class="mt-2 px-3 py-1 text-sm font-medium bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200">
+              Check-in (PACO)
+            </button>
+         `;
+      }
+    } else if (isPresent) {
       myPresenceStatus.innerHTML = `
         <span class="flex items-center gap-2 text-lg font-semibold text-green-600">
           <i data-lucide="check-circle" class="w-5 h-5"></i>
@@ -298,41 +306,51 @@ window.pageInit = () => {
   }
 
   /**
-   * Met à jour les 3 listes de la vue Admin
+   * NOUVEAU: Met à jour le bloc "Personnel Présent" (Sidebar)
    */
-  function renderAdminLists(allProfiles, presences, isRccaNuit, shift) {
-    adminListPaco.innerHTML = '';
-    adminListRcca.innerHTML = '';
+  function renderPresentList(presences, isRccaNuit) {
+    presentListContainer.innerHTML = '';
+    let pacoHtml = '';
+    let rccaHtml = '';
+
+    const present = presences.filter(p => !p.check_out_time);
+
+    present.forEach(p => {
+      const userHtml = `
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+          <span class="text-sm font-medium text-gray-800 dark:text-gray-200">${p.profiles.full_name}</span>
+        </div>`;
+      
+      if (p.service === 'PACO') pacoHtml += userHtml;
+      else if (p.service === 'RCCA') rccaHtml += userHtml;
+    });
+
+    let finalHtml = '';
+    if (pacoHtml) {
+      finalHtml += `<h5 class="text-sm font-semibold text-gray-600 dark:text-gray-400">PACO</h5><div class="space-y-2 mt-1 mb-3">${pacoHtml}</div>`;
+    }
+    if (rccaHtml && !isRccaNuit) {
+      finalHtml += `<h5 class="text-sm font-semibold text-gray-600 dark:text-gray-400">RCCA</h5><div class="space-y-2 mt-1 mb-3">${rccaHtml}</div>`;
+    }
+    if (finalHtml === '') {
+      finalHtml = '<p class="text-sm text-gray-400 dark:text-gray-500">Personne n\'est présent.</p>';
+    }
+    
+    presentListContainer.innerHTML = finalHtml;
+  }
+
+  /**
+   * MODIFIÉ: Met à jour le bloc "Personnel Disponible" (Admin)
+   */
+  function renderAdminAbsentList(allProfiles, presences, isRccaNuit, shift) {
     adminListAbsent.innerHTML = '';
+    rccaNuitWarning.style.display = isRccaNuit ? 'block' : 'none';
     
     const presentUserIds = new Set(presences.map(p => p.user_id));
 
-    // 1. Trier les présences dans les listes PACO / RCCA
-    presences.forEach(p => {
-      if (p.check_out_time) return; // Ne pas afficher les check-out
-      
-      const userHtml = `
-        <div class="flex items-center justify-between text-sm">
-          <span class="font-medium text-gray-800 dark:text-gray-200">${p.profiles.full_name}</span>
-          <button onclick="window.handleAdminPresenceClick('${p.user_id}', '${shift}', 'NONE')"
-                  class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 rounded-full hover:bg-red-200">
-            Check-out
-          </button>
-        </div>
-      `;
-      if (p.service === 'PACO') adminListPaco.innerHTML += userHtml;
-      if (p.service === 'RCCA' && !isRccaNuit) adminListRcca.innerHTML += userHtml;
-    });
-
-    // 2. Trier les absents
     allProfiles.forEach(profile => {
       if (!presentUserIds.has(profile.id)) {
-        // Ne pas afficher RCCA de nuit dans la liste des absents
-        if (isRccaNuit) {
-            // (on pourrait vouloir une logique pour "PACO" uniquement, mais
-            // pour l'instant, si un admin veut les ajouter, il le peut)
-        }
-        
         const absentHtml = `
           <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md">
             <span class="text-sm font-medium text-gray-800 dark:text-gray-200">${profile.full_name}</span>
@@ -351,11 +369,9 @@ window.pageInit = () => {
       }
     });
 
-    // 3. Gérer les états vides
-    if (adminListPaco.innerHTML === '') adminListPaco.innerHTML = '<p class="text-sm text-gray-400">Personne.</p>';
-    if (adminListRcca.innerHTML === '' && !isRccaNuit) adminListRcca.innerHTML = '<p class="text-sm text-gray-400">Personne.</p>';
-    if (adminListAbsent.innerHTML === '') adminListAbsent.innerHTML = '<p class="text-sm text-gray-400">Tout le monde est pointé.</p>';
-    
+    if (adminListAbsent.innerHTML === '') {
+      adminListAbsent.innerHTML = '<p class="text-sm text-gray-400 dark:text-gray-500">Tout le monde est pointé.</p>';
+    }
     lucide.createIcons();
   }
 
@@ -437,7 +453,7 @@ window.pageInit = () => {
     else { notyf.success("PMR ajoutée !"); formPmr.reset(); loadPageData(); }
   });
 
-  // --- Fonctions Globales (pour onclick) ---
+  // --- Fonctions Globales (onclick) ---
   
   window.deleteRemiseItem = async (type, id) => {
     if (!confirm("Voulez-vous vraiment supprimer cet élément ?")) return;
@@ -452,52 +468,38 @@ window.pageInit = () => {
     else { notyf.success("Élément supprimé."); loadPageData(); }
   }
 
-  /**
-   * NOUVEAU: Gère le check-in/out de l'utilisateur actuel
-   */
   window.handleMyPresenceClick = async (presenceId, action, service) => {
     const dateString = selectedDate.toISOString().split('T')[0];
     try {
       if (action === 'checkin') {
-        const { error } = await supabaseClient.rpc('user_check_in', { 
-          p_date: dateString, 
-          p_shift: selectedShift,
-          p_service: service
-        });
+        const { error } = await supabaseClient.rpc('user_check_in', { p_date: dateString, p_shift: selectedShift, p_service: service });
         if (error) throw error;
         notyf.success(`Check-in (service ${service}) réussi !`);
       } else if (action === 'checkout') {
-        const { error } = await supabaseClient.rpc('user_check_out', { 
-          p_presence_id: presenceId
-        });
+        const { error } = await supabaseClient.rpc('user_check_out', { p_presence_id: presenceId });
         if (error) throw error;
         notyf.success('Check-out réussi !');
       }
-      loadPageData(); // Recharger tout
+      loadPageData();
     } catch (error) {
       notyf.error("Erreur de pointage: " + error.message);
     }
   }
   
- /**
-   * NOUVEAU: Gère le check-in/out par un admin (CORRIGÉ)
-   */
   window.handleAdminPresenceClick = async (userId, shift, service) => {
     const dateString = selectedDate.toISOString().split('T')[0];
     const actionText = service === 'NONE' ? 'Check-out' : `Check-in (${service})`;
     if (!confirm(`Confirmer ${actionText} pour cet utilisateur ?`)) return;
-
     try {
       const { error } = await supabaseClient.rpc('admin_set_presence', {
         p_user_id: userId,
         p_date: dateString,
         p_shift: shift,
         p_service: service
-        // L'argument p_admin_id a été supprimé
       });
       if (error) throw error;
       notyf.success('Statut de présence mis à jour.');
-      loadPageData(); // Recharger tout
+      loadPageData();
     } catch (error) {
        notyf.error("Erreur admin: " + error.message);
     }

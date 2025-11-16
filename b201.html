@@ -67,8 +67,7 @@
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Journal de bord par prestation.</p>
       </div>
     </header>
-
-   <div class="container mx-auto p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+<div class="container mx-auto p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
       
   <aside class="lg:col-span-1 space-y-6">
     <div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
@@ -89,147 +88,74 @@
         <button class="shift-tab" data-shift="nuit">Nuit</button>
       </div>
     </div>
+
+    <div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700 space-y-4">
+      <div>
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">Mon Pointage</h3>
+        <div id="my-presence-status" class="flex items-center gap-4">
+          <div class="flex justify-center items-center py-2">
+            <i data-lucide="loader-2" class="w-5 h-5 text-blue-600 animate-spin"></i>
+          </div>
+        </div>
+      </div>
+      
+      <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">Personnel Présent</h3>
+        <div id="present-list-container" class="space-y-3">
+          </div>
+      </div>
+    </div>
+
   </aside>
   
   <main class="lg:col-span-2 space-y-6">
+    
+    <div class="admin-only bg-white dark:bg-gray-900 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+      
+      <div id="admin-presence-loading" class="hidden flex justify-center py-10">
+        <i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i>
+      </div>
+      
+      <details id="admin-presence-lists" class="group">
+        <summary class="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg">
+          <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100">
+            Personnel Disponible (Admin)
+          </h3>
+          <i data-lucide="chevron-down" class="w-5 h-5 text-gray-500 group-open:rotate-180 transition-transform"></i>
+        </summary>
+        
+        <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+          <p id="rcca-nuit-warning" class="text-sm text-yellow-600 dark:text-yellow-400 italic mb-4 hidden">
+            <i data-lucide="alert-triangle" class="w-4 h-4 inline-block"></i>
+            Le check-in/out n'est pas requis pour la prestation RCCA de Nuit.
+          </p>
+          <div id="admin-list-absent" class="flex flex-wrap gap-2">
+            </div>
+        </div>
+      </details>
+      
+    </div>
+
     <div id="loading-spinner" class="hidden flex justify-center py-20">
       <i data-lucide="loader-2" class="w-12 h-12 text-blue-600 animate-spin"></i>
     </div>
     
-<div>
-    <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-3">Mon Pointage</h3>
-    <div id="my-presence-status" class="flex items-center gap-4">
-      <div class="flex justify-center items-center py-2">
-        <i data-lucide="loader-2" class="w-5 h-5 text-blue-600 animate-spin"></i>
-      </div>
-    </div>
-    <p id="rcca-nuit-warning" class="text-sm text-yellow-600 dark:text-yellow-400 italic mt-4 hidden">
-      <i data-lucide="alert-triangle" class="w-4 h-4 inline-block"></i>
-      Le check-in/out n'est pas requis pour la prestation RCCA de Nuit.
-    </p>
-  </div>
-  
-  <div class="admin-only space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Gestion des Présences (Admin)</h3>
-    
-    <div id="admin-presence-loading" class="hidden flex justify-center py-10">
-      <i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i>
-    </div>
-    
-    <div id="admin-presence-lists" class.bind="hidden" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div>
-        <h4 class="font-medium text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 pb-2 mb-3">PACO (Présents)</h4>
-        <div id="admin-list-paco" class="space-y-2">
-          </div>
-      </div>
-      <div>
-        <h4 class="font-medium text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 pb-2 mb-3">RCCA (Présents)</h4>
-        <div id="admin-list-rcca" class="space-y-2">
-          </div>
-      </div>
-    </div>
-    
-    <h4 class="text-lg font-semibold text-gray-700 dark:text-gray-200 pt-4 border-t border-gray-200 dark:border-gray-700">Personnel non pointé</h4>
-    <div id="admin-list-absent" class="flex flex-wrap gap-2">
-      </div>
-  </div>
-
     <div id="remise-content" class="hidden space-y-6">
+      
       <div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-        <label for="message-general" class="text-xl font-semibold text-gray-800 dark:text-gray-100 block">Message de Remise de service</label>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Infos clés pour le collègue suivant...</p>
-        <textarea id="message-general" rows="6" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Signaler incident, infos,..."></textarea>
-        <div class="text-right">
-          <span id="save-status" class="text-sm text-gray-500 dark:text-gray-400 italic mt-1 block"></span>
         </div>
-      </div>
       
       <div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">Bus Commandés</h3>
-        <form id="form-bus" class="grid grid-cols-2 gap-4 mb-4">
-          <input type="text" id="bus-societe" placeholder="Société" autocomplete="off" class="col-span-2 w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-          
-          <input type="text" id="bus-depart" placeholder="Gare départ" autocomplete="off" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-          <input type="text" id="bus-arrivee" placeholder="Gare arrivée" autocomplete="off" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-          
-          <div class="flex flex-col">
-            <label for="bus-heure-appel" class="text-xs font-medium text-gray-500 dark:text-gray-400">Heure d'appel</label>
-            <input type="time" id="bus-heure-appel" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-          </div>
-          <input type="text" id="bus-motif" placeholder="Motif" autocomplete="off" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-          <button type="submit" class="col-span-2 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Ajouter Bus</button>
-        </form>
-        <div id="list-bus" class="space-y-2 max-h-60 overflow-y-auto"></div>
-      </div>
+        </div>
       
       <div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">Taxis Commandés</h3>
-        <form id="form-taxi" class="grid grid-cols-2 gap-4 mb-4">
-          <input type="text" id="taxi-societe" placeholder="Société" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-          <div class="flex items-center gap-2 px-1 self-end mb-2">
-            <input type="checkbox" id="taxi-pmr" class="rounded text-blue-600 shadow-sm focus:ring-blue-500">
-            <label for="taxi-pmr" class="text-sm font-medium text-gray-700 dark:text-gray-300">PMR</label>
-          </div>
-          <input type="text" id="taxi-depart"  placeholder="Gare départ" autocomplete="off" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-          <input type="text" id="taxi-arrivee"  placeholder="Gare arrivée" autocomplete="off" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-          <div class="flex flex-col">
-            <label for="taxi-heure-appel" class="text-xs font-medium text-gray-500 dark:text-gray-400">Heure d'appel</label>
-            <input type="time" id="taxi-heure-appel" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-          </div>
-          <input type="text" id="taxi-motif" placeholder="Motif" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-          <button type="submit" class="col-span-2 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Ajouter Taxi</button>
-        </form>
-        <div id="list-taxi" class="space-y-2 max-h-60 overflow-y-auto"></div>
-      </div>
+        </div>
       
       <div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">Interventions (OPI/SPI)</h3>
-        <form id="form-intervention" class="grid grid-cols-3 gap-4 mb-4">
-          <input type="text" id="int-gare"  placeholder="Gare" required autocomplete="off" class="col-span-2 w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-          <select id="int-type" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-           <option value="OPI FCR">OPI FCR</option>
-      <option value="OPI FMS">OPI FMS</option>
-      <option value="SPI FCR">SPI FCR</option>
-      <option value="SPI FMS">SPI FMS</option>
-      <option value="SPI FTY">SPI FTY</option>
-          </select>
-          <div class="flex flex-col">
-            <label for="int-heure-appel" class="text-xs font-medium text-gray-500 dark:text-gray-400">H. Appel</label>
-            <input type="time" id="int-heure-appel" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-          </div>
-          <div class="flex flex-col">
-            <label for="int-heure-arrivee" class="text-xs font-medium text-gray-500 dark:text-gray-400">H. Arrivée</label>
-            <input type="time" id="int-heure-arrivee" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-          </div>
-          <div class="flex flex-col">
-            <label for="int-heure-fin" class="text-xs font-medium text-gray-500 dark:text-gray-400">H. Fin</label>
-            <input type="time" id="int-heure-fin" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-          </div>
-          <input type="text" id="int-motif" placeholder="Motif" autocomplete="off" class="col-span-3 w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-          <button type="submit" class="col-span-3 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Ajouter Intervention</button>
-        </form>
-        <div id="list-intervention" class="space-y-2 max-h-60 overflow-y-auto"></div>
-      </div>
+        </div>
 
       <div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">PMR (Imprévues / Short Notice)</h3>
-        <form id="form-pmr" class="grid grid-cols-2 gap-4 mb-4">
-          <select id="pmr-type" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-            <option value="Imprevue">Imprévue</option>
-            <option value="ShortNotice">Short Notice</option>
-          </select>
-          <div class="flex flex-col">
-            <label for="pmr-heure" class="text-xs font-medium text-gray-500 dark:text-gray-400">Heure</label>
-            <input type="time" id="pmr-heure" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-          </div>
-          <input type="text" id="pmr-depart"  placeholder="Gare départ" autocomplete="off" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-          <input type="text" id="pmr-arrivee"  placeholder="Gare arrivée" autocomplete="off" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-          <input type="text" id="pmr-dossier" placeholder="N° dossier" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-          <input type="text" id="pmr-remarque" placeholder="Remarque" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-          <button type="submit" class="col-span-2 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Ajouter PMR</button>
-        </form>
-        <div id="list-pmr" class="space-y-2 max-h-60 overflow-y-auto"></div>
-      </div>
+        </div>
       
     </div>
   </main>
