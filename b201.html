@@ -96,11 +96,51 @@
       <i data-lucide="loader-2" class="w-12 h-12 text-blue-600 animate-spin"></i>
     </div>
     
+<div>
+    <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-3">Mon Pointage</h3>
+    <div id="my-presence-status" class="flex items-center gap-4">
+      <div class="flex justify-center items-center py-2">
+        <i data-lucide="loader-2" class="w-5 h-5 text-blue-600 animate-spin"></i>
+      </div>
+    </div>
+    <p id="rcca-nuit-warning" class="text-sm text-yellow-600 dark:text-yellow-400 italic mt-4 hidden">
+      <i data-lucide="alert-triangle" class="w-4 h-4 inline-block"></i>
+      Le check-in/out n'est pas requis pour la prestation RCCA de Nuit.
+    </p>
+  </div>
+  
+  <div class="admin-only space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Gestion des Présences (Admin)</h3>
+    
+    <div id="admin-presence-loading" class="hidden flex justify-center py-10">
+      <i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i>
+    </div>
+    
+    <div id="admin-presence-lists" class.bind="hidden" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <h4 class="font-medium text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 pb-2 mb-3">PACO (Présents)</h4>
+        <div id="admin-list-paco" class="space-y-2">
+          </div>
+      </div>
+      <div>
+        <h4 class="font-medium text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 pb-2 mb-3">RCCA (Présents)</h4>
+        <div id="admin-list-rcca" class="space-y-2">
+          </div>
+      </div>
+    </div>
+    
+    <h4 class="text-lg font-semibold text-gray-700 dark:text-gray-200 pt-4 border-t border-gray-200 dark:border-gray-700">Personnel non pointé</h4>
+    <div id="admin-list-absent" class="flex flex-wrap gap-2">
+      </div>
+  </div>
+
+</div>
+
     <div id="remise-content" class="hidden space-y-6">
       <div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-        <label for="message-general" class="text-xl font-semibold text-gray-800 dark:text-gray-100 block">Message de Remise</label>
+        <label for="message-general" class="text-xl font-semibold text-gray-800 dark:text-gray-100 block">Message de Remise de service</label>
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Infos clés pour le collègue suivant...</p>
-        <textarea id="message-general" rows="6" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Signaler pannes, retards structurels, infos SGI..."></textarea>
+        <textarea id="message-general" rows="6" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Signaler incident, infos,..."></textarea>
         <div class="text-right">
           <span id="save-status" class="text-sm text-gray-500 dark:text-gray-400 italic mt-1 block"></span>
         </div>
@@ -149,8 +189,11 @@
         <form id="form-intervention" class="grid grid-cols-3 gap-4 mb-4">
           <input type="text" id="int-gare"  placeholder="Gare" required autocomplete="off" class="col-span-2 w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
           <select id="int-type" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-            <option value="OPI">OPI</option>
-            <option value="SPI">SPI</option>
+           <option value="OPI FCR">OPI FCR</option>
+      <option value="OPI FMS">OPI FMS</option>
+      <option value="SPI FCR">SPI FCR</option>
+      <option value="SPI FMS">SPI FMS</option>
+      <option value="SPI FTY">SPI FTY</option>
           </select>
           <div class="flex flex-col">
             <label for="int-heure-appel" class="text-xs font-medium text-gray-500 dark:text-gray-400">H. Appel</label>
