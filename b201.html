@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-gray-100">
+<head>
+  <meta charset="UTF-8">
+  <title>Remise de Service - Portail BACO</title>
+  <link rel="icon" type="image/png" href="favicon.jpg">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist&family=Geist+Mono&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.303.0/dist/umd/lucide.min.js" defer></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/flatpickr"></script>
+  <script src="https://npmcdn.com/flatpickr/dist/l10n/fr.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/notyf@3/notyf.min.css">
+  <script src="https://unpkg.com/notyf@3/notyf.min.js"></script>
+  <script src="js/core/layout.js" type="module"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Geist', 'sans-serif'],
+            mono: ['Geist Mono', 'monospace'],
+          },
+          animation: {
+            'gradient-pan': 'gradient-pan 3s ease infinite',
+          },
+          keyframes: {
+            'gradient-pan': {
+              '0%': { backgroundPosition: '0% 50%' },
+              '50%': { backgroundPosition: '100% 50%' },
+              '100%': { backgroundPosition: '0% 50%' },
+            }
+          }
+        },
+      },
+    }
+  </script>
+  <style>
+    body { visibility: hidden; }
+    /* Style pour les onglets de shift */
+    .shift-tab {
+      padding: 8px 16px; border-radius: 9999px; font-weight: 500;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .shift-tab.active {
+      background-color: #2563EB; /* bg-blue-600 */
+      color: white;
+    }
+    .shift-tab:not(.active) {
+      background-color: #F3F4F6; /* bg-gray-100 */
+      color: #374151; /* text-gray-700 */
+    }
+    .shift-tab:not(.active):hover {
+      background-color: #E5E7EB; /* bg-gray-200 */
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen">
+  <div id="nav-placeholder"></div>
+
+  <div class="flex-grow">
+    <header class="bg-white shadow-sm border-b border-gray-200">
+      <div class="container mx-auto p-6">
+        <h1 class="text-3xl font-bold text-gray-800">Remise de Service (B201)</h1>
+        <p class="mt-1 text-sm text-gray-500">Journal de bord par prestation.</p>
+      </div>
+    </header>
+
+    <div class="container mx-auto p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+      <aside class="lg:col-span-1 space-y-6">
+        <div class="bg-white p-4 rounded-lg shadow border">
+          <input type="text" id="b201-calendar" placeholder="Sélectionner une date...">
+        </div>
+
+        <div class="bg-white p-4 rounded-lg shadow border">
+          <h3 class="text-lg font-semibold text-gray-800 mb-3">Prestation</h3>
+          <div id="shift-tabs-container" class="flex justify-around gap-2">
+            <button class="shift-tab" data-shift="matin">Matin</button>
+            <button class="shift-tab" data-shift="apres-midi">Après-midi</button>
+            <button class="shift-tab" data-shift="nuit">Nuit</button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="lg:col-span-2 space-y-6">
+        <div id="loading-spinner" class="hidden flex justify-center py-20">
+          <i data-lucide="loader-2" class="w-12 h-12 text-blue-600 animate-spin"></i>
+        </div>
+
+        <div id="remise-content" class="hidden space-y-6">
+          <div class="bg-white p-4 rounded-lg shadow border">
+            <label for="message-general" class="text-xl font-semibold text-gray-800 mb-3 block">Message de Remise</label>
+            <textarea id="message-general" rows="4" class="w-full border-gray-300 rounded-md shadow-sm" placeholder="Infos clés pour le collègue suivant..."></textarea>
+            <div class="text-right">
+              <span id="save-status" class="text-sm text-gray-500 italic"></span>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-lg shadow border">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Bus Commandés</h3>
+            <form id="form-bus" class="grid grid-cols-2 gap-4 mb-4">
+              <input type="text" id="bus-societe" placeholder="Société" class="col-span-2 ...">
+              <input type="text" id="bus-depart" placeholder="Gare départ" class="...">
+              <input type="text" id="bus-arrivee" placeholder="Gare arrivée" class="...">
+              <input type="time" id="bus-heure-appel" placeholder="Heure d'appel" class="...">
+              <input type="text" id="bus-motif" placeholder="Motif" class="col-span-2 ...">
+              <button type="submit" class="col-span-2 bg-blue-600 text-white py-2 rounded-md">Ajouter Bus</button>
+            </form>
+            <div id="list-bus" class="space-y-2 max-h-60 overflow-y-auto"></div>
+          </div>
+
+          <div class="bg-white p-4 rounded-lg shadow border">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Taxis Commandés</h3>
+            <form id="form-taxi" class="grid grid-cols-2 gap-4 mb-4">
+              <input type="text" id="taxi-societe" placeholder="Société" class="...">
+              <input type="checkbox" id="taxi-pmr" class="..."><label for="taxi-pmr">PMR</label>
+              <input type="text" id="taxi-depart" placeholder="Gare départ" class="...">
+              <input type="text" id="taxi-arrivee" placeholder="Gare arrivée" class="...">
+              <input type="time" id="taxi-heure-appel" placeholder="Heure d'appel" class="...">
+              <input type="text" id="taxi-motif" placeholder="Motif" class="col-span-2 ...">
+              <button type="submit" class="col-span-2 bg-blue-600 text-white py-2 rounded-md">Ajouter Taxi</button>
+            </form>
+            <div id="list-taxi" class="space-y-2 max-h-60 overflow-y-auto"></div>
+          </div>
+
+
+          <div class="bg-white p-4 rounded-lg shadow border">
+  <h3 class="text-xl font-semibold text-gray-800 mb-4">Interventions (OPI/SPI)</h3>
+  <form id="form-intervention" class="grid grid-cols-3 gap-4 mb-4">
+    <input type="text" id="int-gare" placeholder="Gare" required class="col-span-2 border-gray-300 rounded-md shadow-sm">
+    <select id="int-type" class="border-gray-300 rounded-md shadow-sm">
+      <option value="OPI">OPI</option>
+      <option value="SPI">SPI</option>
+    </select>
+    <input type="time" id="int-heure-appel" placeholder="Heure d'appel" class="border-gray-300 rounded-md shadow-sm">
+    <input type="time" id="int-heure-arrivee" placeholder="Heure d'arrivée" class="border-gray-300 rounded-md shadow-sm">
+    <input type="time" id="int-heure-fin" placeholder="Heure de fin" class="border-gray-300 rounded-md shadow-sm">
+    <input type="text" id="int-motif" placeholder="Motif" class="col-span-3 border-gray-300 rounded-md shadow-sm">
+    <button type="submit" class="col-span-3 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Ajouter Intervention</button>
+  </form>
+  <div id="list-intervention" class="space-y-2 max-h-60 overflow-y-auto"></div>
+</div>
+
+<div class="bg-white p-4 rounded-lg shadow border">
+  <h3 class="text-xl font-semibold text-gray-800 mb-4">PMR (Imprévues / Short Notice)</h3>
+  <form id="form-pmr" class="grid grid-cols-2 gap-4 mb-4">
+    <select id="pmr-type" class="border-gray-300 rounded-md shadow-sm">
+      <option value="Imprevue">Imprévue</option>
+      <option value="ShortNotice">Short Notice</option>
+    </select>
+    <input type="time" id="pmr-heure" placeholder="Heure" class="border-gray-300 rounded-md shadow-sm">
+    <input type="text" id="pmr-depart" placeholder="Gare départ" class="border-gray-300 rounded-md shadow-sm">
+    <input type="text" id="pmr-arrivee" placeholder="Gare arrivée" class="border-gray-300 rounded-md shadow-sm">
+    <input type="text" id="pmr-dossier" placeholder="N° dossier" class="border-gray-300 rounded-md shadow-sm">
+    <input type="text" id="pmr-remarque" placeholder="Remarque" class="border-gray-300 rounded-md shadow-sm">
+    <button type="submit" class="col-span-2 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Ajouter PMR</button>
+  </form>
+  <div id="list-pmr" class="space-y-2 max-h-60 overflow-y-auto"></div>
+</div>
+          </div>
+      </main>
+    </div>
+  </div>
+
+  <div id="footer-placeholder"></div>
+  <script src="js/pages/b201.js" type="module"></script>
+</body>
+</html>
