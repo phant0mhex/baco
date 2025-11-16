@@ -187,6 +187,15 @@
   <script>
     window.pageInit = () => {
     
+      // --- REMETTEZ CE BLOC DE SÉCURITÉ ---
+      const userRole = sessionStorage.getItem('userRole');
+      if (userRole !== 'admin') {
+        alert("Accès refusé. Vous devez être administrateur pour voir cette page.");
+        window.location.replace('accueil.html');
+        return; // Arrêter l'exécution du script
+      }
+      // ---------------------------------
+      
 
 const infractionModal = document.getElementById('infraction-modal');
 const infractionForm = document.getElementById('infraction-form');
