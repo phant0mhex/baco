@@ -6,29 +6,23 @@ window.pageInit = () => {
     ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
     : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
 
+  // --- LES CONST SONT DÉPLACÉES ICI ---
   const proceduresList = document.getElementById('procedures-list');
   const categoriesList = document.getElementById('categories-list');
   const searchInput = document.getElementById('search-bar');
-  
   const modal = document.getElementById('procedure-modal');
   const modalPanel = document.getElementById('procedure-modal-panel');
   const modalTitle = document.getElementById('modal-title');
   const procedureForm = document.getElementById('procedure-form');
   const procedureIdInput = document.getElementById('modal-procedure-id');
   const submitButton = document.getElementById('modal-submit-button');
-  
-  // NOUVEAUX ÉLÉMENTS DU MODAL
   const addLinkButton = document.getElementById('add-link-button');
   const modalLinksList = document.getElementById('modal-links-list');
-
   const proceduresChannel = supabaseClient.channel('baco-procedures');
-
   let selectedCategory = 'all';
   let easyMDE;
-  
-  // NOUVELLES VARIABLES D'ÉTAT POUR LES LIENS
-  let currentLinks = []; // Contient les liens existants + nouveaux
-  let currentProcedureId = null; // ID de la procédure en cours d'édition
+  let currentLinks = [];
+  let currentProcedureId = null;
 
   try {
     easyMDE = new EasyMDE({
@@ -44,12 +38,12 @@ window.pageInit = () => {
   }
 
   // --- Fonctions Utilitaires ---
-  function formatTraceabilityDate(dateString) {
+  const formatTraceabilityDate = (dateString) => {
     return window.formatDate(dateString, 'short'); // Utilise la fonction globale
   }
 
   // --- Fonctions de Données ---
-  async function loadCategories() {
+  const loadCategories = async () => {
     try {
       const { data, error } = await supabaseClient.from('procedures').select('categorie');
       if (error) throw error;
@@ -102,14 +96,18 @@ window.pageInit = () => {
       if (error) throw error;
 
       if (data.length === 0) {
-        proceduresList.innerHTML = `... (votre HTML d'état vide) ...`;
+        proceduresList.innerHTML = `
+          <div class="col-span-full flex flex-col items-center justify-center text-center py-16 px-6 bg-white rounded-lg border border-dashed border-gray-300">
+            <i data-lucide="file-x-2" class="w-16 h-16 text-gray-300"></i>
+            <h3 class="mt-4 text-xl font-semibold text-gray-800">Aucune procédure trouvée</h3>
+            <p class="mt-2 text-sm text-gray-500">Aucun document ne correspond à vos filtres.</p>
+          </div>`;
         lucide.createIcons();
         return;
       }
 
       proceduresList.innerHTML = data.map(entry => renderProcedureCard(entry)).join('');
       
-      // Charger les liens pour les cartes (phase de lecture)
       data.forEach(entry => {
         loadLinkedContent(entry.id, `links-for-${entry.id}`);
       });
@@ -122,16 +120,16 @@ window.pageInit = () => {
       notyf.error('Erreur lors du chargement des procédures.');
     }
   }
-  window.loadProcedures = loadProcedures;
+  window.loadProcedures = loadProcedures; // Attacher à window pour 'oninput'
 
   // --- Fonctions de Rendu ---
   
-  function renderProcedureCard(entry) {
+  const renderProcedureCard = (entry) => {
     const entryJson = JSON.stringify(entry).replace(/"/g, "&quot;");
     const contentHtml = window.marked.parse(entry.contenu || '');
     const searchTerm = searchInput.value.trim();
-    const displayTitle = window.highlightText(entry.titre, searchTerm);
-    const displayCategory = window.highlightText(entry.categorie, searchTerm);
+    const displayTitle = window.highlightText(entry.titre, searchTerm); // Utilise window.
+    const displayCategory = window.highlightText(entry.categorie, searchTerm); // Utilise window.
     
     let traceabilityHtml = '';
     if (entry.updated_at && entry.profiles) {
@@ -153,69 +151,50 @@ window.pageInit = () => {
             <span class="text-sm font-medium text-gray-500">${displayCategory}</span>
           </div>
           <div class="admin-only flex items-center flex-shrink-0 gap-2">
-            <button onclick="deleteProcedure(${entry.id}, '${entry.titre}')" class="p-2 text-red-600 rounded-full hover:bg-red-100" title="Supprimer">
+            <button onclick="window.deleteProcedure(${entry.id}, '${entry.titre}')" class="p-2 text-red-600 rounded-full hover:bg-red-100" title="Supprimer">
               <i data-lucide="trash-2" class="w-4 h-4"></i>
             </button>
-            <button onclick="showProcedureModal(${entryJson})" class="p-2 text-blue-600 rounded-full hover:bg-blue-100" title="Modifier">
+            <button onclick="window.showProcedureModal(${entryJson})" class="p-2 text-blue-600 rounded-full hover:bg-blue-100" title="Modifier">
               <i data-lucide="pencil" class="w-4 h-4"></i>
             </button>
           </div>
         </div>
         <div class="p-4 prose prose-sm max-w-none">${contentHtml}</div>
-        
         <div id="links-for-${entry.id}" class="p-4 border-t border-gray-100 space-y-2"></div>
-        
         ${traceabilityHtml}
       </div>
     `;
   }
 
-  // --- NOUVELLES FONCTIONS DE LIAISON ---
+  // --- Fonctions de Liaison ---
 
-  /**
-   * Charge les liens (pour une carte ou pour le modal)
-   */
-  async function loadLinkedContent(procedureId, containerId) {
+  const loadLinkedContent = async (procedureId, containerId) => {
     const container = document.getElementById(containerId);
     if (!container) return;
-    
     container.innerHTML = '<p class="text-xs text-gray-400 italic">Chargement des liens...</p>';
-    
     try {
       const { data: links, error } = await supabaseClient.rpc('get_linked_content', {
         p_source_type: 'procedure',
         p_source_id: procedureId.toString()
       });
-
       if (error) throw error;
-      
-      // Si c'est le modal, on stocke les liens pour l'édition
       if (containerId === 'modal-links-list') {
         currentLinks = links || [];
       }
-      
       renderLinks(container, links || []);
-
     } catch (error) {
       container.innerHTML = `<p class="text-xs text-red-500">Erreur chargement liens.</p>`;
     }
   }
   
-  /**
-   * Affiche les liens dans un conteneur (carte ou modal)
-   */
-  function renderLinks(container, links) {
+  const renderLinks = (container, links) => {
     if (!links || links.length === 0) {
-      if (container.id === 'modal-links-list') {
-        container.innerHTML = '<p id="modal-links-placeholder" class="text-sm text-gray-400 text-center p-2">Aucun lien.</p>';
-      } else {
-        container.innerHTML = ''; // Ne rien afficher sur la carte
-      }
+      container.innerHTML = (container.id === 'modal-links-list')
+        ? '<p id="modal-links-placeholder" class="text-sm text-gray-400 text-center p-2">Aucun lien.</p>'
+        : '';
       return;
     }
-    
     const isModal = (container.id === 'modal-links-list');
-    
     container.innerHTML = `
       ${isModal ? '' : '<h4 class="text-sm font-semibold text-gray-700 mb-2">Contenus Liés :</h4>'}
       <div class="flex flex-wrap gap-2">
@@ -240,111 +219,74 @@ window.pageInit = () => {
     lucide.createIcons();
   }
   
-  /**
-   * Gère le clic sur "Ajouter un lien" dans le modal
-   */
   addLinkButton.addEventListener('click', () => {
-    // Ouvre la recherche globale avec notre fonction de callback
     window.showGlobalSearch((result) => {
-      // 'result' est l'objet {id, type, title, ...}
-      
-      // Vérifier les doublons
       const alreadyExists = currentLinks.some(link => link.id === result.id && link.type === result.type);
       if (alreadyExists) {
         notyf.error("Ce lien existe déjà.");
         return;
       }
-      
-      // Ajouter à la liste temporaire
       currentLinks.push(result);
-      
-      // Rafraîchir l'affichage des liens dans le modal
       renderLinks(modalLinksList, currentLinks);
     });
   });
   
-  /**
-   * Supprime un lien de la liste temporaire du modal
-   */
   window.removeLinkFromModal = (index) => {
-    currentLinks.splice(index, 1); // Supprimer l'élément
-    renderLinks(modalLinksList, currentLinks); // Rafraîchir
+    currentLinks.splice(index, 1);
+    renderLinks(modalLinksList, currentLinks);
   }
 
-  // --- Fonctions Modales (MODIFIÉES) ---
+  // --- Fonctions Modales (ATTACHER À WINDOW) ---
   
-  showProcedureModal = async (entry = null) => {
+  window.showProcedureModal = async (entry = null) => {
     procedureForm.reset();
     const isEdit = entry !== null;
-    
     modalTitle.textContent = isEdit ? `Modifier: ${entry.titre}` : 'Ajouter une procédure';
     procedureIdInput.value = isEdit ? entry.id : '';
-    
     currentProcedureId = isEdit ? entry.id.toString() : null; 
-    
     document.getElementById('modal-titre').value = isEdit ? entry.titre : '';
     document.getElementById('modal-categorie').value = isEdit ? entry.categorie : '';
-    
     if (easyMDE) easyMDE.value(isEdit ? entry.contenu : '');
-    
-    // Charger les liens existants
     if (isEdit) {
       await loadLinkedContent(entry.id, 'modal-links-list');
     } else {
-      currentLinks = []; // Vider la liste pour une nouvelle procédure
+      currentLinks = [];
       renderLinks(modalLinksList, currentLinks);
     }
-    
     modal.classList.remove('invisible', 'opacity-0');
     modalPanel.classList.remove('scale-95');
-    
     lucide.createIcons();
   }
-  window.showProcedureModal = showProcedureModal;
 
-  hideProcedureModal = () => {
+  window.hideProcedureModal = () => {
     modal.classList.add('opacity-0', 'invisible');
     modalPanel.classList.add('scale-95');
     currentProcedureId = null; 
     currentLinks = []; 
   }
-  window.hideProcedureModal = hideProcedureModal;
 
-  /**
-   * Gère la soumission (MODIFIÉE pour les liens)
-   */
-  handleFormSubmit = async (event) => {
+  window.handleFormSubmit = async (event) => {
     event.preventDefault();
-    
     const procedureId = procedureIdInput.value;
     const isEdit = procedureId !== '';
-    
     const entryData = {
       titre: document.getElementById('modal-titre').value,
       categorie: document.getElementById('modal-categorie').value,
       contenu: easyMDE ? easyMDE.value() : document.getElementById('modal-contenu').value,
     };
-    
     submitButton.disabled = true;
     submitButton.textContent = 'Enregistrement...';
-
     try {
       let savedProcedureId = procedureId;
-      
-      // 1. Sauvegarder la procédure
       if (isEdit) {
         const { error: updateError } = await supabaseClient.from('procedures').update(entryData).eq('id', procedureId);
         if (updateError) throw updateError;
       } else {
-        // Obtenir le nouvel ID
         const { data: newData, error: insertError } = await supabaseClient.from('procedures').insert([entryData]).select('id').single();
         if (insertError) throw insertError;
         savedProcedureId = newData.id.toString();
       }
       
-      // 2. Sauvegarder les liens (Logique de synchronisation)
-      
-      // D'abord, supprimer tous les anciens liens
       if (savedProcedureId) {
           const { error: deleteError } = await supabaseClient
               .from('liaisons_contenu')
@@ -354,7 +296,6 @@ window.pageInit = () => {
           if (deleteError) throw deleteError;
       }
           
-      // Ensuite, insérer les nouveaux liens
       if (currentLinks.length > 0) {
           const linksToInsert = currentLinks.map(link => ({
               source_content_type: 'procedure',
@@ -363,21 +304,16 @@ window.pageInit = () => {
               target_content_id: link.id,
               created_by: window.currentUserId
           }));
-          
           const { error: linksError } = await supabaseClient
               .from('liaisons_contenu')
               .insert(linksToInsert);
           if (linksError) throw linksError;
       }
-
       notyf.success(isEdit ? "Procédure mise à jour !" : "Procédure ajoutée !");
       hideProcedureModal();
-      
       proceduresChannel.send({ type: 'broadcast', event: 'data-change' });
-      
       loadCategories();
       loadProcedures();
-
     } catch (error) {
       notyf.error("Erreur: " + error.message);
     } finally {
@@ -385,40 +321,29 @@ window.pageInit = () => {
       submitButton.textContent = 'Enregistrer';
     }
   }
-  window.handleFormSubmit = handleFormSubmit;
   
-  deleteProcedure = async (id, titre) => {
+  window.deleteProcedure = async (id, titre) => {
     if (!confirm(`Êtes-vous sûr de vouloir supprimer la procédure "${titre}" ?`)) return;
     try {
-      // 1. Supprimer les liens (la DB le fait en cascade, mais c'est plus propre)
       await supabaseClient.from('liaisons_contenu').delete().eq('source_content_id', id.toString());
-      
-      // 2. Supprimer la procédure
       const { error } = await supabaseClient.from('procedures').delete().eq('id', id);
       if (error) throw error;
-      
       notyf.success("Procédure supprimée !");
       proceduresChannel.send({ type: 'broadcast', event: 'data-change' });
       loadCategories();
       loadProcedures();
-      
     } catch (error) {
       notyf.error("Erreur: " + error.message);
     }
   }
-  window.deleteProcedure = deleteProcedure;
 
   // --- Lancement et Abonnements ---
-  
-  // Configurer Marked.js
   if (window.marked) {
     try {
       const renderer = new window.marked.Renderer();
       renderer.link = (href, title, text) => `<a href="${href}" ${title ? `title="${title}"` : ''} target="_blank" rel="noopener noreferrer">${text || href}</a>`;
       window.marked.setOptions({ renderer: renderer });
-    } catch (e) {
-      console.error("Erreur configuration Marked.js:", e);
-    }
+    } catch (e) { console.error("Erreur configuration Marked.js:", e); }
   }
 
   loadCategories();

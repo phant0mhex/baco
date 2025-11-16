@@ -1,15 +1,10 @@
-// Les déclarations let... en haut ne sont plus nécessaires
-// si nous les attachons à window à l'intérieur de pageInit.
+// js/pages/repertoire.js
 
-// La page attend que layout.js appelle window.pageInit()
 window.pageInit = function() {
 
-  // On n'initialise PAS notyf, on l'utilise (il est global)
-  if (typeof notyf === 'undefined') {
-    console.error('Notyf n\'est pas chargé !');
-  }
+  if (typeof notyf === 'undefined') { console.error('Notyf n\'est pas chargé !'); }
 
-  // --- Définition des variables ---
+  // --- LES CONST SONT DÉPLACÉES ICI ---
   const resultDisplay = document.getElementById('resultDisplay');
   const viewToggleGrid = document.getElementById('view-toggle-grid');
   const viewToggleList = document.getElementById('view-toggle-list');
@@ -19,18 +14,16 @@ window.pageInit = function() {
   const filterContainer = document.getElementById('mainCategories');
   const zoneContainer = document.getElementById('zoneSubCategoriesContainer');
   const zoneCheckboxContainer = document.getElementById('zoneSubCategories');
-  const sortAzButton = document.getElementById('sort-az');
-  const sortZaButton = document.getElementById('sort-za');
+  const sortAzButton = document.getElementById('sort-az'); // Trouvera l'ID
+  const sortZaButton = document.getElementById('sort-za'); // Trouvera l'ID
   const modal = document.getElementById('contact-modal');
   const modalTitle = document.getElementById('modal-title');
   const contactForm = document.getElementById('contact-form');
   const contactIdInput = document.getElementById('modal-contact-id');
-
   let currentSortOrder = 'az';
 
-
-  // --- Fonctions de Vue ---
-  function updateViewToggleUI() {
+  // --- LES FONCTIONS SONT DÉCLARÉES AVEC 'const' ---
+  const updateViewToggleUI = () => {
     if (currentView === 'list') {
       viewToggleList.classList.add('bg-gray-100', 'text-blue-600');
       viewToggleGrid.classList.remove('bg-gray-100', 'text-blue-600');
@@ -40,21 +33,18 @@ window.pageInit = function() {
     }
   }
 
-  function setView(view) {
+  const setView = (view) => {
     if (view === currentView) return;
     currentView = view;
     localStorage.setItem(viewPreferenceKey, currentView);
-    updateDisplay(); // Re-lancer le rendu
+    updateDisplay();
   }
 
-  // Cette fonction est déjà globale, c'est parfait
   window.toggleGroup = (contentId, headerElement) => {
     const content = document.getElementById(contentId);
     const icon = headerElement.querySelector('i[data-lucide="chevron-down"]');
     if (!content) return;
-
     const isOpen = !content.classList.contains('max-h-0');
-
     if (isOpen) {
       content.classList.add('max-h-0', 'p-0');
       content.classList.remove('p-4', 'max-h-[40rem]');
@@ -68,10 +58,11 @@ window.pageInit = function() {
       headerElement.setAttribute('aria-expanded', 'true');
       icon.classList.add('rotate-180');
     }
+    // N'oubliez pas d'appeler lucide.createIcons() si l'icône ne se met pas à jour
+    // lucide.createIcons(); 
   };
 
-  // --- Fonctions de Données ---
-  async function loadMainCategories() {
+  const loadMainCategories = async () => {
     const categoriesContainer = document.getElementById('mainCategories');
     try {
       const { data, error } = await supabaseClient
@@ -82,12 +73,12 @@ window.pageInit = function() {
         .filter(Boolean)
         .sort();
       if (categories.length === 0) {
-        categoriesContainer.innerHTML = '<p class="text-gray-600">Aucune catégorie trouvée.</p>';
-        return;
+         categoriesContainer.innerHTML = '<p class="text-gray-600">Aucune catégorie trouvée.</p>';
+         return;
       }
       categoriesContainer.innerHTML = categories.map(categorie => `
         <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
-          <input type="checkbox" value="${categorie}" onchange="updateSubCategories()" class="rounded text-blue-600 focus:ring-blue-500">
+          <input type="checkbox" value="${categorie}" onchange="window.updateSubCategories()" class="rounded text-blue-600 focus:ring-blue-500">
           <span class="font-medium text-gray-700">${categorie}</span>
         </label>
       `).join('');
@@ -96,87 +87,66 @@ window.pageInit = function() {
     }
   }
 
-  async function populateZoneFilters(selectedMainCategories) {
+  const populateZoneFilters = async (selectedMainCategories) => {
     zoneCheckboxContainer.innerHTML = '<p class="text-gray-600">Chargement des zones...</p>';
     const zonableCategories = ['MIA', 'DSE'];
     const relevantCategories = selectedMainCategories.filter(cat => zonableCategories.includes(cat));
-
     if (relevantCategories.length === 0) {
-      zoneCheckboxContainer.innerHTML = '';
-      return;
-    }
-
-    try {
-      const { data, error } = await supabaseClient
-        .from('contacts_repertoire')
-        .select('zone')
-        .in('categorie_principale', relevantCategories);
-
-      if (error) throw error;
-
-      const zones = [...new Set(data.map(item => item.zone))].filter(Boolean).sort();
-
-      if (zones.length === 0) {
-        zoneCheckboxContainer.innerHTML = '<p class="text-xs text-gray-500">Aucune zone de filtre trouvée.</p>';
+        zoneCheckboxContainer.innerHTML = '';
         return;
-      }
-
-      zoneCheckboxContainer.innerHTML = zones.map(zone => `
-        <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
-            <input type="checkbox" value="${zone}" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
-            <span class="font-medium text-gray-700">${zone}</span>
-        </label>
-      `).join('');
-
+    }
+    try {
+        const { data, error } = await supabaseClient
+            .from('contacts_repertoire')
+            .select('zone')
+            .in('categorie_principale', relevantCategories);
+        if (error) throw error;
+        const zones = [...new Set(data.map(item => item.zone))].filter(Boolean).sort();
+        if (zones.length === 0) {
+            zoneCheckboxContainer.innerHTML = '<p class="text-xs text-gray-500">Aucune zone de filtre trouvée.</p>';
+            return;
+        }
+        zoneCheckboxContainer.innerHTML = zones.map(zone => `
+            <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+                <input type="checkbox" value="${zone}" onchange="window.updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+                <span class="font-medium text-gray-700">${zone}</span>
+            </label>
+        `).join('');
     } catch (error) {
-      zoneCheckboxContainer.innerHTML = `<p class="text-red-600">Erreur zones: ${error.message}</p>`;
+        zoneCheckboxContainer.innerHTML = `<p class="text-red-600">Erreur zones: ${error.message}</p>`;
     }
   }
 
-  // ==========================================================
-  // == DÉBUT DE LA CORRECTION
-  // ==========================================================
-  
-  // 1. Définir la fonction
-  const updateSubCategories = async () => {
+  // --- ATTACHER LES FONCTIONS À WINDOW ---
+  window.updateSubCategories = async () => {
     const mainChecked = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
-    const zonableCategories = ['MIA', 'DSE'];
+    const zonableCategories = ['MIA', 'DSE']; 
     const showZoneFilters = mainChecked.some(cat => zonableCategories.includes(cat));
-
     if (showZoneFilters) {
-      zoneContainer.style.display = 'block';
-      await populateZoneFilters(mainChecked);
+        zoneContainer.style.display = 'block';
+        await populateZoneFilters(mainChecked);
     } else {
-      zoneContainer.style.display = 'none';
-      zoneCheckboxContainer.innerHTML = '';
+        zoneContainer.style.display = 'none';
+        zoneCheckboxContainer.innerHTML = '';
     }
     updateDisplay();
   }
-  // 2. L'attacher à 'window' pour que 'onchange' la trouve
-  window.updateSubCategories = updateSubCategories;
 
-  // 1. Définir la fonction
-  const updateDisplay = async () => {
+  window.updateDisplay = async () => {
     if (!resultDisplay) return;
-
     resultDisplay.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
     lucide.createIcons();
-    
-    // Appliquer la vue (grid/list)
     updateViewToggleUI();
-
     const mainChecked = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
     const zoneSubChecked = Array.from(document.querySelectorAll('#zoneSubCategories input:checked')).map(cb => cb.value);
     const searchTerm = document.getElementById('search-bar').value.trim();
-
     let hasContent = false;
     const columns = {};
-
     let query = supabaseClient
       .from('contacts_repertoire')
       .select('id, nom, tel, groupe, email, categorie_principale, zone')
       .order('nom', { ascending: (currentSortOrder === 'az') });
-
+    
     // (Logique de filtrage)
     const orFilters = [];
     const categoriesWithZones = ['MIA', 'DSE'];
@@ -223,31 +193,27 @@ window.pageInit = function() {
       resultDisplay.innerHTML = '<p class="text-gray-600">Veuillez sélectionner une catégorie ou lancer une recherche.</p>';
       return;
     }
-
     const { data: contacts, error } = await query;
-
     if (error) {
       resultDisplay.innerHTML = `<p class'text-red-600'>Erreur: ${error.message}</p>`;
       return;
     }
-
     for (const contact of contacts) {
       const col = contact.groupe;
       if (!columns[col]) columns[col] = [];
       columns[col].push(contact);
       hasContent = true;
     }
-    
     let outputHTML = '';
     const sortedKeys = Object.keys(columns).sort();
-
     if (currentView === 'list') {
+      // (Logique de rendu "list")
       outputHTML = '<div class="space-y-6">';
       for (const col of sortedKeys) {
         const colName = window.highlightText(col, searchTerm);
         outputHTML += `<div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">`;
         outputHTML += `<h3 class="text-xl font-semibold text-gray-900 p-4 border-b bg-gray-50">${colName}</h3>`;
-        outputHTML += `<div class="divide-y divide-gray-100">`;
+        outputHTML += `<div class="divide-y divide-gray-100">`; 
         outputHTML += columns[col].map(p => {
           const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
           const displayName = window.highlightText(p.nom, searchTerm);
@@ -256,8 +222,7 @@ window.pageInit = function() {
           const formattedPhoneList = p.tel ? window.formatPhoneNumber(cleanedPhoneList) : '(manquant)';
           const displayTelList = window.highlightText(formattedPhoneList, searchTerm);
           const displayEmail = p.email ? window.highlightText(p.email, searchTerm) : '';
-
-          return `
+         return `
             <div class="flex items-center justify-between p-4 hover:bg-gray-50">
               <div class="flex items-center gap-4 flex-grow min-w-0">
                 <i data-lucide="user" class="w-5 h-5 text-gray-500 flex-shrink-0"></i>
@@ -271,8 +236,8 @@ window.pageInit = function() {
               </div>
               <div class="flex items-center gap-1 flex-shrink-0 ml-4">
                 <div class="admin-only flex items-center gap-1">
-                  <button onclick="showContactModal(${contactJson})" class="p-1 text-blue-600 rounded hover:bg-blue-100" title="Modifier"><i data-lucide="pencil" class="w-4 h-4"></i></button>
-                  <button onclick="deleteContact(${p.id}, '${p.nom}')" class="p-1 text-red-600 rounded hover:bg-red-100" title="Supprimer"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                  <button onclick="window.showContactModal(${contactJson})" class="p-1 text-blue-600 rounded hover:bg-blue-100" title="Modifier"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                  <button onclick="window.deleteContact(${p.id}, '${p.nom}')" class="p-1 text-red-600 rounded hover:bg-red-100" title="Supprimer"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                 </div>
               </div>
             </div>`;
@@ -280,22 +245,18 @@ window.pageInit = function() {
         outputHTML += `</div></div>`;
       }
       outputHTML += '</div>';
-
     } else {
+      // (Logique de rendu "grid")
       outputHTML = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:items-start">';
       for (const col of sortedKeys) {
         const groupId = `group-content-${col.replace(/[^a-zA-Z0-9]/g, '-')}`;
         const colName = window.highlightText(col, searchTerm);
-
         outputHTML += `<div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">`;
-        outputHTML += `
-          <h3 class="text-xl font-semibold text-gray-900 p-4 border-b bg-gray-50 flex justify-between items-center cursor-pointer hover:bg-gray-100 transition-colors"
-            onclick="window.toggleGroup('${groupId}', this)" role="button" aria-expanded="true" aria-controls="${groupId}">
+        outputHTML += `<h3 class="text-xl font-semibold text-gray-900 p-4 border-b bg-gray-50 flex justify-between items-center cursor-pointer hover:bg-gray-100 transition-colors" onclick="window.toggleGroup('${groupId}', this)" role="button" aria-expanded="true" aria-controls="${groupId}">
             <span>${colName}</span>
             <i data-lucide="chevron-down" class="w-5 h-5 transition-transform duration-300 ease-in-out rotate-180"></i>
           </h3>`;
         outputHTML += `<div id="${groupId}" class="flex flex-col gap-3 p-4 overflow-hidden overflow-y-auto transition-all duration-300 ease-in-out max-h-[40rem]">`;
-
         outputHTML += columns[col].map(p => {
           const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
           const displayName = window.highlightText(p.nom, searchTerm);
@@ -304,15 +265,12 @@ window.pageInit = function() {
           const formattedPhoneGrid = p.tel ? window.formatPhoneNumber(cleanedPhoneGrid) : '(manquant)';
           const displayTelGrid = window.highlightText(formattedPhoneGrid, searchTerm);
           const displayEmail = p.email ? window.highlightText(p.email, searchTerm) : '';
-
           const telHtmlFull = (formattedPhoneGrid === '(manquant)' || !p.tel)
             ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500"><i data-lucide="phone-off" class="w-4 h-4"></i><span>(manquant)</span></span>`
             : `<a href="etrali:${cleanedPhoneGrid}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors"><i data-lucide="phone" class="w-4 h-4"></i><span>${displayTelGrid}</span></a>`;
-
           const emailHtml = p.email
             ? `<a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800 transition-colors" title="${p.email}"><i data-lucide="mail" class="w-4 h-4"></i><span class="truncate" style="max-width: 200px;">${displayEmail}</span></a>`
             : '';
-
           return `
             <div class="bg-gray-50 rounded-lg border border-gray-200 transition-all hover:shadow-sm">
               <div class="flex items-center justify-between p-3 border-b border-gray-100">
@@ -322,8 +280,8 @@ window.pageInit = function() {
                 </span>
                 <div class="flex items-center gap-1">
                   <div class="admin-only flex items-center gap-2">
-                    <button onclick="showContactModal(${contactJson})" class="p-1 text-blue-600 rounded hover:bg-blue-100" title="Modifier"><i data-lucide="pencil" class="w-4 h-4"></i></button>
-                    <button onclick="deleteContact(${p.id}, '${p.nom}')" class="p-1 text-red-600 rounded hover:bg-red-100" title="Supprimer"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    <button onclick="window.showContactModal(${contactJson})" class="p-1 text-blue-600 rounded hover:bg-blue-100" title="Modifier"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                    <button onclick="window.deleteContact(${p.id}, '${p.nom}')" class="p-1 text-red-600 rounded hover:bg-red-100" title="Supprimer"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                   </div>
                 </div>
               </div>
@@ -336,11 +294,8 @@ window.pageInit = function() {
       }
       outputHTML += '</div>';
     }
-
     if (!hasContent) {
-      let message = searchTerm
-        ? `Aucun contact ne correspond à "${searchTerm}".`
-        : "Aucun contact trouvé pour les filtres sélectionnés.";
+      let message = searchTerm ? `Aucun contact ne correspond à "${searchTerm}".` : "Aucun contact trouvé pour les filtres sélectionnés.";
       resultDisplay.innerHTML = `
         <div class="col-span-full flex flex-col items-center justify-center text-center py-16 px-6 bg-white rounded-lg border border-dashed border-gray-300">
           <i data-lucide="user-x" class="w-16 h-16 text-gray-300"></i>
@@ -353,11 +308,8 @@ window.pageInit = function() {
     lucide.createIcons();
     if (window.hideAdminElements) window.hideAdminElements();
   }
-  // 2. L'attacher à 'window'
-  window.updateDisplay = updateDisplay;
 
-  // --- Fonctions de Tri ---
-  function updateSortButtons() {
+  const updateSortButtons = () => {
     if (currentSortOrder === 'az') {
       sortAzButton.classList.add('bg-blue-100', 'text-blue-700', 'ring-blue-300');
       sortZaButton.classList.remove('bg-blue-100', 'text-blue-700', 'ring-blue-300');
@@ -366,32 +318,9 @@ window.pageInit = function() {
       sortAzButton.classList.remove('bg-blue-100', 'text-blue-700', 'ring-blue-300');
     }
   }
-  sortAzButton.addEventListener('click', () => {
-    if (currentSortOrder === 'az') return;
-    currentSortOrder = 'az';
-    updateSortButtons();
-    updateDisplay();
-  });
-  sortZaButton.addEventListener('click', () => {
-    if (currentSortOrder === 'za') return;
-    currentSortOrder = 'za';
-    updateSortButtons();
-    updateDisplay();
-  });
 
-  // --- Écouteurs de Vue ---
-  viewToggleGrid.addEventListener('click', () => setView('grid'));
-  viewToggleList.addEventListener('click', () => setView('list'));
-
-  // --- Lancement Initial ---
-  updateSortButtons();
-  loadMainCategories(); 
-  updateDisplay(); 
-
-  // --- Fonctions Modales ---
-  
-  // 1. Définir la fonction
-  const showContactModal = (contact = null) => {
+  // --- ATTACHER LES FONCTIONS MODALES À WINDOW ---
+  window.showContactModal = (contact = null) => {
     const isEdit = contact !== null;
     contactForm.reset();
     if (isEdit) {
@@ -410,18 +339,12 @@ window.pageInit = function() {
     modal.style.display = 'flex';
     lucide.createIcons();
   }
-  // 2. L'attacher à 'window'
-  window.showContactModal = showContactModal;
 
-  // 1. Définir la fonction
-  const hideContactModal = () => {
+  window.hideContactModal = () => {
     modal.style.display = 'none';
   }
-  // 2. L'attacher à 'window'
-  window.hideContactModal = hideContactModal;
 
-  // 1. Définir la fonction
-  const handleFormSubmit = async (event) => {
+  window.handleFormSubmit = async (event) => {
     event.preventDefault();
     const contactId = contactIdInput.value;
     const isEdit = contactId !== '';
@@ -433,12 +356,10 @@ window.pageInit = function() {
       zone: document.getElementById('modal-zone').value || null,
       groupe: document.getElementById('modal-groupe').value
     };
-
     let error;
     const submitButton = document.getElementById('modal-submit-button');
     submitButton.disabled = true;
     submitButton.textContent = 'Enregistrement...';
-
     if (isEdit) {
       const { error: updateError } = await supabaseClient
         .from('contacts_repertoire')
@@ -451,43 +372,50 @@ window.pageInit = function() {
         .insert([contactData]);
       error = insertError;
     }
-
     submitButton.disabled = false;
     submitButton.textContent = 'Enregistrer';
-
     if (error) {
       notyf.error("Erreur: " + error.message);
     } else {
       notyf.success(isEdit ? "Contact mis à jour !" : "Contact ajouté !");
       hideContactModal();
-      // allContactsData = []; // Cette variable n'est plus utilisée
       loadMainCategories(); 
       updateDisplay(); 
     }
   }
-  // 2. L'attacher à 'window'
-  window.handleFormSubmit = handleFormSubmit;
 
-  // 1. Définir la fonction
-  const deleteContact = async (id, nom) => {
+  window.deleteContact = async (id, nom) => {
     if (!confirm(`Êtes-vous sûr de vouloir supprimer le contact "${nom}" ?`)) {
       return;
     }
     const { error } = await supabaseClient.from('contacts_repertoire').delete().eq('id', id);
     if (error) {
-      notyf.error("Erreur: " + error.message);
+      notyf.error("Erreur: ".concat(error.message));
     } else {
       notyf.success("Contact supprimé !");
-      // allContactsData = []; // Cette variable n'est plus utilisée
       loadMainCategories(); 
       updateDisplay(); 
     }
   }
-  // 2. L'attacher à 'window'
-  window.deleteContact = deleteContact;
 
-  // ==========================================================
-  // == FIN DE LA CORRECTION
-  // ==========================================================
+  // --- Écouteurs ---
+  sortAzButton.addEventListener('click', () => {
+    if (currentSortOrder === 'az') return;
+    currentSortOrder = 'az';
+    updateSortButtons();
+    updateDisplay();
+  });
+  sortZaButton.addEventListener('click', () => {
+    if (currentSortOrder === 'za') return;
+    currentSortOrder = 'za';
+    updateSortButtons();
+    updateDisplay();
+  });
+  viewToggleGrid.addEventListener('click', () => setView('grid'));
+  viewToggleList.addEventListener('click', () => setView('list'));
 
-}; // Fin de window.pageInit
+  // --- Lancement ---
+  updateSortButtons();
+  loadMainCategories();
+  updateDisplay(); 
+};
