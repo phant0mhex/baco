@@ -31,3 +31,27 @@
     <i data-lucide="arrow-up" class="w-5 h-5"></i>
   </button>
   </footer>
+
+<div id="infraction-warning-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-[999]" style="display: none;">
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg overflow-hidden transform transition-all">
+    
+    <div class="flex items-center justify-center p-6 bg-yellow-100 dark:bg-yellow-900">
+      <i data-lucide="alert-triangle" class="w-16 h-16 text-yellow-500 dark:text-yellow-400"></i>
+    </div>
+    
+    <div class="p-6 text-center">
+      <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">Avertissement</h3>
+      <p class="mt-2 text-gray-600 dark:text-gray-300">
+        Attention : Vous avez accumulé <strong>2 cartons jaunes actifs</strong>. Au prochain avertissement (le 3ème carton jaune), votre compte sera banni temporairement.
+      </p>
+    </div>
+    
+    <div class="p-4 bg-gray-50 dark:bg-gray-700 text-center">
+      <button 
+        onclick="window.hideInfractionWarning()" 
+        class="px-6 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        J'ai compris
+      </button>
+    </div>
+  </div>
+</div>

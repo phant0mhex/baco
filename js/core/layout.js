@@ -66,6 +66,58 @@ function initNavCalendar() {
   }
 }
 
+// ... (après initNavCalendar() dans layout.js)
+
+/**
+ * NOUVEAU: Cache le modal d'avertissement et mémorise le choix
+ */
+window.hideInfractionWarning = () => {
+  const modal = document.getElementById('infraction-warning-modal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+  // On mémorise dans la session pour ne pas l'afficher à nouveau
+  // à chaque rechargement de page.
+  sessionStorage.setItem('hasSeenInfractionWarning', 'true');
+}
+
+/**
+ * NOUVEAU: Vérifie si l'utilisateur a 2 cartons jaunes et doit voir l'avertissement.
+ */
+async function checkInfractionWarning(userId) {
+  // Si l'utilisateur a déjà vu le pop-up pendant cette session, on quitte
+  if (sessionStorage.getItem('hasSeenInfractionWarning') === 'true') {
+    return;
+  }
+
+  try {
+    const { data, error, count } = await supabaseClient
+      .from('infractions')
+      .select('id', { count: 'exact' }) // On a juste besoin de compter
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .eq('card_type', 'yellow')
+      .gt('expires_at', new Date().toISOString()); // 'gt' = greater than
+      
+    if (error) throw error;
+    
+    // Si l'utilisateur a EXACTEMENT 2 cartons jaunes actifs
+    if (count === 2) {
+      const modal = document.getElementById('infraction-warning-modal');
+      if (modal) {
+        modal.style.display = 'flex';
+        // Assurer que l'icône est dessinée
+        if (window.lucide) {
+          window.lucide.createIcons();
+        }
+      }
+    }
+    
+  } catch (error) {
+    console.error("Erreur lors de la vérification des infractions:", error.message);
+    // On ne dérange pas l'utilisateur si cette vérification échoue
+  }
+}
 
 /**
  * Vérifie s'il y a de nouvelles entrées dans le journal
@@ -136,6 +188,7 @@ async function initLayout() {
     setupNavDropdowns();
     loadJournalNotificationCount(); // Charger le badge
     loadNotificationCount(); // <-- NOUVEL APPEL
+    checkInfractionWarning(user.id);
     updateUserHeartbeat();
 
     setInterval(pollJournalNotifications, 30000); // 30 secondes
