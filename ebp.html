@@ -34,13 +34,14 @@
       <p class="mt-1 text-sm text-gray-500">Rechercher une ligne, un PtCar, une abréviation ou une vue EBP.</p>
     </header>
 
-    <div class="mb-8">
+  <div class="mb-8 max-w-lg">
       <label for="search-bar" class="sr-only">Rechercher</label>
       <div class="relative mt-1 rounded-md shadow-sm">
         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
           <i data-lucide="search" class="w-5 h-5 text-gray-400"></i>
         </div>
-<input type="search" id="search-bar" oninput="window.debounceEbpSearch()" placeholder="Rechercher (ex: 90, Acren, FXA, FTY: _M...)" ...>      </div>
+        <input type="search" id="search-bar" placeholder="Rechercher (ex: 90, Acren, FXA, FTY: _M...)" class="block w-full rounded-md border-gray-300 pl-10 px-4 py-2 focus:border-blue-500 focus:ring-blue-500">      
+      </div>
     </div>
 
     <div id="result-container" class="overflow-hidden bg-white shadow border border-gray-200 rounded-lg">
