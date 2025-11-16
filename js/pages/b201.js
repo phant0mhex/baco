@@ -31,9 +31,10 @@ window.pageInit = () => {
   let saveTimer = null;
   let currentUserId = null;
   
-  // --- NOUVEAU : Caches pour l'autocomplétion ---
+  // --- Caches pour l'autocomplétion ---
   let garesCache = [];
   let societesCache = [];
+  let taxiSocietesCache = []; // Ajout pour les taxis
 
   // ==========================================================
   // == GESTION DE L'AUTOCOMPLÉTION STYLISÉE
@@ -46,7 +47,10 @@ window.pageInit = () => {
    */
   function setupAutocomplete(inputId, dataCache) {
     const input = document.getElementById(inputId);
-    if (!input) return;
+    if (!input) {
+        console.warn(`Input non trouvé pour autocomplete: ${inputId}`);
+        return;
+    }
 
     // 1. Créer le popup de suggestions
     const suggestionsList = document.createElement('div');
@@ -55,8 +59,12 @@ window.pageInit = () => {
     // 2. Envelopper l'input dans un conteneur 'relative'
     const wrapper = document.createElement('div');
     wrapper.className = 'relative autocomplete-container';
+    
+    // Placer le wrapper au même endroit que l'input
     input.parentNode.insertBefore(wrapper, input);
+    // Mettre l'input DANS le wrapper
     wrapper.appendChild(input);
+    // Mettre le popup DANS le wrapper
     wrapper.appendChild(suggestionsList);
 
     // 3. Écouter la saisie
@@ -76,19 +84,20 @@ window.pageInit = () => {
         return;
       }
       
-      // 4. Afficher les suggestions (stylisées Tailwind)
+      // 4. Afficher les suggestions (CORRECTION : 'class' au lieu de 'class_name')
       suggestionsList.innerHTML = filteredData.map(item => `
-        <div class_name="suggestion-item p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-800 dark:text-gray-200" data-value="${item}">
+        <div class="suggestion-item p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-800 dark:text-gray-200" data-value="${item}">
           ${item}
         </div>
       `).join('');
       suggestionsList.classList.remove('hidden');
     });
     
-    // 5. Gérer le clic sur une suggestion
+    // 5. Gérer le clic sur une suggestion (CORRIGÉ : la classe existe maintenant)
     suggestionsList.addEventListener('click', (e) => {
-      if (e.target.classList.contains('suggestion-item')) {
-        input.value = e.target.dataset.value;
+      const item = e.target.closest('.suggestion-item');
+      if (item) {
+        input.value = item.dataset.value;
         suggestionsList.classList.add('hidden');
       }
     });
@@ -113,7 +122,6 @@ window.pageInit = () => {
         .not('ptcar_fr', 'is', null)
         .order('ptcar_fr', { ascending: true });
       if (error) throw error;
-      // Remplir le cache au lieu du datalist
       garesCache = [...new Set(data.map(item => item.ptcar_fr))];
     } catch (error) {
       console.error("Erreur chargement gares (PtCar):", error.message);
@@ -127,12 +135,26 @@ window.pageInit = () => {
         .select('nom')
         .order('nom', { ascending: true });
       if (error) throw error;
-      // Remplir le cache au lieu du datalist
       societesCache = data.map(societe => societe.nom);
     } catch (error) {
       console.error("Erreur chargement sociétés bus:", error.message);
     }
   }
+  
+  // NOUVEAU : Charger les sociétés de Taxis
+  async function loadTaxiSocietes() {
+    try {
+      const { data, error } = await supabaseClient
+        .from('taxis')
+        .select('nom')
+        .order('nom', { ascending: true });
+      if (error) throw error;
+      taxiSocietesCache = data.map(taxi => taxi.nom);
+    } catch (error) {
+      console.error("Erreur chargement sociétés taxi:", error.message);
+    }
+  }
+
   
   // --- Initialisation ---
 
@@ -163,7 +185,6 @@ window.pageInit = () => {
   
   // 3. Définir le shift actuel par défaut
   const currentHour = new Date().getHours();
-  // ... (logique des shifts inchangée) ...
   if (currentHour >= 5 && currentHour < 13) { selectedShift = 'matin'; }
   else if (currentHour >= 13 && currentHour < 21) { selectedShift = 'apres-midi'; }
   else {
@@ -183,14 +204,15 @@ window.pageInit = () => {
       // 1. Charger les listes de cache
       await Promise.all([
         loadPtCarGares(),
-        loadBusSocietes()
+        loadBusSocietes(),
+        loadTaxiSocietes() // Ajout
       ]);
       
       // 2. MAINTENANT, attacher les listeners d'autocomplétion
       setupAutocomplete('bus-societe', societesCache);
       setupAutocomplete('bus-depart', garesCache);
       setupAutocomplete('bus-arrivee', garesCache);
-      // 'taxi-societe' n'a pas de cache, on le laisse
+      setupAutocomplete('taxi-societe', taxiSocietesCache); // Ajout
       setupAutocomplete('taxi-depart', garesCache);
       setupAutocomplete('taxi-arrivee', garesCache);
       setupAutocomplete('int-gare', garesCache);
