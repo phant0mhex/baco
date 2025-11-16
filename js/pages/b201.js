@@ -479,8 +479,8 @@ window.pageInit = () => {
     }
   }
   
-  /**
-   * NOUVEAU: Gère le check-in/out par un admin
+ /**
+   * NOUVEAU: Gère le check-in/out par un admin (CORRIGÉ)
    */
   window.handleAdminPresenceClick = async (userId, shift, service) => {
     const dateString = selectedDate.toISOString().split('T')[0];
@@ -492,8 +492,8 @@ window.pageInit = () => {
         p_user_id: userId,
         p_date: dateString,
         p_shift: shift,
-        p_service: service,
-        p_admin_id: currentUserId
+        p_service: service
+        // L'argument p_admin_id a été supprimé
       });
       if (error) throw error;
       notyf.success('Statut de présence mis à jour.');
