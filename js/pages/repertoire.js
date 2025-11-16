@@ -1,42 +1,35 @@
- // Déclarer les fonctions modales globalement pour les 'onclick'
-    let showContactModal;
-    let hideContactModal;
-    let handleFormSubmit;
-    let deleteContact;
-    let updateSubCategories;
-    let updateDisplay;
+// Les déclarations let... en haut ne sont plus nécessaires
+// si nous les attachons à window à l'intérieur de pageInit.
 
-    // La page attend que layout.js appelle window.pageInit()
-    window.pageInit = function() {
-    
-      // On n'initialise PAS notyf, on l'utilise (il est global)
-      if (typeof notyf === 'undefined') {
-        console.error('Notyf n\'est pas chargé !');
-      }
+// La page attend que layout.js appelle window.pageInit()
+window.pageInit = function() {
 
-      // --- Définition des variables ---
-      
-      // CORRECTION : ID 'resultDisplay' (camelCase)
-      const resultDisplay = document.getElementById('resultDisplay'); 
-      const viewToggleGrid = document.getElementById('view-toggle-grid');
+  // On n'initialise PAS notyf, on l'utilise (il est global)
+  if (typeof notyf === 'undefined') {
+    console.error('Notyf n\'est pas chargé !');
+  }
+
+  // --- Définition des variables ---
+  const resultDisplay = document.getElementById('resultDisplay');
+  const viewToggleGrid = document.getElementById('view-toggle-grid');
   const viewToggleList = document.getElementById('view-toggle-list');
-  const viewPreferenceKey = 'baco-repertoire-view'; // Clé pour localStorage
-  let currentView = localStorage.getItem(viewPreferenceKey) || 'grid'; // 'grid' ou 'list'
-      const searchInput = document.getElementById('search-bar');
-      const filterContainer = document.getElementById('mainCategories');
-      const zoneContainer = document.getElementById('zoneSubCategoriesContainer');
-      const zoneCheckboxContainer = document.getElementById('zoneSubCategories');
-      const sortAzButton = document.getElementById('sort-az');
-      const sortZaButton = document.getElementById('sort-za');
-      const modal = document.getElementById('contact-modal');
-      const modalTitle = document.getElementById('modal-title');
-      const contactForm = document.getElementById('contact-form');
-      const contactIdInput = document.getElementById('modal-contact-id');
+  const viewPreferenceKey = 'baco-repertoire-view';
+  let currentView = localStorage.getItem(viewPreferenceKey) || 'grid';
+  const searchInput = document.getElementById('search-bar');
+  const filterContainer = document.getElementById('mainCategories');
+  const zoneContainer = document.getElementById('zoneSubCategoriesContainer');
+  const zoneCheckboxContainer = document.getElementById('zoneSubCategories');
+  const sortAzButton = document.getElementById('sort-az');
+  const sortZaButton = document.getElementById('sort-za');
+  const modal = document.getElementById('contact-modal');
+  const modalTitle = document.getElementById('modal-title');
+  const contactForm = document.getElementById('contact-form');
+  const contactIdInput = document.getElementById('modal-contact-id');
 
-      let currentSortOrder = 'az';
+  let currentSortOrder = 'az';
 
-      
-     // NOUVEAU: Fonctions pour gérer le sélecteur de vue
+
+  // --- Fonctions de Vue ---
   function updateViewToggleUI() {
     if (currentView === 'list') {
       viewToggleList.classList.add('bg-gray-100', 'text-blue-600');
@@ -52,351 +45,274 @@
     currentView = view;
     localStorage.setItem(viewPreferenceKey, currentView);
     updateDisplay(); // Re-lancer le rendu
-  } 
-
-
-window.toggleGroup = (contentId, headerElement) => {
-  const content = document.getElementById(contentId);
-  const icon = headerElement.querySelector('i[data-lucide="chevron-down"]'); 
-  if (!content) return;
-
-  const isOpen = !content.classList.contains('max-h-0');
-  
-  if (isOpen) {
-    // === On FERME (replie) ===
-    content.classList.add('max-h-0', 'p-0');
-    // MODIFIÉ : 1000px -> 40rem
-    content.classList.remove('p-4', 'max-h-[40rem]'); 
-    headerElement.classList.remove('border-b');
-    headerElement.setAttribute('aria-expanded', 'false');
-    icon.classList.remove('rotate-180'); // Flèche vers le bas
-  } else {
-    // === On OUVRE (déplie) ===
-    content.classList.remove('max-h-0', 'p-0');
-    // MODIFIÉ : 1000px -> 40rem
-    content.classList.add('p-4', 'max-h-[40rem]'); 
-    headerElement.classList.add('border-b');
-    headerElement.setAttribute('aria-expanded', 'true');
-    icon.classList.add('rotate-180'); // Flèche vers le haut
   }
-};
 
-      /**
-       * Charge dynamiquement les catégories principales depuis Supabase
-       */
-      async function loadMainCategories() {
-        const categoriesContainer = document.getElementById('mainCategories');
-        try {
-          const { data, error } = await supabaseClient
-            .from('contacts_repertoire')
-            .select('categorie_principale');
-          if (error) throw error;
-          const categories = [...new Set(data.map(item => item.categorie_principale))]
-            .filter(Boolean)
-            .sort();
-          if (categories.length === 0) {
-             categoriesContainer.innerHTML = '<p class="text-gray-600">Aucune catégorie trouvée.</p>';
-             return;
-          }
-          categoriesContainer.innerHTML = categories.map(categorie => `
-            <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
-              <input type="checkbox" value="${categorie}" onchange="updateSubCategories()" class="rounded text-blue-600 focus:ring-blue-500">
-              <span class="font-medium text-gray-700">${categorie}</span>
-            </label>
-          `).join('');
-        } catch (error) {
-          categoriesContainer.innerHTML = `<p class="text-red-600">Erreur chargement catégories: ${error.message}</p>`;
-        }
+  // Cette fonction est déjà globale, c'est parfait
+  window.toggleGroup = (contentId, headerElement) => {
+    const content = document.getElementById(contentId);
+    const icon = headerElement.querySelector('i[data-lucide="chevron-down"]');
+    if (!content) return;
+
+    const isOpen = !content.classList.contains('max-h-0');
+
+    if (isOpen) {
+      content.classList.add('max-h-0', 'p-0');
+      content.classList.remove('p-4', 'max-h-[40rem]');
+      headerElement.classList.remove('border-b');
+      headerElement.setAttribute('aria-expanded', 'false');
+      icon.classList.remove('rotate-180');
+    } else {
+      content.classList.remove('max-h-0', 'p-0');
+      content.classList.add('p-4', 'max-h-[40rem]');
+      headerElement.classList.add('border-b');
+      headerElement.setAttribute('aria-expanded', 'true');
+      icon.classList.add('rotate-180');
+    }
+  };
+
+  // --- Fonctions de Données ---
+  async function loadMainCategories() {
+    const categoriesContainer = document.getElementById('mainCategories');
+    try {
+      const { data, error } = await supabaseClient
+        .from('contacts_repertoire')
+        .select('categorie_principale');
+      if (error) throw error;
+      const categories = [...new Set(data.map(item => item.categorie_principale))]
+        .filter(Boolean)
+        .sort();
+      if (categories.length === 0) {
+        categoriesContainer.innerHTML = '<p class="text-gray-600">Aucune catégorie trouvée.</p>';
+        return;
+      }
+      categoriesContainer.innerHTML = categories.map(categorie => `
+        <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+          <input type="checkbox" value="${categorie}" onchange="updateSubCategories()" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-gray-700">${categorie}</span>
+        </label>
+      `).join('');
+    } catch (error) {
+      categoriesContainer.innerHTML = `<p class="text-red-600">Erreur chargement catégories: ${error.message}</p>`;
+    }
+  }
+
+  async function populateZoneFilters(selectedMainCategories) {
+    zoneCheckboxContainer.innerHTML = '<p class="text-gray-600">Chargement des zones...</p>';
+    const zonableCategories = ['MIA', 'DSE'];
+    const relevantCategories = selectedMainCategories.filter(cat => zonableCategories.includes(cat));
+
+    if (relevantCategories.length === 0) {
+      zoneCheckboxContainer.innerHTML = '';
+      return;
+    }
+
+    try {
+      const { data, error } = await supabaseClient
+        .from('contacts_repertoire')
+        .select('zone')
+        .in('categorie_principale', relevantCategories);
+
+      if (error) throw error;
+
+      const zones = [...new Set(data.map(item => item.zone))].filter(Boolean).sort();
+
+      if (zones.length === 0) {
+        zoneCheckboxContainer.innerHTML = '<p class="text-xs text-gray-500">Aucune zone de filtre trouvée.</p>';
+        return;
       }
 
-      /**
-       * Peuple dynamiquement les filtres de zone
-       */
-      async function populateZoneFilters(selectedMainCategories) {
-        zoneCheckboxContainer.innerHTML = '<p class="text-gray-600">Chargement des zones...</p>';
-        const zonableCategories = ['MIA', 'DSE'];
-        const relevantCategories = selectedMainCategories.filter(cat => zonableCategories.includes(cat));
+      zoneCheckboxContainer.innerHTML = zones.map(zone => `
+        <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
+            <input type="checkbox" value="${zone}" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
+            <span class="font-medium text-gray-700">${zone}</span>
+        </label>
+      `).join('');
 
-        if (relevantCategories.length === 0) {
-            zoneCheckboxContainer.innerHTML = '';
-            return;
-        }
+    } catch (error) {
+      zoneCheckboxContainer.innerHTML = `<p class="text-red-600">Erreur zones: ${error.message}</p>`;
+    }
+  }
 
-        try {
-            const { data, error } = await supabaseClient
-                .from('contacts_repertoire')
-                .select('zone')
-                .in('categorie_principale', relevantCategories);
-            
-            if (error) throw error;
+  // ==========================================================
+  // == DÉBUT DE LA CORRECTION
+  // ==========================================================
+  
+  // 1. Définir la fonction
+  const updateSubCategories = async () => {
+    const mainChecked = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
+    const zonableCategories = ['MIA', 'DSE'];
+    const showZoneFilters = mainChecked.some(cat => zonableCategories.includes(cat));
 
-            const zones = [...new Set(data.map(item => item.zone))].filter(Boolean).sort();
-            
-            if (zones.length === 0) {
-                zoneCheckboxContainer.innerHTML = '<p class="text-xs text-gray-500">Aucune zone de filtre trouvée.</p>';
-                return;
-            }
+    if (showZoneFilters) {
+      zoneContainer.style.display = 'block';
+      await populateZoneFilters(mainChecked);
+    } else {
+      zoneContainer.style.display = 'none';
+      zoneCheckboxContainer.innerHTML = '';
+    }
+    updateDisplay();
+  }
+  // 2. L'attacher à 'window' pour que 'onchange' la trouve
+  window.updateSubCategories = updateSubCategories;
 
-            zoneCheckboxContainer.innerHTML = zones.map(zone => `
-                <label class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-full cursor-pointer hover:bg-gray-100 transition-all shadow-sm">
-                    <input type="checkbox" value="${zone}" onchange="updateDisplay()" class="rounded text-blue-600 focus:ring-blue-500">
-                    <span class="font-medium text-gray-700">${zone}</span>
-                </label>
-            `).join('');
-            
-        } catch (error) {
-            zoneCheckboxContainer.innerHTML = `<p class="text-red-600">Erreur zones: ${error.message}</p>`;
-        }
-      }
+  // 1. Définir la fonction
+  const updateDisplay = async () => {
+    if (!resultDisplay) return;
 
-      /**
-       * Met à jour l'affichage des sous-catégories (zones)
-       */
-      updateSubCategories = async () => {
-        const mainChecked = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
-        const zonableCategories = ['MIA', 'DSE']; 
-        const showZoneFilters = mainChecked.some(cat => zonableCategories.includes(cat));
-
-        if (showZoneFilters) {
-            zoneContainer.style.display = 'block';
-            await populateZoneFilters(mainChecked);
-        } else {
-            zoneContainer.style.display = 'none';
-            zoneCheckboxContainer.innerHTML = '';
-        }
-        updateDisplay();
-      }
-
-     
- 
-
-      // NOUVEAU: Mettre à jour les boutons de vue
+    resultDisplay.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
+    lucide.createIcons();
+    
+    // Appliquer la vue (grid/list)
     updateViewToggleUI();
 
+    const mainChecked = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
+    const zoneSubChecked = Array.from(document.querySelectorAll('#zoneSubCategories input:checked')).map(cb => cb.value);
+    const searchTerm = document.getElementById('search-bar').value.trim();
 
-      /**
-       */
-      updateDisplay = async () => {
-        if (!resultDisplay) return;
-        
-        resultDisplay.innerHTML = '<div class="flex justify-center items-center py-10"><i data-lucide="loader-2" class="w-8 h-8 text-blue-600 animate-spin"></i></div>';
-        lucide.createIcons();
+    let hasContent = false;
+    const columns = {};
 
-        
+    let query = supabaseClient
+      .from('contacts_repertoire')
+      .select('id, nom, tel, groupe, email, categorie_principale, zone')
+      .order('nom', { ascending: (currentSortOrder === 'az') });
 
-        const mainChecked = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
-        const zoneSubChecked = Array.from(document.querySelectorAll('#zoneSubCategories input:checked')).map(cb => cb.value);
-        const searchTerm = document.getElementById('search-bar').value.trim();
-        
-        let hasContent = false;
-        const columns = {};
-
-        let query = supabaseClient
-          .from('contacts_repertoire')
-          .select('id, nom, tel, groupe, email, categorie_principale, zone')
-          .order('nom', { ascending: (currentSortOrder === 'az') });
-
-        // (La logique de filtrage complexe est recopiée de votre script original)
-        const orFilters = [];
-        const categoriesWithZones = ['MIA', 'DSE'];
-        const mainCategoriesWithZones = mainChecked.filter(cat => categoriesWithZones.includes(cat));
-        const mainCategoriesWithoutZones = mainChecked.filter(cat => !categoriesWithZones.includes(cat));
-        if (mainCategoriesWithZones.length > 0) {
-            if (zoneSubChecked.length > 0) {
-                zoneSubChecked.forEach(zone => {
-                    if (zone === 'FTY') {
-                        if (mainCategoriesWithZones.includes('MIA')) {
-                            orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FTY)`);
-                            orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FMS,groupe.eq.TL/MPI)`);
-                        }
-                        if (mainCategoriesWithZones.includes('DSE')) {
-                             orFilters.push(`and(categorie_principale.eq.DSE,zone.eq.FTY)`);
-                        }
-                    } else {
-                        mainCategoriesWithZones.forEach(cat => {
-                            orFilters.push(`and(categorie_principale.eq.${cat},zone.eq.${zone})`);
-                        });
-                    }
-                });
-            } else {
-                mainCategoriesWithZones.forEach(cat => {
-                    orFilters.push(`categorie_principale.eq.${cat}`);
-                });
+    // (Logique de filtrage)
+    const orFilters = [];
+    const categoriesWithZones = ['MIA', 'DSE'];
+    const mainCategoriesWithZones = mainChecked.filter(cat => categoriesWithZones.includes(cat));
+    const mainCategoriesWithoutZones = mainChecked.filter(cat => !categoriesWithZones.includes(cat));
+    if (mainCategoriesWithZones.length > 0) {
+      if (zoneSubChecked.length > 0) {
+        zoneSubChecked.forEach(zone => {
+          if (zone === 'FTY') {
+            if (mainCategoriesWithZones.includes('MIA')) {
+              orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FTY)`);
+              orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FMS,groupe.eq.TL/MPI)`);
             }
-        }
-        mainCategoriesWithoutZones.forEach(cat => {
-            orFilters.push(`categorie_principale.eq.${cat}`);
+            if (mainCategoriesWithZones.includes('DSE')) {
+              orFilters.push(`and(categorie_principale.eq.DSE,zone.eq.FTY)`);
+            }
+          } else {
+            mainCategoriesWithZones.forEach(cat => {
+              orFilters.push(`and(categorie_principale.eq.${cat},zone.eq.${zone})`);
+            });
+          }
         });
-        if (orFilters.length > 0) {
-          query = query.or(orFilters.join(','));
-        }
-        if (searchTerm) {
-          query = query.or(
-            `nom.ilike.*${searchTerm}*`,
-            `tel.ilike.*${searchTerm}*`,
-            `email.ilike.*${searchTerm}*`,
-            `groupe.ilike.*${searchTerm}*`
-          );
-        }
-        if (orFilters.length === 0 && !searchTerm) {
-            resultDisplay.innerHTML = '<p class="text-gray-600">Veuillez sélectionner une catégorie ou lancer une recherche.</p>';
-            return;
-        }
-        
-        const { data: contacts, error } = await query;
-            
-        if (error) {
-          resultDisplay.innerHTML = `<p class='text-red-600'>Erreur: ${error.message}</p>`;
-          return;
-        }
+      } else {
+        mainCategoriesWithZones.forEach(cat => {
+          orFilters.push(`categorie_principale.eq.${cat}`);
+        });
+      }
+    }
+    mainCategoriesWithoutZones.forEach(cat => {
+      orFilters.push(`categorie_principale.eq.${cat}`);
+    });
+    if (orFilters.length > 0) {
+      query = query.or(orFilters.join(','));
+    }
+    if (searchTerm) {
+      query = query.or(
+        `nom.ilike.*${searchTerm}*`,
+        `tel.ilike.*${searchTerm}*`,
+        `email.ilike.*${searchTerm}*`,
+        `groupe.ilike.*${searchTerm}*`
+      );
+    }
+    if (orFilters.length === 0 && !searchTerm) {
+      resultDisplay.innerHTML = '<p class="text-gray-600">Veuillez sélectionner une catégorie ou lancer une recherche.</p>';
+      return;
+    }
 
-        for (const contact of contacts) {
-          const col = contact.groupe;
-          if (!columns[col]) columns[col] = [];
-          columns[col].push(contact);
-          hasContent = true;
-        }
-        
-   //
-    // =======================================================
-    // == DÉBUT DE LA NOUVELLE LOGIQUE DE RENDU (GRID vs LIST)
-    // =======================================================
-    //
+    const { data: contacts, error } = await query;
+
+    if (error) {
+      resultDisplay.innerHTML = `<p class'text-red-600'>Erreur: ${error.message}</p>`;
+      return;
+    }
+
+    for (const contact of contacts) {
+      const col = contact.groupe;
+      if (!columns[col]) columns[col] = [];
+      columns[col].push(contact);
+      hasContent = true;
+    }
     
     let outputHTML = '';
     const sortedKeys = Object.keys(columns).sort();
 
     if (currentView === 'list') {
-      // ==========================
-      // === NOUVELLE VUE LISTE ===
-      // ==========================
-      outputHTML = '<div class="space-y-6">'; // Un simple conteneur
-      
+      outputHTML = '<div class="space-y-6">';
       for (const col of sortedKeys) {
         const colName = window.highlightText(col, searchTerm);
-        
-        // Conteneur de groupe
         outputHTML += `<div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">`;
-        // Header (non-cliquable)
         outputHTML += `<h3 class="text-xl font-semibold text-gray-900 p-4 border-b bg-gray-50">${colName}</h3>`;
-        // Conteneur de liste avec séparateurs
-        outputHTML += `<div class="divide-y divide-gray-100">`; 
-        
+        outputHTML += `<div class="divide-y divide-gray-100">`;
         outputHTML += columns[col].map(p => {
-          // --- Rendu en LIGNE (style DaisyUI) ---
           const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
           const displayName = window.highlightText(p.nom, searchTerm);
-
-// --- MODIFIÉ ICI ---
-            const rawPhoneList = p.tel;
-            const cleanedPhoneList = window.cleanPhoneNumber(rawPhoneList);
-            const formattedPhoneList = p.tel ? window.formatPhoneNumber(cleanedPhoneList) : '(manquant)';
-            const displayTelList = window.highlightText(formattedPhoneList, searchTerm);
-            // --- FIN MODIFICATION ---
-         
-
+          const rawPhoneList = p.tel;
+          const cleanedPhoneList = window.cleanPhoneNumber(rawPhoneList);
+          const formattedPhoneList = p.tel ? window.formatPhoneNumber(cleanedPhoneList) : '(manquant)';
+          const displayTelList = window.highlightText(formattedPhoneList, searchTerm);
           const displayEmail = p.email ? window.highlightText(p.email, searchTerm) : '';
-         
-          
-          
 
-         return `
+          return `
             <div class="flex items-center justify-between p-4 hover:bg-gray-50">
-              
               <div class="flex items-center gap-4 flex-grow min-w-0">
                 <i data-lucide="user" class="w-5 h-5 text-gray-500 flex-shrink-0"></i>
-                
                 <div class="flex-grow min-w-0">
                   <div class="text-sm font-medium text-gray-900 truncate">${displayName}</div>
-                  
                   <div class="flex flex-col sm:flex-row sm:items-center sm:gap-4 sm:flex-wrap mt-1">
-                    
-${p.tel ? `<a href="etrali:${cleanedPhoneList}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 flex-shrink-0"><i data-lucide="phone" class="w-4 h-4"></i><span>${displayTelList}</span></a>` : ''}
-                    
-                    ${p.email ? `
-                      <a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800 min-w-0" title="${p.email}">
-                        <i data-lucide="mail" class="w-4 h-4 flex-shrink-0"></i>
-                        <span class="truncate">${displayEmail}</span>
-                      </a>` : ''}
+                    ${p.tel ? `<a href="etrali:${cleanedPhoneList}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 flex-shrink-0"><i data-lucide="phone" class="w-4 h-4"></i><span>${displayTelList}</span></a>` : ''}
+                    ${p.email ? `<a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800 min-w-0" title="${p.email}"><i data-lucide="mail" class="w-4 h-4 flex-shrink-0"></i><span class="truncate">${displayEmail}</span></a>` : ''}
                   </div>
                 </div>
               </div>
-
               <div class="flex items-center gap-1 flex-shrink-0 ml-4">
-               
                 <div class="admin-only flex items-center gap-1">
-                  <button onclick="showContactModal(${contactJson})" class="p-1 text-blue-600 rounded hover:bg-blue-100" title="Modifier">
-                    <i data-lucide="pencil" class="w-4 h-4"></i>
-                  </button>
-                  <button onclick="deleteContact(${p.id}, '${p.nom}')" class="p-1 text-red-600 rounded hover:bg-red-100" title="Supprimer">
-                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                  </button>
+                  <button onclick="showContactModal(${contactJson})" class="p-1 text-blue-600 rounded hover:bg-blue-100" title="Modifier"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                  <button onclick="deleteContact(${p.id}, '${p.nom}')" class="p-1 text-red-600 rounded hover:bg-red-100" title="Supprimer"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                 </div>
               </div>
-            </div>
-          `;
+            </div>`;
         }).join('');
-        
-        outputHTML += `</div></div>`; // Ferme 'divide-y' et 'bg-white'
-      } // fin boucle for
-      outputHTML += '</div>'; // Ferme 'space-y-6'
+        outputHTML += `</div></div>`;
+      }
+      outputHTML += '</div>';
 
     } else {
-      // ===================================
-      // === VUE GRILLE (votre code Accordéon) ===
-      // ===================================
       outputHTML = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:items-start">';
-      
       for (const col of sortedKeys) {
         const groupId = `group-content-${col.replace(/[^a-zA-Z0-9]/g, '-')}`;
         const colName = window.highlightText(col, searchTerm);
 
-        // 1. LE CONTENEUR (bg-white)
-        outputHTML += `<div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">`; 
-        
-        // 2. LE DÉCLENCHEUR (le h3 gris)
+        outputHTML += `<div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">`;
         outputHTML += `
-          <h3 
-            class="text-xl font-semibold text-gray-900 p-4 border-b bg-gray-50 flex justify-between items-center cursor-pointer hover:bg-gray-100 transition-colors"
-            onclick="window.toggleGroup('${groupId}', this)"
-            role="button" aria-expanded="true" aria-controls="${groupId}"
-          >
+          <h3 class="text-xl font-semibold text-gray-900 p-4 border-b bg-gray-50 flex justify-between items-center cursor-pointer hover:bg-gray-100 transition-colors"
+            onclick="window.toggleGroup('${groupId}', this)" role="button" aria-expanded="true" aria-controls="${groupId}">
             <span>${colName}</span>
             <i data-lucide="chevron-down" class="w-5 h-5 transition-transform duration-300 ease-in-out rotate-180"></i>
-          </h3>
-        `;
-        
-        // 3. LA CIBLE (le div blanc)
-        outputHTML += `
-          <div 
-            id="${groupId}" 
-            class="flex flex-col gap-3 p-4 overflow-hidden overflow-y-auto transition-all duration-300 ease-in-out max-h-[40rem]"
-          >
-        `;
-        
-        // 4. Le contenu (vos cartes de contact)
+          </h3>`;
+        outputHTML += `<div id="${groupId}" class="flex flex-col gap-3 p-4 overflow-hidden overflow-y-auto transition-all duration-300 ease-in-out max-h-[40rem]">`;
+
         outputHTML += columns[col].map(p => {
-          // ... (Le code de votre carte-contact bg-gray-50 reste ici, inchangé)
           const contactJson = JSON.stringify(p).replace(/"/g, "&quot;");
           const displayName = window.highlightText(p.nom, searchTerm);
+          const rawPhoneGrid = p.tel;
+          const cleanedPhoneGrid = window.cleanPhoneNumber(rawPhoneGrid);
+          const formattedPhoneGrid = p.tel ? window.formatPhoneNumber(cleanedPhoneGrid) : '(manquant)';
+          const displayTelGrid = window.highlightText(formattedPhoneGrid, searchTerm);
+          const displayEmail = p.email ? window.highlightText(p.email, searchTerm) : '';
 
-const rawPhoneGrid = p.tel;
-              const cleanedPhoneGrid = window.cleanPhoneNumber(rawPhoneGrid);
-              const formattedPhoneGrid = p.tel ? window.formatPhoneNumber(cleanedPhoneGrid) : '(manquant)';
-              const displayTelGrid = window.highlightText(formattedPhoneGrid, searchTerm);
-
-              const telHtmlFull = (formattedPhoneGrid === '(manquant)' || !p.tel)
-                ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500"><i data-lucide="phone-off" class="w-4 h-4"></i><span>(manquant)</span></span>`
-                : `<a href="etrali:${cleanedPhoneGrid}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors"><i data-lucide="phone" class="w-4 h-4"></i><span>${displayTelGrid}</span></a>`;
-              // --- FIN MODIFICATION ---
+          const telHtmlFull = (formattedPhoneGrid === '(manquant)' || !p.tel)
+            ? `<span class="flex items-center gap-2 text-sm font-mono text-gray-500"><i data-lucide="phone-off" class="w-4 h-4"></i><span>(manquant)</span></span>`
+            : `<a href="etrali:${cleanedPhoneGrid}" class="flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-800 transition-colors"><i data-lucide="phone" class="w-4 h-4"></i><span>${displayTelGrid}</span></a>`;
 
           const emailHtml = p.email
             ? `<a href="mailto:${p.email}" class="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-blue-800 transition-colors" title="${p.email}"><i data-lucide="mail" class="w-4 h-4"></i><span class="truncate" style="max-width: 200px;">${displayEmail}</span></a>`
             : '';
 
-            
-        
-          
           return `
             <div class="bg-gray-50 rounded-lg border border-gray-200 transition-all hover:shadow-sm">
               <div class="flex items-center justify-between p-3 border-b border-gray-100">
@@ -405,193 +321,173 @@ const rawPhoneGrid = p.tel;
                    <span>${displayName}</span>
                 </span>
                 <div class="flex items-center gap-1">
-
                   <div class="admin-only flex items-center gap-2">
-                    <button onclick="showContactModal(${contactJson})" class="p-1 text-blue-600 rounded hover:bg-blue-100" title="Modifier">
-                      <i data-lucide="pencil" class="w-4 h-4"></i>
-                    </button>
-                    <button onclick="deleteContact(${p.id}, '${p.nom}')" class="p-1 text-red-600 rounded hover:bg-red-100" title="Supprimer">
-                      <i data-lucide="trash-2" class="w-4 h-4"></i>
-                    </button>
+                    <button onclick="showContactModal(${contactJson})" class="p-1 text-blue-600 rounded hover:bg-blue-100" title="Modifier"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                    <button onclick="deleteContact(${p.id}, '${p.nom}')" class="p-1 text-red-600 rounded hover:bg-red-100" title="Supprimer"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                   </div>
                 </div>
               </div>
-           <div class="p-3 flex flex-col gap-2">
-                    ${telHtmlFull} ${emailHtml}
-                  </div>
+              <div class="p-3 flex flex-col gap-2">
+                ${telHtmlFull} ${emailHtml}
+              </div>
             </div>`;
         }).join('');
-    
-    // 5. Fermeture des balises
-    outputHTML += `</div></div>`; // Ferme le #groupId (cible) et le .bg-white (conteneur)
-}
-outputHTML += '</div>'; // Ferme le conteneur grid
-}
-        if (!hasContent) {
-            let message = searchTerm 
-              ? `Aucun contact ne correspond à "${searchTerm}".` 
-              : "Aucun contact trouvé pour les filtres sélectionnés.";
-            resultDisplay.innerHTML = `
-              <div class="col-span-full flex flex-col items-center justify-center text-center py-16 px-6 bg-white rounded-lg border border-dashed border-gray-300">
-                <i data-lucide="user-x" class="w-16 h-16 text-gray-300"></i>
-                <h3 class="mt-4 text-xl font-semibold text-gray-800">Aucun contact trouvé</h3>
-                <p class="mt-2 text-sm text-gray-500">${message}</p>
-              </div>
-            `;
-          } else {
-            resultDisplay.innerHTML = outputHTML;
-          }
-        lucide.createIcons();
-        if (window.hideAdminElements) window.hideAdminElements();
+        outputHTML += `</div></div>`;
       }
+      outputHTML += '</div>';
+    }
 
-      window.filterContacts = (category, element) => {
-        document.querySelectorAll('#mainCategories input[type="checkbox"]').forEach(cb => {
-            if (cb.value !== category) cb.checked = false;
-        });
-        document.querySelectorAll('#zoneSubCategories input[type="checkbox"]').forEach(cb => {
-            cb.checked = false;
-        });
-        
-        // Gérer le style des boutons
-        document.querySelectorAll('#filter-container button').forEach(btn => {
-          btn.classList.remove('bg-blue-100', 'text-blue-700');
-          btn.classList.add('text-gray-600', 'hover:bg-gray-200');
-        });
-        if (element) {
-            element.classList.add('bg-blue-100', 'text-blue-700');
-            element.classList.remove('text-gray-600', 'hover:bg-gray-200');
-        } else {
-            // Si on appelle sans élément (ex: recherche), on remet 'Tous' en surbrillance
-            document.querySelector('#filter-container button[onclick*="\'all\'"]').classList.add('bg-blue-100', 'text-blue-700');
-        }
-        
-        updateSubCategories(); // Met à jour les sous-catégories ET l'affichage
-      }
+    if (!hasContent) {
+      let message = searchTerm
+        ? `Aucun contact ne correspond à "${searchTerm}".`
+        : "Aucun contact trouvé pour les filtres sélectionnés.";
+      resultDisplay.innerHTML = `
+        <div class="col-span-full flex flex-col items-center justify-center text-center py-16 px-6 bg-white rounded-lg border border-dashed border-gray-300">
+          <i data-lucide="user-x" class="w-16 h-16 text-gray-300"></i>
+          <h3 class="mt-4 text-xl font-semibold text-gray-800">Aucun contact trouvé</h3>
+          <p class="mt-2 text-sm text-gray-500">${message}</p>
+        </div>`;
+    } else {
+      resultDisplay.innerHTML = outputHTML;
+    }
+    lucide.createIcons();
+    if (window.hideAdminElements) window.hideAdminElements();
+  }
+  // 2. L'attacher à 'window'
+  window.updateDisplay = updateDisplay;
 
-      function updateSortButtons() {
-        if (currentSortOrder === 'az') {
-          sortAzButton.classList.add('bg-blue-100', 'text-blue-700', 'ring-blue-300');
-          sortZaButton.classList.remove('bg-blue-100', 'text-blue-700', 'ring-blue-300');
-        } else {
-          sortZaButton.classList.add('bg-blue-100', 'text-blue-700', 'ring-blue-300');
-          sortAzButton.classList.remove('bg-blue-100', 'text-blue-700', 'ring-blue-300');
-        }
-      }
-      sortAzButton.addEventListener('click', () => {
-        if (currentSortOrder === 'az') return;
-        currentSortOrder = 'az';
-        updateSortButtons();
-        updateDisplay();
-      });
-      sortZaButton.addEventListener('click', () => {
-        if (currentSortOrder === 'za') return;
-        currentSortOrder = 'za';
-        updateSortButtons();
-        updateDisplay();
-      });
+  // --- Fonctions de Tri ---
+  function updateSortButtons() {
+    if (currentSortOrder === 'az') {
+      sortAzButton.classList.add('bg-blue-100', 'text-blue-700', 'ring-blue-300');
+      sortZaButton.classList.remove('bg-blue-100', 'text-blue-700', 'ring-blue-300');
+    } else {
+      sortZaButton.classList.add('bg-blue-100', 'text-blue-700', 'ring-blue-300');
+      sortAzButton.classList.remove('bg-blue-100', 'text-blue-700', 'ring-blue-300');
+    }
+  }
+  sortAzButton.addEventListener('click', () => {
+    if (currentSortOrder === 'az') return;
+    currentSortOrder = 'az';
+    updateSortButtons();
+    updateDisplay();
+  });
+  sortZaButton.addEventListener('click', () => {
+    if (currentSortOrder === 'za') return;
+    currentSortOrder = 'za';
+    updateSortButtons();
+    updateDisplay();
+  });
 
-      // --- Écouteurs ---
-      searchInput.addEventListener('input', () => updateDisplay());
-      
-      // NOUVEAU: Écouteurs pour le sélecteur de vue
+  // --- Écouteurs de Vue ---
   viewToggleGrid.addEventListener('click', () => setView('grid'));
   viewToggleList.addEventListener('click', () => setView('list'));
 
+  // --- Lancement Initial ---
+  updateSortButtons();
+  loadMainCategories(); 
+  updateDisplay(); 
 
-      // --- Lancement ---
-      updateSortButtons();
-      loadMainCategories(); // Charger les catégories et les données
-      updateDisplay(); // Afficher
-    
-      // --- Fonctions Modales ---
-      showContactModal = (contact = null) => {
-        const isEdit = contact !== null;
-        contactForm.reset();
-        
-        if (isEdit) {
-          modalTitle.textContent = 'Modifier le contact';
-          contactIdInput.value = contact.id;
-          document.getElementById('modal-nom').value = contact.nom;
-          document.getElementById('modal-tel').value = contact.tel;
-          document.getElementById('modal-email').value = contact.email || '';
-          document.getElementById('modal-categorie').value = contact.categorie_principale;
-          document.getElementById('modal-zone').value = contact.zone || '';
-          document.getElementById('modal-groupe').value = contact.groupe;
-        } else {
-          modalTitle.textContent = 'Ajouter un contact';
-          contactIdInput.value = '';
-        }
-        
-        modal.style.display = 'flex';
-        lucide.createIcons();
-      }
+  // --- Fonctions Modales ---
+  
+  // 1. Définir la fonction
+  const showContactModal = (contact = null) => {
+    const isEdit = contact !== null;
+    contactForm.reset();
+    if (isEdit) {
+      modalTitle.textContent = 'Modifier le contact';
+      contactIdInput.value = contact.id;
+      document.getElementById('modal-nom').value = contact.nom;
+      document.getElementById('modal-tel').value = contact.tel;
+      document.getElementById('modal-email').value = contact.email || '';
+      document.getElementById('modal-categorie').value = contact.categorie_principale;
+      document.getElementById('modal-zone').value = contact.zone || '';
+      document.getElementById('modal-groupe').value = contact.groupe;
+    } else {
+      modalTitle.textContent = 'Ajouter un contact';
+      contactIdInput.value = '';
+    }
+    modal.style.display = 'flex';
+    lucide.createIcons();
+  }
+  // 2. L'attacher à 'window'
+  window.showContactModal = showContactModal;
 
-      hideContactModal = () => {
-        modal.style.display = 'none';
-      }
+  // 1. Définir la fonction
+  const hideContactModal = () => {
+    modal.style.display = 'none';
+  }
+  // 2. L'attacher à 'window'
+  window.hideContactModal = hideContactModal;
 
-      handleFormSubmit = async (event) => {
-        event.preventDefault();
-        
-        const contactId = contactIdInput.value;
-        const isEdit = contactId !== '';
-        
-        const contactData = {
-          nom: document.getElementById('modal-nom').value,
-          tel: document.getElementById('modal-tel').value,
-          email: document.getElementById('modal-email').value || null,
-          categorie_principale: document.getElementById('modal-categorie').value,
-          zone: document.getElementById('modal-zone').value || null,
-          groupe: document.getElementById('modal-groupe').value
-        };
+  // 1. Définir la fonction
+  const handleFormSubmit = async (event) => {
+    event.preventDefault();
+    const contactId = contactIdInput.value;
+    const isEdit = contactId !== '';
+    const contactData = {
+      nom: document.getElementById('modal-nom').value,
+      tel: document.getElementById('modal-tel').value,
+      email: document.getElementById('modal-email').value || null,
+      categorie_principale: document.getElementById('modal-categorie').value,
+      zone: document.getElementById('modal-zone').value || null,
+      groupe: document.getElementById('modal-groupe').value
+    };
 
-        let error;
-        const submitButton = document.getElementById('modal-submit-button');
-        submitButton.disabled = true;
-        submitButton.textContent = 'Enregistrement...';
+    let error;
+    const submitButton = document.getElementById('modal-submit-button');
+    submitButton.disabled = true;
+    submitButton.textContent = 'Enregistrement...';
 
-        if (isEdit) {
-          const { error: updateError } = await supabaseClient
-            .from('contacts_repertoire')
-            .update(contactData)
-            .eq('id', contactId);
-          error = updateError;
-        } else {
-          const { error: insertError } = await supabaseClient
-            .from('contacts_repertoire')
-            .insert([contactData]);
-          error = insertError;
-        }
+    if (isEdit) {
+      const { error: updateError } = await supabaseClient
+        .from('contacts_repertoire')
+        .update(contactData)
+        .eq('id', contactId);
+      error = updateError;
+    } else {
+      const { error: insertError } = await supabaseClient
+        .from('contacts_repertoire')
+        .insert([contactData]);
+      error = insertError;
+    }
 
-        submitButton.disabled = false;
-        submitButton.textContent = 'Enregistrer';
+    submitButton.disabled = false;
+    submitButton.textContent = 'Enregistrer';
 
-        if (error) {
-          notyf.error("Erreur: " + error.message);
-        } else {
-          notyf.success(isEdit ? "Contact mis à jour !" : "Contact ajouté !");
-          hideContactModal();
-          allContactsData = []; // Vider le cache
-          loadMainCategories(); // Recharger les catégories
-          updateDisplay(); // Recharger l'affichage
-        }
-      }
-      
-      deleteContact = async (id, nom) => {
-        if (!confirm(`Êtes-vous sûr de vouloir supprimer le contact "${nom}" ?`)) {
-          return;
-        }
-        const { error } = await supabaseClient.from('contacts_repertoire').delete().eq('id', id);
-        if (error) {
-          notyf.error("Erreur: " + error.message);
-        } else {
-          notyf.success("Contact supprimé !");
+    if (error) {
+      notyf.error("Erreur: " + error.message);
+    } else {
+      notyf.success(isEdit ? "Contact mis à jour !" : "Contact ajouté !");
+      hideContactModal();
+      // allContactsData = []; // Cette variable n'est plus utilisée
+      loadMainCategories(); 
+      updateDisplay(); 
+    }
+  }
+  // 2. L'attacher à 'window'
+  window.handleFormSubmit = handleFormSubmit;
 
-          allContactsData = []; // Vider le cache
-          loadMainCategories(); // Recharger les catégories
-          updateDisplay(); // Recharger l'affichage
-        }
-      }
-    
-    }; // Fin de window.pageInit
+  // 1. Définir la fonction
+  const deleteContact = async (id, nom) => {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer le contact "${nom}" ?`)) {
+      return;
+    }
+    const { error } = await supabaseClient.from('contacts_repertoire').delete().eq('id', id);
+    if (error) {
+      notyf.error("Erreur: " + error.message);
+    } else {
+      notyf.success("Contact supprimé !");
+      // allContactsData = []; // Cette variable n'est plus utilisée
+      loadMainCategories(); 
+      updateDisplay(); 
+    }
+  }
+  // 2. L'attacher à 'window'
+  window.deleteContact = deleteContact;
+
+  // ==========================================================
+  // == FIN DE LA CORRECTION
+  // ==========================================================
+
+}; // Fin de window.pageInit
