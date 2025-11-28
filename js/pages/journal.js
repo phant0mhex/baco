@@ -103,6 +103,7 @@ window.pageInit = () => {
         const authorAvatar = author ? author.avatar_url : 'https://via.placeholder.com/40';
         
        // Droits (Admin ou Auteur)
+       const hasRights = adminRole || (currentUserId && currentUserId === entry.user_id);
         const safeContent = entry.message_content.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n');
 const isUrgent = entry.is_urgent || false; // Récupère le statut (false par défaut)
 
