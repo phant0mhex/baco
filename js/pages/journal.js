@@ -103,8 +103,8 @@ window.pageInit = () => {
         const authorAvatar = author ? author.avatar_url : 'https://via.placeholder.com/40';
         
        // Droits (Admin ou Auteur)
-        const hasRights = adminRole || (currentUserId && currentUserId === entry.user_id);
         const safeContent = entry.message_content.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n');
+const isUrgent = entry.is_urgent || false; // Récupère le statut (false par défaut)
 
         // --- LOGIQUE URGENT ---
         // Si urgent : bordure rouge, fond rouge clair, icône sirène animée
@@ -134,11 +134,11 @@ window.pageInit = () => {
                 
                 ${hasRights ? `
                 <div class="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                  <button onclick="window.openEditLogModal('${entry.id}', '${safeContent}')" 
-                          class="p-1.5 text-blue-600 rounded-full hover:bg-blue-100 transition-colors" 
-                          title="Modifier">
-                    <i data-lucide="pencil" class="w-4 h-4"></i>
-                  </button>
+          <button onclick="window.openEditLogModal('${entry.id}', '${safeContent}', ${isUrgent})" 
+                  class="p-1.5 text-blue-600 rounded-full hover:bg-blue-100 transition-colors" 
+                  title="Modifier">
+            <i data-lucide="pencil" class="w-4 h-4"></i>
+          </button>
                   <button onclick="window.deleteLogEntry(${entry.id})" 
                           class="p-1.5 text-red-500 rounded-full hover:bg-red-100 transition-colors" 
                           title="Supprimer">
@@ -236,12 +236,23 @@ e.preventDefault();
   }
 
   // Ouvrir la modale
-  window.openEditLogModal = (id, content) => {
-    editLogIdInput.value = id;
-    editLogContentInput.value = content; // Le contenu brut
-    editModal.style.display = 'flex';
-    lucide.createIcons();
+ window.openEditLogModal = (id, content, isUrgent) => {
+  const editLogIdInput = document.getElementById('edit-log-id');
+  const editLogContentInput = document.getElementById('edit-log-content');
+  const editLogUrgentCheckbox = document.getElementById('edit-log-urgent'); // Référence à la nouvelle checkbox
+  const editModal = document.getElementById('edit-log-modal');
+
+  editLogIdInput.value = id;
+  editLogContentInput.value = content;
+  
+  // AJOUT : Mettre à jour l'état de la case à cocher
+  if (editLogUrgentCheckbox) {
+    editLogUrgentCheckbox.checked = isUrgent;
   }
+
+  editModal.style.display = 'flex';
+  lucide.createIcons();
+}
 
   // Fermer la modale
   window.closeEditLogModal = () => {
@@ -251,15 +262,17 @@ e.preventDefault();
   }
 
   // Soumettre la modification
-  window.handleEditLogSubmit = async (e) => {
-    e.preventDefault();
-    const id = editLogIdInput.value;
-    const newContent = editLogContentInput.value.trim();
-    
-    if (!newContent) {
-        notyf.error("Le message ne peut pas être vide.");
-        return;
-    }
+ window.handleEditLogSubmit = async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('edit-log-id').value;
+  const newContent = document.getElementById('edit-log-content').value.trim();
+  const isUrgent = document.getElementById('edit-log-urgent').checked; // AJOUT
+  const editLogSubmitBtn = document.getElementById('edit-log-submit-btn');
+
+  if (!newContent) {
+      notyf.error("Le message ne peut pas être vide.");
+      return;
+  }
 
     editLogSubmitBtn.disabled = true;
     editLogSubmitBtn.textContent = 'Enregistrement...';
@@ -269,6 +282,7 @@ e.preventDefault();
             .from('main_courante')
             .update({ 
                 message_content: newContent,
+                is_urgent: isUrgent,
                 updated_at: new Date().toISOString() // Mettre à jour le timestamp
             })
             .eq('id', id);
