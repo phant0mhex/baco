@@ -107,7 +107,7 @@ window.pageInit = () => {
         
         // Échapper les guillemets pour le onclick
         const safeContent = entry.message_content.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n');
-
+const isModified = entry.updated_at && Math.abs(new Date(entry.updated_at) - new Date(entry.created_at)) > 1000;
         return `
           <div class="bg-white shadow border border-gray-200 rounded-lg flex gap-4 p-4 group">
             <img src="${authorAvatar}" alt="avatar" class="w-10 h-10 rounded-full object-cover hidden sm:block">
@@ -117,7 +117,7 @@ window.pageInit = () => {
                   <img src="${authorAvatar}" alt="avatar" class="w-8 h-8 rounded-full object-cover sm:hidden"> 
                   <span class="font-semibold text-gray-900">${authorName}</span>
                   <span class="text-xs text-gray-500">${timestamp}</span>
-                  ${entry.updated_at && entry.updated_at !== entry.created_at ? '<span class="text-xs text-gray-400 italic">(modifié)</span>' : ''}
+                  ${isModified ? '<span class="text-xs text-gray-400 italic">(modifié)</span>' : ''}
                 </div>
                 
                 ${hasRights ? `
