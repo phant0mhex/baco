@@ -102,23 +102,35 @@ window.pageInit = () => {
         const authorName = author ? author.full_name : 'Utilisateur supprimé';
         const authorAvatar = author ? author.avatar_url : 'https://via.placeholder.com/40';
         
-        // Droit d'action : Admin OU Propriétaire du message
+       // Droits (Admin ou Auteur)
         const hasRights = adminRole || (currentUserId && currentUserId === entry.user_id);
-        
-        // Échapper les guillemets pour le onclick
         const safeContent = entry.message_content.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n');
-const isModified = entry.updated_at && Math.abs(new Date(entry.updated_at) - new Date(entry.created_at)) > 1000;
+
+        // --- LOGIQUE URGENT ---
+        // Si urgent : bordure rouge, fond rouge clair, icône sirène animée
+        const cardClass = entry.is_urgent 
+          ? 'bg-red-50 border-l-4 border-red-500 shadow-md' 
+          : 'bg-white border border-gray-200 shadow-sm';
+          
+        const badgeUrgent = entry.is_urgent 
+          ? `<div class="flex items-center gap-1 text-red-600 font-bold text-xs uppercase tracking-wide animate-pulse">
+               <i data-lucide="siren" class="w-4 h-4"></i> Urgent
+             </div>` 
+          : '';
+        // ----------------------
+
         return `
-          <div class="bg-white shadow border border-gray-200 rounded-lg flex gap-4 p-4 group">
-            <img src="${authorAvatar}" alt="avatar" class="w-10 h-10 rounded-full object-cover hidden sm:block">
-            <div class="flex-1">
-              <div class="flex justify-between items-start mb-2">
-                <div class="flex items-center gap-2">
-                  <img src="${authorAvatar}" alt="avatar" class="w-8 h-8 rounded-full object-cover sm:hidden"> 
-                  <span class="font-semibold text-gray-900">${authorName}</span>
+          <div class="${cardClass} rounded-lg flex gap-4 p-4 group transition-all">
+            <img src="${authorAvatar}" alt="avatar" class="w-10 h-10 rounded-full object-cover hidden sm:block border border-gray-200">
+            <div class="flex-1 min-w-0"> <div class="flex justify-between items-start mb-2">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                  <div class="flex items-center gap-2">
+                    <img src="${authorAvatar}" alt="avatar" class="w-8 h-8 rounded-full object-cover sm:hidden"> 
+                    <span class="font-semibold text-gray-900">${authorName}</span>
+                  </div>
+                  <span class="text-xs text-gray-500 hidden sm:inline">&bull;</span>
                   <span class="text-xs text-gray-500">${timestamp}</span>
-                  ${isModified ? '<span class="text-xs text-gray-400 italic">(modifié)</span>' : ''}
-                </div>
+                  ${badgeUrgent} </div>
                 
                 ${hasRights ? `
                 <div class="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
@@ -135,7 +147,8 @@ const isModified = entry.updated_at && Math.abs(new Date(entry.updated_at) - new
                 </div>
                 ` : ''}
               </div>
-              <p class="text-gray-700 whitespace-pre-wrap">${entry.message_content}</p>
+              
+              <div class="text-gray-800 whitespace-pre-wrap break-words ${entry.is_urgent ? 'font-medium' : ''}">${entry.message_content}</div>
             </div>
           </div>
         `;
@@ -150,9 +163,13 @@ const isModified = entry.updated_at && Math.abs(new Date(entry.updated_at) - new
 
   // --- GESTION DE L'AJOUT ---
   const handlePostSubmit = async (e) => {
-    e.preventDefault();
+e.preventDefault();
     const textarea = document.getElementById('log-message');
+    const urgentCheckbox = document.getElementById('log-urgent'); // Récupérer la checkbox
+    
     const message = textarea.value.trim();
+    const isUrgent = urgentCheckbox ? urgentCheckbox.checked : false; // Valeur booléenne
+
     if (!message || !currentUserId) return;
 
     logSubmitButton.disabled = true;
@@ -162,7 +179,11 @@ const isModified = entry.updated_at && Math.abs(new Date(entry.updated_at) - new
     try {
       const { data: logEntry, error: logError } = await supabaseClient
         .from('main_courante')
-        .insert({ message_content: message, user_id: currentUserId })
+        .insert({ 
+            message_content: message, 
+            user_id: currentUserId,
+            is_urgent: isUrgent // Ajout du champ
+        })
         .select()
         .single();
       if (logError) throw logError;
@@ -184,8 +205,9 @@ const isModified = entry.updated_at && Math.abs(new Date(entry.updated_at) - new
         }
       }
       
-      notyf.success('Message publié.');
+      notyf.success(isUrgent ? 'Message URGENT publié !' : 'Message publié.');
       textarea.value = '';
+      if (urgentCheckbox) urgentCheckbox.checked = false; // Décocher la case
       loadLogFeed();
     } catch (error) {
       notyf.error(error.message);
