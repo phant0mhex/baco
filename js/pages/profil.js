@@ -17,7 +17,6 @@ window.pageInit = () => {
   const avatarPreview = document.getElementById('avatar-preview');
   const avatarFileInput = document.getElementById('avatar-file');
   const avatarStatus = document.getElementById('avatar-upload-status');
-  // Correction : L'ID de l'Upload Label est 'avatar-upload-label'
   const avatarUploadLabel = document.querySelector('.avatar-upload-label'); 
   const passwordSection = document.getElementById('password-section');
   const passwordForm = document.getElementById('password-form');
@@ -31,15 +30,18 @@ window.pageInit = () => {
   let currentUserId = null;
   let targetUserId = null;
   let isMyProfile = false;
+  let isAdmin = false; // Nouvelle variable pour stocker le statut admin
   let uploading = false;
 
-  
   async function getProfile() {
     try {
       // 1. Identifier l'utilisateur actuel
       const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
       if (authError || !user) throw new Error('Utilisateur non connecté');
       currentUserId = user.id;
+
+      // Vérifier si l'utilisateur connecté est admin via le sessionStorage (défini au login)
+      isAdmin = sessionStorage.getItem('userRole') === 'admin';
 
       // 2. Déterminer quel profil charger
       const urlParams = new URLSearchParams(window.location.search);
@@ -53,10 +55,10 @@ window.pageInit = () => {
         isMyProfile = true;
       }
 
-      // 3. Récupérer les données du profil CIBLE (sans l'email)
+      // 3. Récupérer les données du profil CIBLE
       const { data, error, status } = await supabaseClient
         .from('profiles')
-        .select(`username, full_name, avatar_url, role`) // <-- 'email' est supprimé d'ici
+        .select(`username, full_name, avatar_url, role`)
         .eq('id', targetUserId)
         .single();
         
@@ -69,7 +71,7 @@ window.pageInit = () => {
         roleInput.value = (data.role || 'user').charAt(0).toUpperCase() + (data.role || 'user').slice(1);
         if (data.avatar_url) avatarPreview.src = data.avatar_url + `?t=${new Date().getTime()}`;
 
-        // Afficher le badge admin
+        // Afficher le badge si le PROFIL VISITÉ est admin
         if (data.role === 'admin' && adminBadge) {
           adminBadge.innerHTML = `
             <span title="Administrateur Certifié" class="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white text-sm font-semibold rounded-full shadow-md">
@@ -79,13 +81,12 @@ window.pageInit = () => {
         }
       }
       
-      // 5. Gérer l'Email (logique corrigée)
+      // 5. Gérer l'Email
       if (isMyProfile) {
-        // Si c'est mon profil, je le prends de la session
         emailInput.value = user.email || '';
       } else {
-        // Si c'est le profil d'un autre, seul un admin peut voir l'email
-        if (sessionStorage.getItem('userRole') === 'admin') {
+        // Un admin peut voir l'email des autres via RPC
+        if (isAdmin) {
           try {
             const { data: emailData, error: rpcError } = await supabaseClient.rpc('admin_get_user_email', { p_user_id: targetUserId });
             if (rpcError) throw rpcError;
@@ -98,10 +99,10 @@ window.pageInit = () => {
         }
       }
 
-      // 6. Charger les infractions pour l'utilisateur CIBLE
+      // 6. Charger les infractions
       loadInfractions(targetUserId);
       
-      // 7. Configurer la page
+      // 7. Configurer la page (Mode lecture ou écriture)
       setupPageMode();
 
     } catch (error) {
@@ -112,19 +113,44 @@ window.pageInit = () => {
   }
 
   function setupPageMode() {
-    if (isMyProfile) {
-      pageTitle.innerHTML = 'Mon Profil <span id="admin-badge" class="ml-2"></span>';
+    // On autorise la modification si c'est MON profil OU si je suis ADMIN
+    if (isMyProfile || isAdmin) {
+      
+      if (isMyProfile) {
+          pageTitle.innerHTML = 'Mon Profil <span id="admin-badge" class="ml-2"></span>';
+          passwordSection.style.display = 'block'; // On peut changer son propre mot de passe
+      } else {
+          pageTitle.innerHTML = `Modification : ${fullNameInput.value || 'Utilisateur'}`;
+          passwordSection.style.display = 'none'; // Un admin ne change pas le mot de passe ici (il le reset dans admin.html)
+          
+          // Ajouter un indicateur visuel qu'on est en mode "Admin Edit"
+          saveButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+          saveButton.classList.add('bg-yellow-600', 'hover:bg-yellow-700');
+          saveButton.textContent = "Enregistrer (Admin)";
+      }
+
+      // Activer les écouteurs
       profileForm.addEventListener('submit', handleProfileUpdate);
-      passwordForm.addEventListener('submit', updatePassword);
+      
+      // Le changement de MDP n'est actif que pour soi-même
+      if (isMyProfile) {
+          passwordForm.addEventListener('submit', updatePassword);
+      }
+      
+      // L'upload d'avatar est permis pour soi ou l'admin
       avatarFileInput.addEventListener('change', handleAvatarUpload);
+
     } else {
+      // MODE LECTURE SEULE (Visiteur simple sur le profil d'un autre)
       pageTitle.innerHTML = `Profil de ${fullNameInput.value || 'Utilisateur'}`;
       passwordSection.style.display = 'none';
       saveButton.style.display = 'none';
+      
       if (avatarUploadLabel) avatarUploadLabel.style.cursor = 'default';
       avatarFileInput.disabled = true;
       const overlay = avatarUploadLabel ? avatarUploadLabel.querySelector('.avatar-overlay') : null;
       if (overlay) overlay.style.display = 'none';
+      
       usernameInput.disabled = true;
       fullNameInput.disabled = true;
     }
@@ -132,47 +158,68 @@ window.pageInit = () => {
 
   async function handleProfileUpdate(e) {
     e.preventDefault();
-    if (!isMyProfile) return;
+    // Sécurité côté client
+    if (!isMyProfile && !isAdmin) return;
+
     try {
       saveButton.disabled = true;
       saveButton.textContent = 'Enregistrement...';
+      
+      // IMPORTANT : On met à jour targetUserId, pas forcément currentUserId
       const updates = { 
-        id: currentUserId, 
+        id: targetUserId, 
         username: usernameInput.value, 
         full_name: fullNameInput.value, 
         updated_at: new Date() 
       };
+
       const { error } = await supabaseClient.from('profiles').upsert(updates);
       if (error) throw error;
-      notyf.success('Profil mis à jour !');
+      
+      notyf.success('Profil mis à jour avec succès !');
+      
     } catch (error) {
       notyf.error('Erreur mise à jour profil : ' + error.message);
     } finally {
       saveButton.disabled = false;
-      saveButton.textContent = 'Enregistrer les modifications';
+      saveButton.textContent = isAdmin && !isMyProfile ? 'Enregistrer (Admin)' : 'Enregistrer les modifications';
     }
   }
   
   async function handleAvatarUpload(event) {
-    if (!isMyProfile || uploading) return;
+    if ((!isMyProfile && !isAdmin) || uploading) return;
+    
     const file = event.target.files[0];
     if (!file) return;
+    
     uploading = true;
     avatarStatus.textContent = 'Téléchargement...';
+    
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `${currentUserId}/${fileName}`;
+      // On stocke dans le dossier de l'utilisateur CIBLE
+      const filePath = `${targetUserId}/${fileName}`;
+      
       const { error: uploadError } = await supabaseClient.storage.from('avatars').upload(filePath, file, { upsert: true });
       if (uploadError) throw uploadError;
+      
       const { data: urlData } = supabaseClient.storage.from('avatars').getPublicUrl(filePath);
       if (!urlData) throw new Error("Impossible d'obtenir l'URL publique.");
+      
       const publicURL = urlData.publicUrl;
-      const { error: updateError } = await supabaseClient.from('profiles').update({ avatar_url: publicURL, updated_at: new Date() }).eq('id', currentUserId);
+      
+      const { error: updateError } = await supabaseClient
+        .from('profiles')
+        .update({ avatar_url: publicURL, updated_at: new Date() })
+        .eq('id', targetUserId); // Mise à jour du profil CIBLE
+        
       if (updateError) throw updateError;
+      
       avatarPreview.src = publicURL + `?t=${new Date().getTime()}`;
       avatarStatus.textContent = '';
       notyf.success('Avatar mis à jour !');
+      
     } catch (error) {
       console.error("Erreur upload avatar:", error.message);
       avatarStatus.textContent = '';
@@ -184,9 +231,11 @@ window.pageInit = () => {
 
   async function updatePassword(event) {
     event.preventDefault();
-    if (!isMyProfile) return;
+    if (!isMyProfile) return; // Seul l'utilisateur lui-même peut changer son MDP ici
+    
     const newPassword = document.getElementById('new-password').value;
     const confirmPassword = document.getElementById('confirm-password').value;
+    
     if (newPassword.length < 6) {
       notyf.error('Le mot de passe doit faire au moins 6 caractères.');
       return;
@@ -195,8 +244,10 @@ window.pageInit = () => {
       notyf.error('Les mots de passe ne correspondent pas.');
       return;
     }
+    
     passwordSaveButton.disabled = true;
     passwordSaveButton.textContent = 'Enregistrement...';
+    
     try {
       const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
       if (error) throw error;
