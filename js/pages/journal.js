@@ -66,6 +66,9 @@ window.pageInit = () => {
       dateFormat: "Y-m-d",
       altInput: true,
       altFormat: "j F Y",
+      onReady: (selectedDates, dateStr, instance) => {
+        instance.calendarContainer.classList.add('font-sans', 'baco-theme');
+      },
       onChange: (selectedDates, dateStr) => {
         selectedDateFilter = dateStr;
         loadLogFeed();
