@@ -27,6 +27,10 @@ window.pageInit = () => {
   const adminRole = sessionStorage.getItem('userRole') === 'admin';
   const JOURNAL_STORAGE_KEY = 'lastJournalVisit';
   
+  // Pagination
+  let currentPage = 1;
+  const rowsPerPage = 20; // Nombre de messages par page
+
   // Filtres
   let selectedDateFilter = null;
   let selectedAuthorFilter = 'all';
@@ -71,6 +75,7 @@ window.pageInit = () => {
       },
       onChange: (selectedDates, dateStr) => {
         selectedDateFilter = dateStr;
+        currentPage = 1;
         loadLogFeed();
       }
     });
@@ -100,6 +105,7 @@ window.pageInit = () => {
           
           filterAuthorSelect.addEventListener('change', (e) => {
             selectedAuthorFilter = e.target.value;
+            currentPage = 1;
             loadLogFeed();
           });
       }
@@ -109,18 +115,24 @@ window.pageInit = () => {
   // --- CHARGEMENT DU FLUX ---
   const loadLogFeed = async () => {
     logFeed.innerHTML = '<div class="flex justify-center items-center py-20"><i data-lucide="loader-2" class="w-10 h-10 text-blue-600 animate-spin"></i></div>';
+    if (paginationContainer) paginationContainer.innerHTML = '';
     lucide.createIcons();
     
     try {
+
+      // Calculer l'intervalle pour la pagination
+      const from = (currentPage - 1) * rowsPerPage;
+      const to = from + rowsPerPage - 1;
+
       let query = supabaseClient
         .from('main_courante')
         .select(`
             *, 
             profiles ( full_name, avatar_url ),
             log_reactions ( user_id, emoji ) 
-        `) // On joint les réactions !
+        `, { count: 'exact' }) // On joint les réactions !
         .order('created_at', { ascending: false })
-        .limit(50);
+        .range(from, to);
 
       // --- APPLICATION DES FILTRES ---
       if (selectedDateFilter) {
@@ -232,11 +244,67 @@ window.pageInit = () => {
       }).join('');
       lucide.createIcons();
       
+
+// Gérer l'affichage de la pagination
+      const totalPages = Math.ceil(count / rowsPerPage);
+      renderPagination(totalPages, count, from, to);
+
+
     } catch (error) {
       logFeed.innerHTML = `<p class="text-red-600 text-center">Erreur: ${error.message}</p>`;
     }
   }
 
+
+  // --- RENDU PAGINATION ---
+  const renderPagination = (totalPages, totalRows, from, to) => {
+    if (!paginationContainer) return;
+    
+    if (totalPages <= 1) {
+      paginationContainer.innerHTML = '';
+      return;
+    }
+    
+    const toRow = Math.min(to + 1, totalRows);
+    
+    const infoHtml = `
+      <p class="text-sm text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm px-3 py-1.5">
+        Messages <span class="font-bold text-gray-900">${from + 1}</span> à <span class="font-bold text-gray-900">${toRow}</span> sur
+        <span class="font-bold text-gray-900">${totalRows}</span>
+      </p>
+    `;
+    
+    const prevDisabled = currentPage === 1;
+    const nextDisabled = currentPage === totalPages;
+    
+    const buttonsHtml = `
+      <div class="flex gap-2">
+        <button 
+          onclick="window.changePage(${currentPage - 1})" 
+          ${prevDisabled ? 'disabled' : ''}
+          class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm 
+                 hover:bg-gray-50 
+                 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+          <i data-lucide="arrow-left" class="w-4 h-4"></i>
+          <span>Précédent</span>
+        </button>
+        
+        <button 
+          onclick="window.changePage(${currentPage + 1})" 
+          ${nextDisabled ? 'disabled' : ''}
+          class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm 
+                 hover:bg-gray-50 
+                 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+          <span>Suivant</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+      </div>
+    `;
+    
+    paginationContainer.innerHTML = infoHtml + buttonsHtml;
+    lucide.createIcons();
+  }
+  
   // --- GESTION DES RÉACTIONS ---
   window.toggleReaction = async (logId, emoji, action) => {
       if(!currentUserId) return;
