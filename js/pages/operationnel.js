@@ -166,6 +166,79 @@ window.pageInit = () => {
     `;
   }
 
+
+
+  // Fonction pour charger l'historique (à ajouter dans window.pageInit)
+const loadHistory = async (procedureId) => {
+  const container = document.getElementById('history-container');
+  if (!container) return; // Si l'élément n'existe pas encore
+  
+  // Vérif admin
+  if (sessionStorage.getItem('userRole') !== 'admin') {
+      container.style.display = 'none';
+      return;
+  }
+  container.style.display = 'block';
+  container.innerHTML = '<p class="text-xs text-gray-400">Chargement de l\'historique...</p>';
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('procedure_versions')
+      .select(`*, profiles:modified_by ( full_name )`)
+      .eq('procedure_id', procedureId)
+      .order('archived_at', { ascending: false });
+
+    if (error) throw error;
+
+    if (data.length === 0) {
+      container.innerHTML = '<p class="text-xs text-gray-400 italic">Aucune version antérieure.</p>';
+      return;
+    }
+
+    container.innerHTML = `
+      <h4 class="text-sm font-semibold text-gray-700 mb-2 mt-4">Historique des modifications</h4>
+      <div class="space-y-2 max-h-40 overflow-y-auto border rounded p-2 bg-gray-50">
+        ${data.map(v => {
+          const date = window.formatDate(v.archived_at, 'admin');
+          const author = v.profiles?.full_name || 'Inconnu';
+          // On échappe les guillemets pour le onclick
+          const safeContent = v.contenu ? v.contenu.replace(/"/g, '&quot;').replace(/`/g, '\\`') : '';
+          
+          return `
+            <div class="flex justify-between items-center text-xs p-2 bg-white border rounded shadow-sm">
+              <div>
+                <span class="font-medium">${date}</span>
+                <span class="text-gray-500"> par ${author}</span>
+              </div>
+              <button type="button" 
+                      onclick="window.restoreVersion('${safeContent.replace(/\n/g, '\\n')}')"
+                      class="text-blue-600 hover:text-blue-800 underline">
+                Restaurer
+              </button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  } catch (error) {
+    console.error("Erreur historique:", error);
+    container.innerHTML = '';
+  }
+};
+
+// Fonction pour restaurer (à attacher à window)
+window.restoreVersion = (content) => {
+  if(!confirm("Attention : Le contenu actuel de l'éditeur sera remplacé. Continuer ?")) return;
+  
+  if (window.easyMDE) {
+    window.easyMDE.value(content);
+  } else {
+    document.getElementById('modal-contenu').value = content;
+  }
+  notyf.success("Version restaurée dans l'éditeur (pensez à enregistrer).");
+};
+
+
   // --- Fonctions de Liaison ---
 
   const loadLinkedContent = async (procedureId, containerId) => {
@@ -247,11 +320,26 @@ window.pageInit = () => {
     document.getElementById('modal-titre').value = isEdit ? entry.titre : '';
     document.getElementById('modal-categorie').value = isEdit ? entry.categorie : '';
     if (easyMDE) easyMDE.value(isEdit ? entry.contenu : '');
+else document.getElementById('modal-contenu').value = isEdit ? entry.contenu : '';
+// AJOUT : Gestion de l'historique
+    let historyDiv = document.getElementById('history-container');
+    if (!historyDiv) {
+        // Créer le conteneur s'il n'existe pas, juste avant les boutons du bas
+        historyDiv = document.createElement('div');
+        historyDiv.id = 'history-container';
+        historyDiv.className = 'mt-4 border-t pt-4';
+        // Insérer avant la div des boutons (dernière div du form)
+        const form = document.getElementById('procedure-form');
+        form.querySelector('.flex.justify-end').before(historyDiv);
+    }
+
     if (isEdit) {
       await loadLinkedContent(entry.id, 'modal-links-list');
+      loadHistory(entry.id);
     } else {
       currentLinks = [];
       renderLinks(modalLinksList, currentLinks);
+      if(historyDiv) historyDiv.innerHTML = '';
     }
     modal.classList.remove('invisible', 'opacity-0');
     modalPanel.classList.remove('scale-95');
