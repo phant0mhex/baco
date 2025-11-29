@@ -6,7 +6,7 @@ window.pageInit = () => {
     ? new Notyf({ duration: 3000, position: { x: 'right', y: 'top' }, dismissible: true })
     : { success: (msg) => alert(msg), error: (msg) => alert(msg) };
 
-  // --- LES CONST SONT DÉPLACÉES ICI ---
+  // --- LES CONST ---
   const proceduresList = document.getElementById('procedures-list');
   const categoriesList = document.getElementById('categories-list');
   const searchInput = document.getElementById('search-bar');
@@ -19,11 +19,13 @@ window.pageInit = () => {
   const addLinkButton = document.getElementById('add-link-button');
   const modalLinksList = document.getElementById('modal-links-list');
   const proceduresChannel = supabaseClient.channel('baco-procedures');
+  
   let selectedCategory = 'all';
   let easyMDE;
   let currentLinks = [];
   let currentProcedureId = null;
 
+  // Initialisation de l'éditeur
   try {
     easyMDE = new EasyMDE({
       element: document.getElementById('modal-contenu'),
@@ -34,12 +36,11 @@ window.pageInit = () => {
     });
   } catch (e) {
     console.error("Erreur initialisation EasyMDE:", e);
-    notyf.error("Erreur: L'éditeur de texte n'a pas pu charger.");
   }
 
   // --- Fonctions Utilitaires ---
   const formatTraceabilityDate = (dateString) => {
-    return window.formatDate(dateString, 'short'); // Utilise la fonction globale
+    return window.formatDate(dateString, 'short');
   }
 
   // --- Fonctions de Données ---
@@ -120,7 +121,7 @@ window.pageInit = () => {
       notyf.error('Erreur lors du chargement des procédures.');
     }
   }
-  window.loadProcedures = loadProcedures; // Attacher à window pour 'oninput'
+  window.loadProcedures = loadProcedures;
 
   // --- Fonctions de Rendu ---
   
@@ -128,8 +129,8 @@ window.pageInit = () => {
     const entryJson = JSON.stringify(entry).replace(/"/g, "&quot;");
     const contentHtml = window.marked.parse(entry.contenu || '');
     const searchTerm = searchInput.value.trim();
-    const displayTitle = window.highlightText(entry.titre, searchTerm); // Utilise window.
-    const displayCategory = window.highlightText(entry.categorie, searchTerm); // Utilise window.
+    const displayTitle = window.highlightText(entry.titre, searchTerm);
+    const displayCategory = window.highlightText(entry.categorie, searchTerm);
     
     let traceabilityHtml = '';
     if (entry.updated_at && entry.profiles) {
@@ -165,80 +166,6 @@ window.pageInit = () => {
       </div>
     `;
   }
-
-
-
-  // Fonction pour charger l'historique (à ajouter dans window.pageInit)
-const loadHistory = async (procedureId) => {
-  const container = document.getElementById('history-container');
-  if (!container) return; // Si l'élément n'existe pas encore
-  
-  // Vérif admin
-  if (sessionStorage.getItem('userRole') !== 'admin') {
-      container.style.display = 'none';
-      return;
-  }
-  container.style.display = 'block';
-  container.innerHTML = '<p class="text-xs text-gray-400">Chargement de l\'historique...</p>';
-
-  try {
-    const { data, error } = await supabaseClient
-      .from('procedure_versions')
-      .select(`*, profiles:modified_by ( full_name )`)
-      .eq('procedure_id', procedureId)
-      .order('archived_at', { ascending: false });
-
-    if (error) throw error;
-
-    if (data.length === 0) {
-      container.innerHTML = '<p class="text-xs text-gray-400 italic">Aucune version antérieure.</p>';
-      return;
-    }
-
-    container.innerHTML = `
-      <h4 class="text-sm font-semibold text-gray-700 mb-2 mt-4">Historique des modifications</h4>
-      <div class="space-y-2 max-h-40 overflow-y-auto border rounded p-2 bg-gray-50">
-        ${data.map(v => {
-          const date = window.formatDate(v.archived_at, 'admin');
-          const author = v.profiles?.full_name || 'Inconnu';
-          // On échappe les guillemets pour le onclick
-          const safeContent = v.contenu ? v.contenu.replace(/"/g, '&quot;').replace(/`/g, '\\`') : '';
-          
-          return `
-            <div class="flex justify-between items-center text-xs p-2 bg-white border rounded shadow-sm">
-              <div>
-                <span class="font-medium">${date}</span>
-                <span class="text-gray-500"> par ${author}</span>
-              </div>
-              <button type="button" 
-                      onclick="window.restoreVersion('${safeContent.replace(/\n/g, '\\n')}')"
-                      class="text-blue-600 hover:text-blue-800 underline">
-                Restaurer
-              </button>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `;
-  } catch (error) {
-    console.error("Erreur historique:", error);
-    container.innerHTML = '';
-  }
-};
-
-
-// Fonction pour restaurer (à attacher à window)
-window.restoreVersion = (content) => {
-  if(!confirm("Attention : Le contenu actuel de l'éditeur sera remplacé. Continuer ?")) return;
-  
-  if (window.easyMDE) {
-    window.easyMDE.value(content);
-  } else {
-    document.getElementById('modal-contenu').value = content;
-  }
-  notyf.success("Version restaurée dans l'éditeur (pensez à enregistrer).");
-};
-
 
   // --- Fonctions de Liaison ---
 
@@ -310,9 +237,78 @@ window.restoreVersion = (content) => {
     renderLinks(modalLinksList, currentLinks);
   }
 
-  // --- Fonctions Modales (ATTACHER À WINDOW) ---
+  // --- GESTION DE L'HISTORIQUE (VERSIONING) ---
   
-window.showProcedureModal = async (entry = null) => {
+  const loadHistory = async (procedureId) => {
+    const container = document.getElementById('history-container');
+    if (!container) return;
+    
+    // Vérification Admin
+    if (sessionStorage.getItem('userRole') !== 'admin') {
+        container.style.display = 'none';
+        return;
+    }
+    container.style.display = 'block';
+    container.innerHTML = '<p class="text-xs text-gray-400">Chargement de l\'historique...</p>';
+
+    try {
+      const { data, error } = await supabaseClient
+        .from('procedure_versions')
+        .select(`*, profiles:modified_by ( full_name )`)
+        .eq('procedure_id', procedureId)
+        .order('archived_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data.length === 0) {
+        container.innerHTML = '<p class="text-xs text-gray-400 italic">Aucune version antérieure.</p>';
+        return;
+      }
+
+      container.innerHTML = `
+        <h4 class="text-sm font-semibold text-gray-700 mb-2 mt-4">Historique des modifications</h4>
+        <div class="space-y-2 max-h-40 overflow-y-auto border rounded p-2 bg-gray-50">
+          ${data.map(v => {
+            const date = window.formatDate(v.archived_at, 'admin');
+            const author = v.profiles?.full_name || 'Inconnu';
+            const safeContent = v.contenu ? v.contenu.replace(/"/g, '&quot;').replace(/`/g, '\\`').replace(/\n/g, '\\n') : '';
+            
+            return `
+              <div class="flex justify-between items-center text-xs p-2 bg-white border rounded shadow-sm">
+                <div>
+                  <span class="font-medium">${date}</span>
+                  <span class="text-gray-500"> par ${author}</span>
+                </div>
+                <button type="button" 
+                        onclick="window.restoreVersion('${safeContent}')"
+                        class="text-blue-600 hover:text-blue-800 underline font-medium">
+                  Restaurer
+                </button>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    } catch (error) {
+      console.error("Erreur historique:", error);
+      container.innerHTML = '';
+    }
+  };
+
+  window.restoreVersion = (content) => {
+    if(!confirm("Attention : Le contenu actuel de l'éditeur sera remplacé. Continuer ?")) return;
+    
+    if (easyMDE) {
+      easyMDE.value(content);
+    } else {
+      document.getElementById('modal-contenu').value = content;
+    }
+    notyf.success("Version restaurée (pensez à enregistrer).");
+  };
+
+  // --- Fonctions Modales ---
+  
+  window.showProcedureModal = async (entry = null) => {
     procedureForm.reset();
     const isEdit = entry !== null;
     modalTitle.textContent = isEdit ? `Modifier: ${entry.titre}` : 'Ajouter une procédure';
@@ -325,30 +321,36 @@ window.showProcedureModal = async (entry = null) => {
     if (easyMDE) easyMDE.value(isEdit ? entry.contenu : '');
     else document.getElementById('modal-contenu').value = isEdit ? entry.contenu : '';
 
-    // --- DEBUT AJOUT HISTORIQUE ---
+    // AJOUT : Gestion du conteneur d'historique
     let historyDiv = document.getElementById('history-container');
     
-    // Créer la zone d'historique si elle n'existe pas encore dans le modal
     if (!historyDiv) {
         historyDiv = document.createElement('div');
         historyDiv.id = 'history-container';
-        historyDiv.className = 'mt-4 border-t pt-4 hidden'; // Caché par défaut
-        // On l'insère avant les boutons du bas
-        const footer = procedureForm.querySelector('.bg-gray-50.border-t');
-        if (footer) footer.before(historyDiv);
-        else procedureForm.appendChild(historyDiv);
+        historyDiv.className = 'mt-4 border-t pt-4 hidden';
+        // On l'insère juste avant la div contenant les boutons (Annuler/Enregistrer)
+        // Le footer a la classe bg-gray-50 border-t
+        const modalPanel = document.getElementById('procedure-modal-panel');
+        const footer = modalPanel.querySelector('.bg-gray-50.border-t');
+        if(footer) {
+            // On l'insère DANS le formulaire, juste AVANT le footer
+            procedureForm.insertBefore(historyDiv, footer);
+        } else {
+             procedureForm.appendChild(historyDiv);
+        }
     }
 
     if (isEdit) {
       await loadLinkedContent(entry.id, 'modal-links-list');
-      loadHistory(entry.id); // <-- Appel pour charger les versions
+      loadHistory(entry.id); // Charger l'historique
     } else {
       currentLinks = [];
       renderLinks(modalLinksList, currentLinks);
-      if (historyDiv) historyDiv.innerHTML = ''; 
-      if (historyDiv) historyDiv.style.display = 'none';
+      if (historyDiv) {
+          historyDiv.innerHTML = '';
+          historyDiv.style.display = 'none';
+      }
     }
-    // --- FIN AJOUT HISTORIQUE ---
 
     modal.classList.remove('invisible', 'opacity-0');
     modalPanel.classList.remove('scale-95');
@@ -384,6 +386,7 @@ window.showProcedureModal = async (entry = null) => {
         savedProcedureId = newData.id.toString();
       }
       
+      // Gestion des liens (inchangée)
       if (savedProcedureId) {
           const { error: deleteError } = await supabaseClient
               .from('liaisons_contenu')
@@ -406,6 +409,7 @@ window.showProcedureModal = async (entry = null) => {
               .insert(linksToInsert);
           if (linksError) throw linksError;
       }
+
       notyf.success(isEdit ? "Procédure mise à jour !" : "Procédure ajoutée !");
       hideProcedureModal();
       proceduresChannel.send({ type: 'broadcast', event: 'data-change' });
