@@ -237,13 +237,13 @@ window.pageInit = () => {
     renderLinks(modalLinksList, currentLinks);
   }
 
-  // --- GESTION DE L'HISTORIQUE (VERSIONING) ---
+  // --- GESTION DE L'HISTORIQUE (VERSIONING) - CORRIGÉ ---
   
   const loadHistory = async (procedureId) => {
     const container = document.getElementById('history-container');
     if (!container) return;
     
-    // Vérification Admin
+    // Vérification Admin (seuls les admins voient l'historique)
     if (sessionStorage.getItem('userRole') !== 'admin') {
         container.style.display = 'none';
         return;
@@ -271,6 +271,7 @@ window.pageInit = () => {
           ${data.map(v => {
             const date = window.formatDate(v.archived_at, 'admin');
             const author = v.profiles?.full_name || 'Inconnu';
+            // Échapper les caractères spéciaux pour l'appel JS
             const safeContent = v.contenu ? v.contenu.replace(/"/g, '&quot;').replace(/`/g, '\\`').replace(/\n/g, '\\n') : '';
             
             return `
@@ -321,28 +322,29 @@ window.pageInit = () => {
     if (easyMDE) easyMDE.value(isEdit ? entry.contenu : '');
     else document.getElementById('modal-contenu').value = isEdit ? entry.contenu : '';
 
-    // AJOUT : Gestion du conteneur d'historique
+    // AJOUT : Gestion du conteneur d'historique dans le DOM
     let historyDiv = document.getElementById('history-container');
     
     if (!historyDiv) {
         historyDiv = document.createElement('div');
         historyDiv.id = 'history-container';
         historyDiv.className = 'mt-4 border-t pt-4 hidden';
-        // On l'insère juste avant la div contenant les boutons (Annuler/Enregistrer)
-        // Le footer a la classe bg-gray-50 border-t
+        
+        // Insertion avant le footer (boutons Annuler/Enregistrer)
         const modalPanel = document.getElementById('procedure-modal-panel');
-        const footer = modalPanel.querySelector('.bg-gray-50.border-t');
+        const footer = modalPanel.querySelector('.flex.justify-end.items-center.p-4'); // Sélecteur plus précis
+        
         if(footer) {
-            // On l'insère DANS le formulaire, juste AVANT le footer
-            procedureForm.insertBefore(historyDiv, footer);
+            footer.parentNode.insertBefore(historyDiv, footer);
         } else {
+             // Fallback : ajouter à la fin du formulaire
              procedureForm.appendChild(historyDiv);
         }
     }
 
     if (isEdit) {
       await loadLinkedContent(entry.id, 'modal-links-list');
-      loadHistory(entry.id); // Charger l'historique
+      loadHistory(entry.id); // Charger l'historique pour cet ID
     } else {
       currentLinks = [];
       renderLinks(modalLinksList, currentLinks);
