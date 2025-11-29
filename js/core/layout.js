@@ -10,7 +10,7 @@ import { initGlobalSearch } from '../modules/search.js';
 import { loadJournalNotificationCount, loadNotificationCount } from '../modules/notifications.js';
 import { setupThemeToggle } from '../modules/theme.js';
 import { loadComponent, loadLatestChangelog, injectCalendarStyles, setupGoToTop, cleanPhoneNumber, formatPhoneNumber, formatDate, 
-  highlightText, exportToCSV  } from '../modules/utils.js';
+  highlightText, exportToXLSX, exportToPDF  } from '../modules/utils.js';
 
 // --- EXPORTS GLOBAUX ---
 // (Ces exports sont utilisés par les autres modules)
@@ -36,7 +36,8 @@ window.cleanPhoneNumber = cleanPhoneNumber;
 window.formatPhoneNumber = formatPhoneNumber;
 window.formatDate = formatDate;          // <-- AJOUTER
 window.highlightText = highlightText;    // <-- AJOUTER
-window.exportToCSV = exportToCSV;
+window.exportToXLSX = exportToXLSX;
+window.exportToPDF = exportToPDF;
 // -------------------------
 
 /**

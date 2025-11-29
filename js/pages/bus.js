@@ -25,60 +25,54 @@
       window.updateChauffeursDisplay = updateChauffeursDisplay;
       
 
-      // Ajoutez cette fonction dans window.pageInit
-window.exportBusData = async () => {
+window.exportBusData = async (format) => { // Accepte un paramètre 'format' ('xlsx' ou 'pdf')
   const lignesSelectionnees = Array.from(document.querySelectorAll('#ligneCheckboxes input:checked'))
     .map(cb => cb.value);
 
   if (lignesSelectionnees.length === 0) {
-    notyf.error("Veuillez sélectionner au moins une ligne pour exporter.");
+    notyf.error("Sélectionnez au moins une ligne.");
     return;
   }
 
-  notyf.success("Préparation de l'export...");
+  notyf.success("Génération en cours...");
 
   try {
-    // 1. Récupérer les IDs des sociétés
-    const { data: lignesData, error: lignesError } = await supabaseClient
-      .from('lignes_bus')
-      .select('societe_id, ligne')
-      .in('ligne', lignesSelectionnees);
+    // 1. Récupération des données (identique à avant)
+    const { data: lignesData, error: lErr } = await supabaseClient
+      .from('lignes_bus').select('societe_id').in('ligne', lignesSelectionnees);
+    if (lErr) throw lErr;
+    
+    const societeIds = [...new Set(lignesData.map(i => i.societe_id))];
+    if (societeIds.length === 0) { notyf.error("Aucune donnée."); return; }
 
-    if (lignesError) throw lignesError;
-    const societeIds = [...new Set(lignesData.map(item => item.societe_id))];
-
-    if (societeIds.length === 0) {
-      notyf.error("Aucune donnée à exporter.");
-      return;
-    }
-
-    // 2. Récupérer les données complètes (Sociétés + Contacts + Chauffeurs)
-    const { data: societes, error: socError } = await supabaseClient
+    const { data: societes, error: sErr } = await supabaseClient
       .from('societes_bus')
-      .select(`
-        nom,
-        lignes_bus (ligne),
-        contacts_bus (nom, tel),
-        chauffeurs_bus (nom, tel)
-      `)
+      .select(`nom, lignes_bus(ligne), contacts_bus(nom, tel), chauffeurs_bus(nom, tel)`)
       .in('id', societeIds)
       .order('nom');
+    if (sErr) throw sErr;
 
-    if (socError) throw socError;
-
-    // 3. Aplatir les données pour le CSV
+    // 2. Formatage des données
     const exportData = societes.map(s => ({
       Société: s.nom,
       Lignes: s.lignes_bus.map(l => l.ligne).join(', '),
-      Contacts: s.contacts_bus.map(c => `${c.nom} (${c.tel})`).join(' | '),
-      Chauffeurs: s.chauffeurs_bus.map(c => `${c.nom} (${c.tel})`).join(' | ')
+      Contacts: s.contacts_bus.map(c => `${c.nom} (${c.tel})`).join('\n'), // \n pour le PDF
+      Chauffeurs: s.chauffeurs_bus.map(c => `${c.nom} (${c.tel})`).join('\n')
     }));
 
-    window.exportToCSV(exportData, `export_bus_${new Date().toISOString().split('T')[0]}.csv`);
+    const dateStr = new Date().toISOString().split('T')[0];
+    const filename = `Bus_Export_${dateStr}`;
+
+    // 3. Choix du format
+    if (format === 'xlsx') {
+      window.exportToXLSX(exportData, `${filename}.xlsx`);
+    } else if (format === 'pdf') {
+      window.exportToPDF(exportData, `${filename}.pdf`, "Liste des Sociétés de Bus");
+    }
 
   } catch (error) {
-    console.error("Erreur export:", error);
-    notyf.error("Erreur lors de l'export.");
+    console.error(error);
+    notyf.error("Erreur export.");
   }
 };
 

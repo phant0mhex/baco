@@ -126,39 +126,53 @@ export function highlightText(text, term) {
 }
 
 
-// Dans js/modules/utils.js
+// ================= EXPORT EXCEL (.XLSX) =================
+export function exportToXLSX(data, filename = 'export.xlsx') {
+  if (typeof XLSX === 'undefined') {
+    console.error("SheetJS (XLSX) n'est pas chargé.");
+    alert("Erreur : Bibliothèque Excel manquante.");
+    return;
+  }
+  
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Export");
+  XLSX.writeFile(wb, filename);
+}
 
-export function exportToCSV(data, filename = 'export.csv') {
-  if (!data || !data.length) {
-    notyf.error("Aucune donnée à exporter.");
+// ================= EXPORT PDF (.PDF) =================
+export function exportToPDF(data, filename = 'export.pdf', title = 'Rapport') {
+  if (typeof jspdf === 'undefined') {
+    console.error("jsPDF n'est pas chargé.");
+    alert("Erreur : Bibliothèque PDF manquante.");
     return;
   }
 
-  const separator = ',';
-  const keys = Object.keys(data[0]);
-  
-  const csvContent = [
-    keys.join(separator), // En-tête
-    ...data.map(row => keys.map(k => {
-      let cell = row[k] === null || row[k] === undefined ? '' : row[k];
-      cell = cell instanceof Date ? cell.toLocaleString() : cell.toString();
-      cell = cell.replace(/"/g, '""'); // Échapper les guillemets
-      if (cell.search(/("|,|\n)/g) >= 0) cell = `"${cell}"`;
-      return cell;
-    }).join(separator))
-  ].join('\n');
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  if (link.download !== undefined) {
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', filename);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // Titre du document
+  doc.setFontSize(16);
+  doc.text(title, 14, 15);
+  doc.setFontSize(10);
+  doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')}`, 14, 22);
+
+  // Préparation des données pour l'autoTable
+  if (data.length > 0) {
+    const headers = [Object.keys(data[0])];
+    const rows = data.map(obj => Object.values(obj).map(val => String(val || '')));
+
+    doc.autoTable({
+      head: headers,
+      body: rows,
+      startY: 28,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [41, 128, 185] }, // Bleu
+      theme: 'grid'
+    });
   }
+
+  doc.save(filename);
 }
 
 /**
