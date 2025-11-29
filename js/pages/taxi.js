@@ -194,6 +194,76 @@
         lucide.createIcons();
       }
       
+      // --- NOUVELLE FONCTION D'EXPORT ---
+      window.exportTaxiData = async (format) => {
+        const lieuxSelectionnes = Array.from(document.querySelectorAll('#lieuCheckboxes input:checked'))
+          .map(cb => cb.value);
+
+        if (lieuxSelectionnes.length === 0) {
+          notyf.error("Veuillez sélectionner au moins un lieu.");
+          return;
+        }
+
+        notyf.success("Génération en cours...");
+
+        try {
+          // 1. Récupérer les taxis correspondant aux lieux sélectionnés
+          const { data: taxis, error } = await supabaseClient
+            .from('taxis')
+            .select('nom, lieux, contacts, mail, adresse, remarques')
+            .overlaps('lieux', lieuxSelectionnes) // Filtre SQL
+            .order('nom');
+
+          if (error) throw error;
+
+          if (!taxis || taxis.length === 0) {
+            notyf.error("Aucune donnée trouvée.");
+            return;
+          }
+
+          // 2. Formatage des données
+          const exportData = [];
+
+          taxis.forEach(t => {
+            // FILTRE VISUEL : On ne garde dans la colonne "Lieux" que ceux qui sont cochés
+            const lieuxAffiches = (t.lieux || []).filter(l => lieuxSelectionnes.includes(l));
+
+            // Si le taxi a des lieux correspondants (normalement oui grâce au .overlaps)
+            if (lieuxAffiches.length > 0) {
+                
+                // Formatage des numéros de téléphone
+                const formattedContacts = (t.contacts || [])
+                    .filter(c => c !== 'nihil')
+                    .map(c => window.formatPhoneNumber(window.cleanPhoneNumber(c)))
+                    .join('\n'); // Saut de ligne pour Excel/PDF
+
+                exportData.push({
+                    "Lieux": lieuxAffiches.join(', '), // En-tête (colonne A)
+                    "Société": t.nom,
+                    "Téléphones": formattedContacts,
+                    "Emails": (t.mail || []).filter(m => m !== 'nihil').join('\n'),
+                    "Adresses": (t.adresse || []).filter(a => a !== 'nihil').join('\n'),
+                    "Remarques": (t.remarques || []).filter(r => r !== 'nihil').join('\n')
+                });
+            }
+          });
+
+          const dateStr = new Date().toISOString().split('T')[0];
+          const filename = `Taxis_Export_${dateStr}`;
+
+          // 3. Export
+          if (format === 'xlsx') {
+            window.exportToXLSX(exportData, `${filename}.xlsx`);
+          } else if (format === 'pdf') {
+            window.exportToPDF(exportData, `${filename}.pdf`, `Taxis - Lieux : ${lieuxSelectionnes.join(', ')}`);
+          }
+
+        } catch (error) {
+          console.error(error);
+          notyf.error("Erreur lors de l'export.");
+        }
+      };
+      
       // --- FONCTIONS D'ÉDITION ---
       function showTaxiModal(taxi = null) {
         const isEdit = taxi !== null;

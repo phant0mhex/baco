@@ -84,14 +84,22 @@
 <script src="js/pages/taxi.js" type="module"></script>
 
 
-  <div id="taxi-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50" style="display: none;">
-  <div class="bg-white rounded-lg shadow-xl w-full max-w-lg">
-    <div class="flex justify-between items-center p-4 border-b">
-      <h3 id="modal-title" class="text-xl font-semibold text-gray-800">Ajouter un taxi</h3>
-      <button onclick="hideTaxiModal()" class="p-1 rounded-full text-gray-500 hover:bg-gray-200">
-        <i data-lucide="x" class="w-5 h-5"></i>
-      </button>
-    </div>
+<div class="mt-4 md:mt-0 admin-only flex gap-2">
+  <button onclick="window.exportTaxiData('xlsx')" class="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition-colors" title="Exporter en Excel">
+    <i data-lucide="sheet" class="w-5 h-5"></i>
+    <span class="hidden sm:inline">Excel</span>
+  </button>
+  
+  <button onclick="window.exportTaxiData('pdf')" class="flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition-colors" title="Exporter en PDF">
+    <i data-lucide="file-text" class="w-5 h-5"></i>
+    <span class="hidden sm:inline">PDF</span>
+  </button>
+
+  <button onclick="showTaxiModal()" class="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
+    <i data-lucide="plus" class="w-5 h-5"></i>
+    <span class="hidden sm:inline">Ajouter</span>
+  </button>
+</div>
     
     <form id="taxi-form" onsubmit="handleTaxiFormSubmit(event)">
       <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto">
