@@ -243,7 +243,7 @@ window.pageInit = () => {
 
     console.log("Tentative de chargement historique pour ID:", procedureId);
     console.log("Rôle actuel:", sessionStorage.getItem('userRole'));
-    
+
     const container = document.getElementById('history-container');
     if (!container) return;
     
@@ -342,7 +342,8 @@ window.pageInit = () => {
             footer.parentNode.insertBefore(historyDiv, footer);
         } else {
              // Fallback : ajouter à la fin du formulaire
-             procedureForm.appendChild(historyDiv);
+            const form = document.getElementById('procedure-form');
+        form.appendChild(historyDiv);
         }
     }
 
