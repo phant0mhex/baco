@@ -131,7 +131,8 @@ window.pageInit = () => {
     const searchTerm = searchInput.value.trim();
     const displayTitle = window.highlightText(entry.titre, searchTerm);
     const displayCategory = window.highlightText(entry.categorie, searchTerm);
-    
+    const safeTitle = entry.titre.replace(/'/g, "\\'");
+
     let traceabilityHtml = '';
     if (entry.updated_at && entry.profiles) {
       const date = formatTraceabilityDate(entry.updated_at);
@@ -152,8 +153,7 @@ window.pageInit = () => {
             <span class="text-sm font-medium text-gray-500">${displayCategory}</span>
           </div>
           <div class="admin-only flex items-center flex-shrink-0 gap-2">
-            <button onclick="window.deleteProcedure(${entry.id}, '${entry.titre}')" class="p-2 text-red-600 rounded-full hover:bg-red-100" title="Supprimer">
-              <i data-lucide="trash-2" class="w-4 h-4"></i>
+<button onclick="window.deleteProcedure(${entry.id}, '${safeTitle}')" class="p-2 text-red-600 rounded-full hover:bg-red-100" title="Supprimer">              <i data-lucide="trash-2" class="w-4 h-4"></i>
             </button>
             <button onclick="window.showProcedureModal(${entryJson})" class="p-2 text-blue-600 rounded-full hover:bg-blue-100" title="Modifier">
               <i data-lucide="pencil" class="w-4 h-4"></i>
@@ -240,20 +240,18 @@ window.pageInit = () => {
   // --- GESTION DE L'HISTORIQUE (VERSIONING) - CORRIGÉ ---
   
   const loadHistory = async (procedureId) => {
-
-    console.log("Tentative de chargement historique pour ID:", procedureId);
-    console.log("Rôle actuel:", sessionStorage.getItem('userRole'));
-
-    const container = document.getElementById('history-container');
+    const container = document.getElementById('history-slot'); // Utilise le nouveau slot
     if (!container) return;
     
-    // Vérification Admin (seuls les admins voient l'historique)
+    // Vérification Admin
     if (sessionStorage.getItem('userRole') !== 'admin') {
         container.style.display = 'none';
         return;
     }
+    
     container.style.display = 'block';
-    container.innerHTML = '<p class="text-xs text-gray-400">Chargement de l\'historique...</p>';
+    container.innerHTML = '<p class="text-xs text-gray-400 flex items-center gap-1"><i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Historique...</p>';
+    lucide.createIcons();
 
     try {
       const { data, error } = await supabaseClient
@@ -270,23 +268,33 @@ window.pageInit = () => {
       }
 
       container.innerHTML = `
-        <h4 class="text-sm font-semibold text-gray-700 mb-2 mt-4">Historique des modifications</h4>
-        <div class="space-y-2 max-h-40 overflow-y-auto border rounded p-2 bg-gray-50">
+        <div class="flex items-center gap-2 mb-1">
+            <h4 class="text-xs font-bold text-gray-700 uppercase">Historique</h4>
+            <span class="text-[10px] text-gray-400 bg-gray-100 px-1 rounded">${data.length} versions</span>
+        </div>
+        <div class="space-y-1 max-h-24 overflow-y-auto pr-1 custom-scrollbar">
           ${data.map(v => {
             const date = window.formatDate(v.archived_at, 'admin');
             const author = v.profiles?.full_name || 'Inconnu';
-            // Échapper les caractères spéciaux pour l'appel JS
-            const safeContent = v.contenu ? v.contenu.replace(/"/g, '&quot;').replace(/`/g, '\\`').replace(/\n/g, '\\n') : '';
+            
+            // --- CORRECTION CRITIQUE ICI ---
+            const safeContent = v.contenu 
+              ? v.contenu
+                  .replace(/\\/g, '\\\\') // Échapper les antislashs en premier
+                  .replace(/'/g, "\\'")   // Échapper les apostrophes (C'est ça qui bloquait)
+                  .replace(/"/g, '&quot;')
+                  .replace(/`/g, '\\`')
+                  .replace(/\n/g, '\\n')
+                  .replace(/\r/g, '')
+              : '';
+            // -------------------------------
             
             return `
-              <div class="flex justify-between items-center text-xs p-2 bg-white border rounded shadow-sm">
-                <div>
-                  <span class="font-medium">${date}</span>
-                  <span class="text-gray-500"> par ${author}</span>
-                </div>
+              <div class="flex items-center justify-between text-[11px] bg-white border border-gray-200 rounded px-2 py-1">
+                <span class="text-gray-600 truncate max-w-[150px]">${date} (${author})</span>
                 <button type="button" 
                         onclick="window.restoreVersion('${safeContent}')"
-                        class="text-blue-600 hover:text-blue-800 underline font-medium">
+                        class="text-blue-600 hover:text-blue-800 font-medium ml-2 hover:underline">
                   Restaurer
                 </button>
               </div>
