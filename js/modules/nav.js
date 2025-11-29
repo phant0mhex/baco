@@ -23,14 +23,29 @@ export function highlightActiveLink() {
   activeLink?.classList.add('bg-gray-700', 'font-bold');
 }
 
+
 /**
- * Masque les éléments réservés aux administrateurs
+ * Masque les éléments réservés aux administrateurs/modérateurs
  */
 export function hideAdminElements() {
   const userRole = sessionStorage.getItem('userRole');
-  if (userRole !== 'admin') {
+  const isStaff = userRole === 'admin' || userRole === 'moderator';
+
+  // 1. Si ce n'est ni un admin ni un modérateur, on cache tout ce qui est .admin-only
+  if (!isStaff) {
     const style = document.createElement('style');
     style.innerHTML = '.admin-only { display: none !important; }';
+    document.head.appendChild(style);
+  } 
+  
+  // 2. Si c'est un modérateur, on cache spécifiquement les pages "Super Admin"
+  if (userRole === 'moderator') {
+    const style = document.createElement('style');
+    // On cache les liens vers admin.html et audit.html dans la navigation
+    style.innerHTML = `
+        a[href="admin.html"],
+        a[href="audit.html"] { display: none !important; }
+    `;
     document.head.appendChild(style);
   }
 }

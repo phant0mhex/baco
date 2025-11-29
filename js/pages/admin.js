@@ -372,6 +372,26 @@ window.pageInit = () => {
    * Génère le HTML pour une seule ligne d'utilisateur
    */
   function renderUserRow(user, currentAdminId) {
+    let nextRole = 'user';
+let roleIcon = 'user';
+let roleColor = 'text-gray-600 hover:bg-gray-100';
+let roleTitle = 'Promouvoir Modérateur';
+
+if (currentRole === 'user') {
+    nextRole = 'moderator';
+    roleIcon = 'shield'; // Icône bouclier simple
+    roleColor = 'text-purple-600 hover:bg-purple-100';
+} else if (currentRole === 'moderator') {
+    nextRole = 'admin';
+    roleIcon = 'shield-check'; // Icône bouclier coché
+    roleTitle = 'Promouvoir Admin';
+    roleColor = 'text-blue-600 hover:bg-blue-100';
+} else if (currentRole === 'admin') {
+    nextRole = 'user';
+    roleIcon = 'user-minus';
+    roleTitle = 'Rétrograder Utilisateur';
+    roleColor = 'text-yellow-600 hover:bg-yellow-100';
+}
     const avatarSrc = user.avatar_url || 'https://via.placeholder.com/40';
     const currentRole = user.role || 'user';
     const isSelf = (user.user_id === currentAdminId);
@@ -463,12 +483,12 @@ window.pageInit = () => {
               <i data-lucide="history" class="w-4 h-4"></i>
             </button>
             
-            <button 
-              onclick="window.handleRoleChange('${user.user_id}', '${currentRole === 'admin' ? 'user' : 'admin'}')"
-              class="p-2 rounded-md ${currentRole === 'admin' ? 'text-yellow-600 hover:bg-yellow-100' : 'text-blue-600 hover:bg-blue-100'}"
-              title="${currentRole === 'admin' ? 'Rétrograder' : 'Promouvoir'}">
-              <i data-lucide="${currentRole === 'admin' ? 'user-minus' : 'user-plus'}" class="w-4 h-4"></i>
-            </button>
+          <button 
+  onclick="window.handleRoleChange('${user.user_id}', '${nextRole}')"
+  class="p-2 rounded-md ${roleColor}"
+  title="${roleTitle}">
+  <i data-lucide="${roleIcon}" class="w-4 h-4"></i>
+</button>
             
             ${isBanned ? `
             <button 
