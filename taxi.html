@@ -10,6 +10,9 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/flatpickr"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
   <script src="https://npmcdn.com/flatpickr/dist/l10n/fr.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/flatpickr/dist/flatpickr.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -51,7 +54,7 @@
         <h1 class="text-3xl font-bold text-gray-800">Section Taxis</h1>
         <p class="mt-1 text-sm text-gray-500">Sociétés de taxi par lieu d'intervention.</p>
       </div>
-      <div class="mt-4 md:mt-0 admin-only">
+      <div class="mt-4 md:mt-0 admin-only flex gap-2">
         <button onclick="window.exportTaxiData('pdf')" class="flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition-colors" title="Exporter en PDF">
     <i data-lucide="file-text" class="w-5 h-5"></i>
     <span class="hidden sm:inline">PDF</span>

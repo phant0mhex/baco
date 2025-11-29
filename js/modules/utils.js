@@ -140,14 +140,16 @@ export function exportToXLSX(data, filename = 'export.xlsx') {
   XLSX.writeFile(wb, filename);
 }
 
-// ================= EXPORT PDF (.PDF) =================
+/// ================= EXPORT PDF (.PDF) =================
 export function exportToPDF(data, filename = 'export.pdf', title = 'Rapport') {
-  if (typeof jspdf === 'undefined') {
-    console.error("jsPDF n'est pas chargé.");
-    alert("Erreur : Bibliothèque PDF manquante.");
+  // CORRECTION : On vérifie window.jspdf explicitement
+  if (!window.jspdf) {
+    console.error("jsPDF n'est pas chargé (window.jspdf introuvable).");
+    alert("Erreur : Bibliothèque PDF manquante. Vérifiez que les scripts CDN sont bien dans le <head> de votre page HTML.");
     return;
   }
 
+  // Accès correct à la classe jsPDF
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
@@ -162,14 +164,20 @@ export function exportToPDF(data, filename = 'export.pdf', title = 'Rapport') {
     const headers = [Object.keys(data[0])];
     const rows = data.map(obj => Object.values(obj).map(val => String(val || '')));
 
-    doc.autoTable({
-      head: headers,
-      body: rows,
-      startY: 28,
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [41, 128, 185] }, // Bleu
-      theme: 'grid'
-    });
+    // Vérification que le plugin autoTable est bien chargé
+    if (doc.autoTable) {
+        doc.autoTable({
+          head: headers,
+          body: rows,
+          startY: 28,
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [41, 128, 185] }, // Bleu
+          theme: 'grid'
+        });
+    } else {
+        console.warn("jsPDF-AutoTable n'est pas chargé.");
+        doc.text("Tableau non disponible (plugin manquant)", 14, 30);
+    }
   }
 
   doc.save(filename);
