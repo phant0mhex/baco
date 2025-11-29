@@ -118,7 +118,7 @@ window.pageInit = function() {
   }
 
 
-  // --- NOUVELLE FONCTION D'EXPORT ---
+  // --- NOUVELLE FONCTION D'EXPORT (MISE À JOUR) ---
       window.exportRepertoireData = async (format) => {
         const mainChecked = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
         const zoneSubChecked = Array.from(document.querySelectorAll('#zoneSubCategories input:checked')).map(cb => cb.value);
@@ -131,7 +131,7 @@ window.pageInit = function() {
 
         notyf.success("Génération de l'export...");
 
-        // 1. Reconstruction de la requête (Identique à updateDisplay)
+        // 1. Reconstruction de la requête
         let query = supabaseClient
           .from('contacts_repertoire')
           .select('nom, tel, email, groupe, categorie_principale, zone')
@@ -142,7 +142,7 @@ window.pageInit = function() {
         const mainCategoriesWithZones = mainChecked.filter(cat => categoriesWithZones.includes(cat));
         const mainCategoriesWithoutZones = mainChecked.filter(cat => !categoriesWithZones.includes(cat));
 
-        // Logique complexe de zone (FTY/FMS...)
+        // Logique de filtrage (identique à l'affichage)
         if (mainCategoriesWithZones.length > 0) {
           if (zoneSubChecked.length > 0) {
             zoneSubChecked.forEach(zone => {
@@ -202,11 +202,20 @@ window.pageInit = function() {
             const dateStr = new Date().toISOString().split('T')[0];
             const filename = `Repertoire_Export_${dateStr}`;
 
-            // 3. Export selon le format
+            // 3. Export selon le format (AVEC TITRE DYNAMIQUE)
             if (format === 'xlsx') {
                 window.exportToXLSX(exportData, `${filename}.xlsx`);
             } else if (format === 'pdf') {
-                window.exportToPDF(exportData, `${filename}.pdf`, "Répertoire Téléphonique");
+                // Construction du titre de l'en-tête
+                let title = "Répertoire";
+                if (mainChecked.length > 0) {
+                    title += ` - Cat: ${mainChecked.join(', ')}`;
+                }
+                if (zoneSubChecked.length > 0) {
+                    title += ` - Zones: ${zoneSubChecked.join(', ')}`;
+                }
+                
+                window.exportToPDF(exportData, `${filename}.pdf`, title);
             }
 
         } catch (error) {
@@ -214,7 +223,7 @@ window.pageInit = function() {
             notyf.error("Erreur lors de l'export.");
         }
       };
-      
+
   // --- ATTACHER LES FONCTIONS À WINDOW ---
   window.updateSubCategories = async () => {
     const mainChecked = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
