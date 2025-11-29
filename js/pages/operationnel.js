@@ -332,7 +332,7 @@ window.pageInit = () => {
         
         // Insertion avant le footer (boutons Annuler/Enregistrer)
         const modalPanel = document.getElementById('procedure-modal-panel');
-        const footer = modalPanel.querySelector('.flex.justify-end.items-center.p-4'); // Sélecteur plus précis
+        const footer = document.getElementById('modal-footer');
         
         if(footer) {
             footer.parentNode.insertBefore(historyDiv, footer);
