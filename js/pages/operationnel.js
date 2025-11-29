@@ -332,18 +332,21 @@ window.pageInit = () => {
     if (!historyDiv) {
         historyDiv = document.createElement('div');
         historyDiv.id = 'history-container';
-        historyDiv.className = 'mt-4 border-t pt-4 hidden';
+        historyDiv.className = 'mt-8 pt-4 border-t border-gray-100 hidden';
         
+        // MODIFICATION : On cible le conteneur de scroll
+        const scrollContainer = document.getElementById('modal-scroll-container');
+
+
         // Insertion avant le footer (boutons Annuler/Enregistrer)
         const modalPanel = document.getElementById('procedure-modal-panel');
         const footer = document.getElementById('modal-footer');
         
-        if(footer) {
-            footer.parentNode.insertBefore(historyDiv, footer);
+        if(scrollContainer) {
+            scrollContainer.appendChild(historyDiv);
         } else {
-             // Fallback : ajouter à la fin du formulaire
-            const form = document.getElementById('procedure-form');
-        form.appendChild(historyDiv);
+             // Fallback au cas où l'ID n'est pas trouvé
+             procedureForm.appendChild(historyDiv);
         }
     }
 
