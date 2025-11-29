@@ -367,39 +367,39 @@ window.pageInit = () => {
     }
   };
 
-
-  /**
-   * Génère le HTML pour une seule ligne d'utilisateur
+/**
+   * Génère le HTML pour une seule ligne d'utilisateur (VERSION CORRIGÉE)
    */
   function renderUserRow(user, currentAdminId) {
-    let nextRole = 'user';
-let roleIcon = 'user';
-let roleColor = 'text-gray-600 hover:bg-gray-100';
-let roleTitle = 'Promouvoir Modérateur';
-
-if (currentRole === 'user') {
-    nextRole = 'moderator';
-    roleIcon = 'shield'; // Icône bouclier simple
-    roleColor = 'text-purple-600 hover:bg-purple-100';
-} else if (currentRole === 'moderator') {
-    nextRole = 'admin';
-    roleIcon = 'shield-check'; // Icône bouclier coché
-    roleTitle = 'Promouvoir Admin';
-    roleColor = 'text-blue-600 hover:bg-blue-100';
-} else if (currentRole === 'admin') {
-    nextRole = 'user';
-    roleIcon = 'user-minus';
-    roleTitle = 'Rétrograder Utilisateur';
-    roleColor = 'text-yellow-600 hover:bg-yellow-100';
-}
+    // 1. DÉCLARATIONS (Doivent être en premier !)
     const avatarSrc = user.avatar_url || 'https://via.placeholder.com/40';
-    const currentRole = user.role || 'user';
+    const currentRole = user.role || 'user'; // <--- currentRole est défini ICI
     const isSelf = (user.user_id === currentAdminId);
     
-    // Logique de ban mise à jour : un ban est actif si la date est dans le futur
     const isBanned = user.banned_until && (new Date(user.banned_until) > new Date());
-    
     const lastLogin = formatAdminDate(user.last_sign_in_at);
+
+    // 2. LOGIQUE DU PROCHAIN RÔLE (Utilise currentRole défini juste au-dessus)
+    let nextRole = 'user';
+    let roleIcon = 'user';
+    let roleColor = 'text-gray-600 hover:bg-gray-100';
+    let roleTitle = 'Promouvoir Modérateur';
+
+    if (currentRole === 'user') {
+        nextRole = 'moderator';
+        roleIcon = 'shield'; 
+        roleColor = 'text-purple-600 hover:bg-purple-100';
+    } else if (currentRole === 'moderator') {
+        nextRole = 'admin';
+        roleIcon = 'shield-check';
+        roleTitle = 'Promouvoir Admin';
+        roleColor = 'text-blue-600 hover:bg-blue-100';
+    } else if (currentRole === 'admin') {
+        nextRole = 'user';
+        roleIcon = 'user-minus';
+        roleTitle = 'Rétrograder Utilisateur';
+        roleColor = 'text-yellow-600 hover:bg-yellow-100';
+    }
 
     // SVG pour le carton de football
     const cardSvg = `
@@ -408,6 +408,7 @@ if (currentRole === 'user') {
       </svg>
     `;
 
+    // 3. RENDU HTML
     return `
       <tr>
         <td class="px-6 py-4 whitespace-nowrap">
@@ -424,7 +425,9 @@ if (currentRole === 'user') {
               </div>
             </td>
         <td class="px-6 py-4 whitespace-nowrap">
-          <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${currentRole === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">
+          <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+            ${currentRole === 'admin' ? 'bg-blue-100 text-blue-800' : 
+              (currentRole === 'moderator' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800')}">
             ${currentRole}
           </span>
         </td>
@@ -483,12 +486,12 @@ if (currentRole === 'user') {
               <i data-lucide="history" class="w-4 h-4"></i>
             </button>
             
-          <button 
-  onclick="window.handleRoleChange('${user.user_id}', '${nextRole}')"
-  class="p-2 rounded-md ${roleColor}"
-  title="${roleTitle}">
-  <i data-lucide="${roleIcon}" class="w-4 h-4"></i>
-</button>
+            <button 
+              onclick="window.handleRoleChange('${user.user_id}', '${nextRole}')"
+              class="p-2 rounded-md ${roleColor}"
+              title="${roleTitle}">
+              <i data-lucide="${roleIcon}" class="w-4 h-4"></i>
+            </button>
             
             ${isBanned ? `
             <button 
