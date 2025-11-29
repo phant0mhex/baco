@@ -13,8 +13,6 @@
   <script src="https://npmcdn.com/flatpickr/dist/l10n/fr.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/flatpickr/dist/flatpickr.min.css">
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <!-- <script src="js/auth.js"></script>  -->
-  
   <link rel="stylesheet" href="https://unpkg.com/notyf@3/notyf.min.css">
   <script src="https://unpkg.com/notyf@3/notyf.min.js"></script>
 
@@ -42,68 +40,60 @@
    #mention-popup {
       display: none;
       position: absolute;
-      
-      /* --- Changement de Position --- */
-      top: 100%; /* S'affiche en dessous */
-      margin-top: 0.25rem; /* rem-1 (petit espace) */
-      /* bottom: 100%; (supprimé) */
-      /* ----------------------------- */
-
+      top: 100%;
+      margin-top: 0.25rem;
       left: 0;
       right: 0;
       z-index: 50; 
-      
-      /* --- Design Épuré --- */
       background-color: white;
-      border: 1px solid #e5e7eb; /* border-gray-200 */
-      border-radius: 0.5rem; /* rounded-lg */
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
       max-height: 200px;
       overflow-y: auto;
-      padding: 0.25rem; /* p-1 (espace intérieur) */
+      padding: 0.25rem;
     }
     .mention-item {
-      padding: 0.5rem; /* p-2 */
-      border-radius: 0.375rem; /* rounded-md */
+      padding: 0.5rem;
+      border-radius: 0.375rem;
       cursor: pointer;
       display: flex;
-      flex-direction: column; /* Aligne @username et (Nom) */
+      flex-direction: column;
     }
     .mention-item:hover {
-      background-color: #f9fafb; /* hover:bg-gray-50 */
+      background-color: #f9fafb;
     }
     .mention-item.selected {
-      background-color: #dbeafe; /* bg-blue-100 */
-      color: #1e40af; /* text-blue-800 */
+      background-color: #dbeafe;
+      color: #1e40af;
     }
     .mention-item .username {
-      font-weight: 600; /* font-semibold */
+      font-weight: 600;
     }
     .mention-item .fullname {
-      font-size: 0.875rem; /* text-sm */
-      color: #6b7280; /* text-gray-500 */
+      font-size: 0.875rem;
+      color: #6b7280;
     }
     
-    /* --- NOUVEAU: Styles Dark Mode (cohérents avec _nav.html) --- */
     .dark #mention-popup {
-      background-color: #1f2937; /* bg-gray-800 */
-      border-color: #374151; /* border-gray-700 */
+      background-color: #1f2937;
+      border-color: #374151;
     }
     .dark .mention-item {
-      color: #f9fafb; /* text-gray-50 */
+      color: #f9fafb;
     }
     .dark .mention-item:hover {
-      background-color: #374151; /* hover:bg-gray-700 */
+      background-color: #374151;
     }
     .dark .mention-item.selected {
-      background-color: #1e3a8a; /* bg-blue-900 */
-      color: #dbeafe; /* text-blue-100 */
+      background-color: #1e3a8a;
+      color: #dbeafe;
     }
     .dark .mention-item .username {
-      color: #f9fafb; /* text-gray-50 */
+      color: #f9fafb;
     }
     .dark .mention-item .fullname {
-      color: #9ca3af; /* text-gray-400 */
+      color: #9ca3af;
     }
 
 </style>
@@ -117,31 +107,46 @@
       
       <h1 class="text-3xl font-bold text-gray-800 mb-6">Journal</h1>
 
-     <form id="log-form" class="bg-white p-4 rounded-lg shadow border border-gray-200 mb-8">
-  <label for="log-message" class="block text-sm font-medium text-gray-700">Nouvelle entrée :</label>
+     <form id="log-form" class="bg-white p-4 rounded-lg shadow border border-gray-200 mb-8 dark:bg-gray-900 dark:border-gray-700">
+  <label for="log-message" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nouvelle entrée :</label>
 
   <div class="relative">
-    <textarea id="log-message" rows="3" class="mt-2 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Signaler un incident, une action, une information..."></textarea>
-
+    <textarea id="log-message" rows="3" class="mt-2 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white" placeholder="Signaler un incident, une action..."></textarea>
     <div id="mention-popup"></div>
   </div>
 
-  <div class="flex justify-between items-center mt-3">
-  <label class="flex items-center space-x-2 cursor-pointer group">
-    <div class="relative">
-      <input type="checkbox" id="log-urgent" class="peer sr-only">
-      <div class="w-10 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-red-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
-    </div>
-    <span class="text-sm font-medium text-gray-700 group-hover:text-red-600 transition-colors flex items-center gap-1">
-      <i data-lucide="siren" class="w-4 h-4"></i> Urgent
-    </span>
-  </label>
+  <div id="attachment-preview" class="hidden mt-2 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-700">
+    <i data-lucide="paperclip" class="w-4 h-4"></i>
+    <span id="attachment-name" class="truncate max-w-xs"></span>
+    <button type="button" onclick="window.clearAttachment()" class="ml-auto text-red-500 hover:text-red-700">
+      <i data-lucide="x" class="w-4 h-4"></i>
+    </button>
+  </div>
 
-  <button type="submit" id="log-submit-button" class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
-    <i data-lucide="send" class="w-4 h-4"></i>
-    <span>Publier</span>
-  </button>
-</div>
+  <div class="flex justify-between items-center mt-3">
+    <div class="flex items-center gap-4">
+      <label class="flex items-center space-x-2 cursor-pointer group">
+        <div class="relative">
+          <input type="checkbox" id="log-urgent" class="peer sr-only">
+          <div class="w-10 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-red-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600 dark:bg-gray-700"></div>
+        </div>
+        <span class="text-sm font-medium text-gray-700 group-hover:text-red-600 transition-colors flex items-center gap-1 dark:text-gray-300">
+          <i data-lucide="siren" class="w-4 h-4"></i> Urgent
+        </span>
+      </label>
+
+      <label class="flex items-center gap-1 cursor-pointer text-gray-500 hover:text-blue-600 transition-colors">
+        <input type="file" id="log-attachment" class="hidden" accept="image/*,application/pdf">
+        <i data-lucide="paperclip" class="w-5 h-5"></i>
+        <span class="text-sm font-medium">Joindre</span>
+      </label>
+    </div>
+
+    <button type="submit" id="log-submit-button" class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
+      <i data-lucide="send" class="w-4 h-4"></i>
+      <span>Publier</span>
+    </button>
+  </div>
 </form>
 
 

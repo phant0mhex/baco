@@ -9,11 +9,11 @@ import {
 import { initGlobalSearch } from '../modules/search.js';
 import { loadJournalNotificationCount, loadNotificationCount } from '../modules/notifications.js';
 import { setupThemeToggle } from '../modules/theme.js';
-import { loadComponent, loadLatestChangelog, injectCalendarStyles, setupGoToTop, cleanPhoneNumber, formatPhoneNumber, formatDate, 
-  highlightText, exportToXLSX, exportToPDF  } from '../modules/utils.js';
-
-// --- EXPORTS GLOBAUX ---
-// (Ces exports sont utilisés par les autres modules)
+import { 
+  loadComponent, loadLatestChangelog, injectCalendarStyles, setupGoToTop, 
+  cleanPhoneNumber, formatPhoneNumber, formatDate, highlightText, 
+  exportToCSV, exportToXLSX, exportToPDF, setupPreviewModal // <-- AJOUT
+} from '../modules/utils.js';
 
 export let notyf;
 if (typeof Notyf !== 'undefined') {
@@ -22,7 +22,7 @@ if (typeof Notyf !== 'undefined') {
     position: { x: 'right', y: 'top' },
     dismissible: true
   });
-  window.notyf = notyf; // Rendre notyf global également
+  window.notyf = notyf;
 } else {
   console.error("Notyf n'est pas chargé !");
   notyf = { success: (msg) => alert(msg), error: (msg) => alert(msg) };
@@ -31,25 +31,20 @@ if (typeof Notyf !== 'undefined') {
 
 export let currentUserId = null;
 
-// NOUVEL AJOUT: Rendre la fonction de nettoyage et formatage globale
+// Expositions globales
 window.cleanPhoneNumber = cleanPhoneNumber;
 window.formatPhoneNumber = formatPhoneNumber;
-window.formatDate = formatDate;          // <-- AJOUTER
-window.highlightText = highlightText;    // <-- AJOUTER
+window.formatDate = formatDate;
+window.highlightText = highlightText;
+window.exportToCSV = exportToCSV;
 window.exportToXLSX = exportToXLSX;
 window.exportToPDF = exportToPDF;
-// -------------------------
 
-/**
- * Initialise le calendrier Flatpickr sur le bouton de la nav
- */
 function initNavCalendar() {
-  const calendarButton = document.getElementById('nav-calendar-trigger'); // Cible le nouveau bouton
-  const calendarInput = document.getElementById('nav-calendar-input'); // Cible le nouvel input caché
+  const calendarButton = document.getElementById('nav-calendar-trigger');
+  const calendarInput = document.getElementById('nav-calendar-input');
 
   if (calendarButton && calendarInput && typeof flatpickr !== 'undefined' && flatpickr.l10ns.fr) {
-    
-    // 1. Initialiser flatpickr sur l'input caché
     const calendarInstance = flatpickr(calendarInput, {
       weekNumbers: true,
       locale: "fr",
@@ -60,7 +55,6 @@ function initNavCalendar() {
       }
     });
 
-    // 2. Utiliser le bouton (icône) pour ouvrir le calendrier
     calendarButton.addEventListener('click', (e) => {
       e.stopPropagation();
       calendarInstance.open();
@@ -68,26 +62,15 @@ function initNavCalendar() {
   }
 }
 
-// ... (après initNavCalendar() dans layout.js)
-
-/**
- * NOUVEAU: Cache le modal d'avertissement et mémorise le choix
- */
 window.hideInfractionWarning = () => {
   const modal = document.getElementById('infraction-warning-modal');
   if (modal) {
     modal.style.display = 'none';
   }
-  // On mémorise dans la session pour ne pas l'afficher à nouveau
-  // à chaque rechargement de page.
   sessionStorage.setItem('hasSeenInfractionWarning', 'true');
 }
 
-/**
- * NOUVEAU: Vérifie si l'utilisateur a 2 cartons jaunes et doit voir l'avertissement.
- */
 async function checkInfractionWarning(userId) {
-  // Si l'utilisateur a déjà vu le pop-up pendant cette session, on quitte
   if (sessionStorage.getItem('hasSeenInfractionWarning') === 'true') {
     return;
   }
@@ -95,20 +78,18 @@ async function checkInfractionWarning(userId) {
   try {
     const { data, error, count } = await supabaseClient
       .from('infractions')
-      .select('id', { count: 'exact' }) // On a juste besoin de compter
+      .select('id', { count: 'exact' })
       .eq('id', currentUserId)
       .eq('is_active', true)
       .eq('card_type', 'yellow')
-      .gt('expires_at', new Date().toISOString()); // 'gt' = greater than
+      .gt('expires_at', new Date().toISOString());
       
     if (error) throw error;
     
-    // Si l'utilisateur a EXACTEMENT 2 cartons jaunes actifs
     if (count === 2) {
       const modal = document.getElementById('infraction-warning-modal');
       if (modal) {
         modal.style.display = 'flex';
-        // Assurer que l'icône est dessinée
         if (window.lucide) {
           window.lucide.createIcons();
         }
@@ -117,18 +98,13 @@ async function checkInfractionWarning(userId) {
     
   } catch (error) {
     console.error("Erreur lors de la vérification des infractions:", error.message);
-    // On ne dérange pas l'utilisateur si cette vérification échoue
   }
 }
 
-/**
- * Vérifie s'il y a de nouvelles entrées dans le journal
- */
 async function pollJournalNotifications() {
   const badgeElement = document.getElementById('journal-badge');
-  if (!badgeElement) return; // Pas sur une page avec la nav
+  if (!badgeElement) return;
 
-  // On utilise la même clé que le module de notifications
   const JOURNAL_STORAGE_KEY = 'lastJournalVisit'; 
   let lastVisit = localStorage.getItem(JOURNAL_STORAGE_KEY);
   if (!lastVisit) lastVisit = '1970-01-01T00:00:00.000Z';
@@ -137,19 +113,17 @@ async function pollJournalNotifications() {
     const { count, error } = await supabaseClient
       .from('main_courante')
       .select('id', { count: 'exact', head: true })
-      .gt('created_at', lastVisit); // Compte les messages plus récents que la dernière visite
+      .gt('created_at', lastVisit);
 
     if (error) throw error;
 
     const oldBadgeCount = parseInt(badgeElement.textContent || '0', 10);
 
-    // Si le compte de la BDD est supérieur à ce que le badge affiche
     if (count > 0 && count > oldBadgeCount) {
       badgeElement.textContent = count;
       badgeElement.classList.remove('hidden');
 
-      // On affiche une notification seulement si le compte a changé
-      if (oldBadgeCount === 0) { // N'affiche que la première fois
+      if (oldBadgeCount === 0) {
          notyf.success({
             message: "Nouveau message dans le journal !",
             onClick: () => { window.location.href = 'journal.html'; }
@@ -164,65 +138,49 @@ async function pollJournalNotifications() {
   }
 }
 
-/**
- * Fonction interne pour charger les composants de layout
- */
 async function initLayout() {
-  // Injecter les styles globaux
   injectCalendarStyles();
   injectAdminGlowStyles();
   
-  // Mettre en place les fonctionnalités de base
   initGlobalSearch();
   hideAdminElements();
 
-  // Charger la navigation
   const navLoaded = await loadComponent('nav-placeholder', '_nav.html');
   if (navLoaded) {
-    // Initialiser tout ce qui dépend de la nav
     highlightActiveLink();
-    await loadNavAvatar(); // Doit être 'await'
+    await loadNavAvatar();
     setupThemeToggle();
     applyAdminGlow();
     initNavCalendar();
     setupMobileMenu();
     setupLogout();
     setupNavDropdowns();
-    loadJournalNotificationCount(); // Charger le badge
-    loadNotificationCount(); // <-- NOUVEL APPEL
+    loadJournalNotificationCount();
+    loadNotificationCount();
     checkInfractionWarning(currentUserId);
     updateUserHeartbeat();
 
-    setInterval(pollJournalNotifications, 30000); // 30 secondes
+    setInterval(pollJournalNotifications, 30000);
     setInterval(loadNotificationCount, 30000); 
-    
-    // Interroger les nouveaux messages du journal (badge) toutes les 30 secondes
     setInterval(loadJournalNotificationCount, 30000);
   }
 
-  // Charger le footer
   const footerLoaded = await loadComponent('footer-placeholder', '_footer.html');
   if (footerLoaded) {
-    // Initialiser tout ce qui dépend du footer
     const yearSpan = document.getElementById('current-year');
     if (yearSpan) yearSpan.textContent = new Date().getFullYear();
     loadLatestChangelog();
     setupGoToTop();
-checkWhatIsNew();
-
+    setupPreviewModal(); // <-- INITIALISATION DE LA MODALE
+    checkWhatIsNew();
   }
 
-  // Appeler Lucide une fois que tout est chargé
   lucide.createIcons();
 }
 
-
-// 2. Ajoutez cette nouvelle fonction dans js/core/layout.js
 async function checkWhatIsNew() {
   const STORAGE_KEY = 'baco-last-seen-changelog-id';
   try {
-    // Récupérer le dernier changelog (vous avez déjà cette logique dans utils.js, 
-    // mais nous avons besoin de l'ID ici)
     const { data, error } = await supabaseClient
       .from('changelog')
       .select('id, title, type')
@@ -231,27 +189,20 @@ async function checkWhatIsNew() {
       .single();
 
     if (error) throw error;
-    if (!data) return; // Pas de changelog
+    if (!data) return;
 
     const lastSeenId = localStorage.getItem(STORAGE_KEY);
 
-    // Si l'ID du dernier changelog est différent de celui sauvegardé
     if (data.id.toString() !== lastSeenId) {
-
       let typeText = data.type === 'Nouveau' ? '[Nouveau]' : '[Mise à jour]';
-
-      // Utiliser Notyf pour un popup cliquable
       notyf.success({
         message: `<strong>${typeText}</strong> ${data.title}`,
-        duration: 10000, // 10 secondes
+        duration: 10000,
         icon: false,
-        // Permet à l'utilisateur de cliquer sur la notif pour voir le changelog
         onClick: () => {
           window.location.href = 'changelog.html';
         }
       });
-
-      // Mémoriser que l'utilisateur a vu cette mise à jour
       localStorage.setItem(STORAGE_KEY, data.id.toString());
     }
 
@@ -260,15 +211,9 @@ async function checkWhatIsNew() {
   }
 }
 
-/**
- * Envoie un "heartbeat" pour marquer l'utilisateur comme actif.
- */
 async function updateUserHeartbeat() {
-  // currentUserId est défini dans le scope global de layout.js
   if (!currentUserId) return; 
-
   try {
-    // Pas besoin de 'await', laissez-le s'exécuter en arrière-plan
     supabaseClient
       .from('profiles')
       .update({ last_seen: new Date().toISOString() })
@@ -278,12 +223,7 @@ async function updateUserHeartbeat() {
   }
 }
 
-
-/**
- * Fonction de DÉMARRAGE PRINCIPALE
- */
 document.addEventListener('DOMContentLoaded', async () => {
-  // 1. Exécuter le gardien d'authentification
   const { data: { session } } = await supabaseClient.auth.getSession();
   const currentPage = window.location.pathname.split('/').pop();
 
@@ -291,32 +231,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     sessionStorage.removeItem('userRole');
     if (currentPage !== 'index.html' && currentPage !== 'reset-password.html') {
       window.location.href = 'index.html';
-      return; // Arrêter l'exécution
+      return;
     }
   } else {
-    // Utilisateur connecté
     const userRole = session.user.user_metadata?.role || 'user';
     sessionStorage.setItem('userRole', userRole);
     
-    // 2. Définir l'ID utilisateur global
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (user) {
       currentUserId = user.id;
-      window.currentUserId = currentUserId; // Rendre global
+      window.currentUserId = currentUserId;
     }
   }
   
-  // 3. Si on est sur index ou reset, ne pas charger le layout (nav/footer)
   if (currentPage !== 'index.html' && currentPage !== 'reset-password.html') {
-    // 4. Lancer l'initialisation du layout (nav/footer)
     await initLayout();
   }
 
-  // 5. Révéler le corps
   document.body.style.visibility = 'visible';
   
-  // 6. Démarrer le script spécifique à la page
-  // (uniquement si ce n'est pas index/reset ET que la page a un script d'init)
   if (typeof window.pageInit === 'function' && currentPage !== 'index.html' && currentPage !== 'reset-password.html') {
     window.pageInit();
   }

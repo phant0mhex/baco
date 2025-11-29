@@ -13,7 +13,12 @@ window.pageInit = () => {
   const logFeed = document.getElementById('log-feed');
   const filterAuthorSelect = document.getElementById('filter-author');
   const filterDateInput = document.getElementById('filter-date');
-  const paginationContainer = document.getElementById('pagination-container'); // Nouveau
+  const paginationContainer = document.getElementById('pagination-container');
+  
+  // Nouveaux éléments pour l'upload
+  const logAttachmentInput = document.getElementById('log-attachment');
+  const attachmentPreview = document.getElementById('attachment-preview');
+  const attachmentName = document.getElementById('attachment-name');
 
   // --- Modale d'édition ---
   const editModal = document.getElementById('edit-log-modal');
@@ -30,17 +35,11 @@ window.pageInit = () => {
   
   // Pagination
   let currentPage = 1;
-  const rowsPerPage = 20; // Nombre de messages par page
+  const rowsPerPage = 20;
 
   // Filtres
   let selectedDateFilter = null;
   let selectedAuthorFilter = 'all';
-
-  // Mentions
-  const mentionPopup = document.getElementById('mention-popup');
-  let userCache = [];
-  let selectedMentionIndex = -1;
-  let currentMentionQuery = '';
 
   // --- Initialisation Utilisateur ---
   (async () => {
@@ -64,6 +63,27 @@ window.pageInit = () => {
     }
   })();
 
+  // --- Gestion de l'UI "Fichier sélectionné" ---
+  if(logAttachmentInput) {
+    logAttachmentInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        attachmentName.textContent = file.name;
+        attachmentPreview.classList.remove('hidden');
+      } else {
+        window.clearAttachment();
+      }
+    });
+  }
+
+  window.clearAttachment = () => {
+    if(logAttachmentInput) {
+        logAttachmentInput.value = '';
+        attachmentPreview.classList.add('hidden');
+        attachmentName.textContent = '';
+    }
+  };
+
   // --- Initialisation Flatpickr (Filtre Date) ---
   if (filterDateInput) {
     flatpickr(filterDateInput, {
@@ -76,13 +96,12 @@ window.pageInit = () => {
       },
       onChange: (selectedDates, dateStr) => {
         selectedDateFilter = dateStr;
-        currentPage = 1; // Reset pagination au filtre
+        currentPage = 1; 
         loadLogFeed();
       }
     });
   }
 
-  // --- CHARGEMENT DES AUTEURS ---
   const loadAuthors = async () => {
     try {
       const { data, error } = await supabaseClient
@@ -92,8 +111,6 @@ window.pageInit = () => {
         
       if (error) throw error;
       
-      userCache = data.map(u => ({ ...u, username: u.full_name.split(' ')[0].toLowerCase() }));
-
       if(filterAuthorSelect) {
           const currentVal = filterAuthorSelect.value;
           filterAuthorSelect.innerHTML = '<option value="all">Tous les auteurs</option>' + 
@@ -102,36 +119,32 @@ window.pageInit = () => {
           
           filterAuthorSelect.addEventListener('change', (e) => {
             selectedAuthorFilter = e.target.value;
-            currentPage = 1; // Reset pagination au filtre
+            currentPage = 1; 
             loadLogFeed();
           });
       }
     } catch (e) { console.error("Erreur auteurs", e); }
   }
 
-  // --- CHARGEMENT DU FLUX (PAGINÉ) ---
   const loadLogFeed = async () => {
     logFeed.innerHTML = '<div class="flex justify-center items-center py-20"><i data-lucide="loader-2" class="w-10 h-10 text-blue-600 animate-spin"></i></div>';
-    if (paginationContainer) paginationContainer.innerHTML = ''; // Vider la pagination pendant le chargement
+    if (paginationContainer) paginationContainer.innerHTML = ''; 
     lucide.createIcons();
     
     try {
-      // Calculer l'intervalle pour la pagination
       const from = (currentPage - 1) * rowsPerPage;
       const to = from + rowsPerPage - 1;
 
-      // Construire la requête
       let query = supabaseClient
         .from('main_courante')
         .select(`
             *, 
             profiles ( full_name, avatar_url ),
             log_reactions ( user_id, emoji ) 
-        `, { count: 'exact' }) // Demander le nombre total exact
+        `, { count: 'exact' }) 
         .order('created_at', { ascending: false })
-        .range(from, to); // Appliquer la pagination
+        .range(from, to); 
 
-      // --- APPLICATION DES FILTRES ---
       if (selectedDateFilter) {
         const start = `${selectedDateFilter}T00:00:00`;
         const end = `${selectedDateFilter}T23:59:59`;
@@ -141,12 +154,10 @@ window.pageInit = () => {
       if (selectedAuthorFilter !== 'all') {
         query = query.eq('user_id', selectedAuthorFilter);
       }
-      // -------------------------------
 
       const { data, count, error } = await query;
       if (error) throw error;
       
-      // Marquer comme lu
       const now = new Date().toISOString();
       localStorage.setItem(JOURNAL_STORAGE_KEY, now);
       if (window.loadJournalNotificationCount) window.loadJournalNotificationCount();
@@ -156,17 +167,19 @@ window.pageInit = () => {
         return;
       }
       
-      // Rendu des cartes (Inchangé)
       logFeed.innerHTML = data.map(entry => {
         const author = entry.profiles; 
         const timestamp = window.formatDate(entry.created_at, 'short');
         const authorName = author ? author.full_name : 'Inconnu';
         const authorAvatar = author ? author.avatar_url : 'https://via.placeholder.com/40';
-        const hasRights = adminRole || (currentUserId && currentUserId === entry.user_id);
+        
+        const userRole = sessionStorage.getItem('userRole');
+        const isModerator = userRole === 'moderator';
+        const hasRights = adminRole || isModerator || (currentUserId && currentUserId === entry.user_id);
+        
         const safeContent = entry.message_content.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n');
         const isUrgent = entry.is_urgent || false;
 
-        // Réactions
         const reactionsMap = { '👍': 0, '👀': 0, '⚠️': 0 };
         let myReaction = null;
         if (entry.log_reactions) {
@@ -201,6 +214,33 @@ window.pageInit = () => {
           ? `<div class="flex items-center gap-1 text-red-600 font-bold text-xs uppercase tracking-wide animate-pulse"><i data-lucide="siren" class="w-4 h-4"></i> Urgent</div>` 
           : '';
 
+        // --- GESTION DE L'AFFICHAGE DE LA PIÈCE JOINTE ---
+        let attachmentHtml = '';
+        if (entry.attachment_path) {
+            const { data } = supabaseClient.storage.from('documents').getPublicUrl(entry.attachment_path);
+            const publicUrl = data.publicUrl;
+            
+            if (entry.attachment_type === 'image' || (entry.attachment_path.match(/\.(jpg|jpeg|png|gif|webp)$/i))) {
+                attachmentHtml = `
+                <div class="mt-3">
+                    <img src="${publicUrl}" 
+                         onclick="window.previewDocument('${publicUrl}', 'image')"
+                         class="max-h-64 rounded-lg border border-gray-200 cursor-zoom-in hover:opacity-90 transition-opacity" 
+                         alt="Pièce jointe">
+                </div>`;
+            } else {
+                attachmentHtml = `
+                <div class="mt-3">
+                    <button onclick="window.previewDocument('${publicUrl}', 'pdf')" 
+                            class="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                        <i data-lucide="file-text" class="w-4 h-4 text-red-500"></i>
+                        <span class="text-sm font-medium">Voir la pièce jointe (PDF)</span>
+                    </button>
+                </div>`;
+            }
+        }
+        // ------------------------------------------------
+
         return `
           <div class="${cardClass} rounded-lg flex gap-4 p-4 group transition-all">
             <img src="${authorAvatar}" alt="avatar" class="w-10 h-10 rounded-full object-cover hidden sm:block border border-gray-200">
@@ -225,6 +265,8 @@ window.pageInit = () => {
               
               <div class="text-gray-800 whitespace-pre-wrap break-words mb-3 ${isUrgent ? 'font-medium' : ''}">${entry.message_content}</div>
               
+              ${attachmentHtml}
+
               <div class="flex items-center gap-2 pt-2 border-t border-gray-100/50">
                  ${reactionButtons}
               </div>
@@ -235,7 +277,6 @@ window.pageInit = () => {
       
       lucide.createIcons();
 
-      // Gérer l'affichage de la pagination
       const totalPages = Math.ceil(count / rowsPerPage);
       renderPagination(totalPages, count, from, to);
       
@@ -244,7 +285,6 @@ window.pageInit = () => {
     }
   }
 
-  // --- RENDU PAGINATION ---
   const renderPagination = (totalPages, totalRows, from, to) => {
     if (!paginationContainer) return;
     
@@ -293,14 +333,11 @@ window.pageInit = () => {
     lucide.createIcons();
   }
 
-  // --- ACTIONS GLOBALES ---
-
   window.changePage = (page) => {
     if (page < 1) return;
     currentPage = page;
     loadLogFeed();
-    // Remonter en haut de la liste
-    const filters = document.querySelector('.bg-white.p-4.rounded-xl'); // Cibler la barre de filtres
+    const filters = document.querySelector('.bg-white.p-4.rounded-xl'); 
     if(filters) filters.scrollIntoView({ behavior: 'smooth' });
   }
 
@@ -320,7 +357,7 @@ window.pageInit = () => {
   window.resetFilters = () => {
     selectedDateFilter = null;
     selectedAuthorFilter = 'all';
-    currentPage = 1; // Reset pagination
+    currentPage = 1; 
     if(filterDateInput && filterDateInput._flatpickr) filterDateInput._flatpickr.clear();
     if(filterAuthorSelect) filterAuthorSelect.value = 'all';
     loadLogFeed();
@@ -332,30 +369,52 @@ window.pageInit = () => {
     const urgentCheckbox = document.getElementById('log-urgent');
     const message = textarea.value.trim();
     const isUrgent = urgentCheckbox ? urgentCheckbox.checked : false;
+    const file = logAttachmentInput ? logAttachmentInput.files[0] : null;
 
-    if (!message || !currentUserId) return;
+    if (!message && !file) return;
 
     logSubmitButton.disabled = true;
     logSubmitButton.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> <span>...</span>';
     lucide.createIcons();
 
     try {
+      let attachmentPath = null;
+      let attachmentType = null;
+
+      // Upload du fichier
+      if (file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+        const filePath = `journal/${fileName}`; 
+
+        const { error: uploadError } = await supabaseClient.storage
+          .from('documents')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+        
+        attachmentPath = filePath;
+        attachmentType = file.type.startsWith('image/') ? 'image' : 'pdf';
+      }
+
       const { data: logEntry, error: logError } = await supabaseClient
         .from('main_courante')
-        .insert({ message_content: message, user_id: currentUserId, is_urgent: isUrgent })
+        .insert({ 
+            message_content: message, 
+            user_id: currentUserId, 
+            is_urgent: isUrgent,
+            attachment_path: attachmentPath,
+            attachment_type: attachmentType
+        })
         .select().single();
 
       if (logError) throw logError;
       
-      const mentions = message.match(/@(\w+)/g);
-      if (mentions) { 
-          // Logique de notification (inchangée) 
-      }
-
       notyf.success(isUrgent ? 'Message URGENT publié !' : 'Message publié.');
       textarea.value = '';
+      window.clearAttachment();
       if(urgentCheckbox) urgentCheckbox.checked = false;
-      currentPage = 1; // Retour à la première page lors d'un post
+      currentPage = 1; 
       loadLogFeed();
     } catch (error) { notyf.error(error.message); } 
     finally {

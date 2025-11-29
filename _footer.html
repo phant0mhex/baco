@@ -30,7 +30,7 @@
   >
     <i data-lucide="arrow-up" class="w-5 h-5"></i>
   </button>
-  </footer>
+</footer>
 
 <div id="infraction-warning-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-[999]" style="display: none;">
   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg overflow-hidden transform transition-all">
@@ -53,5 +53,25 @@
         J'ai compris
       </button>
     </div>
+  </div>
+</div>
+
+<div id="preview-modal" class="fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center p-4 z-[1000] hidden backdrop-blur-sm">
+  <div class="relative bg-transparent w-full h-full max-w-5xl max-h-[90vh] flex flex-col items-center justify-center">
+    
+    <div class="absolute top-0 right-0 p-4 flex gap-2 z-10">
+      <a id="preview-download-btn" href="#" download class="p-2 bg-gray-800 text-white rounded-full hover:bg-gray-700 transition-colors" title="Télécharger">
+        <i data-lucide="download" class="w-6 h-6"></i>
+      </a>
+      <button onclick="window.closePreviewModal()" class="p-2 bg-gray-800 text-white rounded-full hover:bg-red-600 transition-colors">
+        <i data-lucide="x" class="w-6 h-6"></i>
+      </button>
+    </div>
+
+    <img id="preview-image" src="" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl hidden">
+    
+    <iframe id="preview-frame" src="" class="w-full h-full bg-white rounded-lg shadow-2xl hidden border-0"></iframe>
+    
+    <div id="preview-error" class="hidden text-white text-xl">Format non supporté pour la prévisualisation.</div>
   </div>
 </div>
