@@ -117,6 +117,104 @@ window.pageInit = function() {
     }
   }
 
+
+  // --- NOUVELLE FONCTION D'EXPORT ---
+      window.exportRepertoireData = async (format) => {
+        const mainChecked = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
+        const zoneSubChecked = Array.from(document.querySelectorAll('#zoneSubCategories input:checked')).map(cb => cb.value);
+        const searchTerm = document.getElementById('search-bar').value.trim();
+
+        if (mainChecked.length === 0 && !searchTerm) {
+            notyf.error("Veuillez sélectionner une catégorie ou faire une recherche.");
+            return;
+        }
+
+        notyf.success("Génération de l'export...");
+
+        // 1. Reconstruction de la requête (Identique à updateDisplay)
+        let query = supabaseClient
+          .from('contacts_repertoire')
+          .select('nom, tel, email, groupe, categorie_principale, zone')
+          .order('nom', { ascending: true });
+
+        const orFilters = [];
+        const categoriesWithZones = ['MIA', 'DSE'];
+        const mainCategoriesWithZones = mainChecked.filter(cat => categoriesWithZones.includes(cat));
+        const mainCategoriesWithoutZones = mainChecked.filter(cat => !categoriesWithZones.includes(cat));
+
+        // Logique complexe de zone (FTY/FMS...)
+        if (mainCategoriesWithZones.length > 0) {
+          if (zoneSubChecked.length > 0) {
+            zoneSubChecked.forEach(zone => {
+              if (zone === 'FTY') {
+                if (mainCategoriesWithZones.includes('MIA')) {
+                  orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FTY)`);
+                  orFilters.push(`and(categorie_principale.eq.MIA,zone.eq.FMS,groupe.eq.TL/MPI)`);
+                }
+                if (mainCategoriesWithZones.includes('DSE')) {
+                  orFilters.push(`and(categorie_principale.eq.DSE,zone.eq.FTY)`);
+                }
+              } else {
+                mainCategoriesWithZones.forEach(cat => {
+                  orFilters.push(`and(categorie_principale.eq.${cat},zone.eq.${zone})`);
+                });
+              }
+            });
+          } else {
+            mainCategoriesWithZones.forEach(cat => {
+              orFilters.push(`categorie_principale.eq.${cat}`);
+            });
+          }
+        }
+        mainCategoriesWithoutZones.forEach(cat => {
+          orFilters.push(`categorie_principale.eq.${cat}`);
+        });
+
+        if (orFilters.length > 0) {
+          query = query.or(orFilters.join(','));
+        }
+
+        if (searchTerm) {
+          query = query.or(
+            `nom.ilike.*${searchTerm}*,tel.ilike.*${searchTerm}*,email.ilike.*${searchTerm}*,groupe.ilike.*${searchTerm}*`
+          );
+        }
+
+        try {
+            const { data, error } = await query;
+            if (error) throw error;
+
+            if (!data || data.length === 0) {
+                notyf.error("Aucun contact à exporter.");
+                return;
+            }
+
+            // 2. Formatage des données
+            const exportData = data.map(c => ({
+                "Nom": c.nom,
+                "Groupe": c.groupe,
+                "Téléphone": c.tel ? window.formatPhoneNumber(window.cleanPhoneNumber(c.tel)) : '',
+                "Email": c.email || '',
+                "Catégorie": c.categorie_principale,
+                "Zone": c.zone || ''
+            }));
+
+            const dateStr = new Date().toISOString().split('T')[0];
+            const filename = `Repertoire_Export_${dateStr}`;
+
+            // 3. Export selon le format
+            if (format === 'xlsx') {
+                window.exportToXLSX(exportData, `${filename}.xlsx`);
+            } else if (format === 'pdf') {
+                window.exportToPDF(exportData, `${filename}.pdf`, "Répertoire Téléphonique");
+            }
+
+        } catch (error) {
+            console.error(error);
+            notyf.error("Erreur lors de l'export.");
+        }
+      };
+      
   // --- ATTACHER LES FONCTIONS À WINDOW ---
   window.updateSubCategories = async () => {
     const mainChecked = Array.from(document.querySelectorAll('#mainCategories input:checked')).map(cb => cb.value);
