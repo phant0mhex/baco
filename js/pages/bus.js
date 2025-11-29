@@ -1,3 +1,5 @@
+   import { ModalManager } from '../modules/utils.js';
+   
    // Déclarer les fonctions modales globalement pour les 'onclick'
     let showBusModal;
     let hideBusModal;
@@ -12,12 +14,23 @@
         console.error('Notyf n\'est pas chargé !');
       }
 
-      // --- Références aux éléments du DOM ---
-      const modal = document.getElementById('bus-modal');
-      const modalTitle = document.getElementById('modal-title');
-      const busForm = document.getElementById('bus-form');
-      const busIdInput = document.getElementById('modal-bus-id');
-      const contentContainer = document.getElementById('content');
+
+      // --- 1. Initialisation du Manager ---
+  const busModal = new ModalManager({
+    modalId: 'bus-modal',
+    formId: 'bus-form',
+    titleId: 'modal-title',
+    submitBtnId: 'modal-submit-button'
+  });
+
+  const busIdInput = document.getElementById('modal-bus-id');
+
+      // // --- Références aux éléments du DOM ---
+      // const modal = document.getElementById('bus-modal');
+      // const modalTitle = document.getElementById('modal-title');
+      // const busForm = document.getElementById('bus-form');
+      // const busIdInput = document.getElementById('modal-bus-id');
+      // const contentContainer = document.getElementById('content');
       
 
       // Exposer les fonctions à 'onclick'
@@ -265,24 +278,66 @@
         lucide.createIcons();
       }
 
-      // --- FONCTIONS DU MODAL ---
-      showBusModal = async (societe = null) => {
-        // ... (votre fonction showBusModal reste inchangée)
-        const isEdit = societe !== null;
-        busForm.reset();
+      // // --- FONCTIONS DU MODAL ---
+      // showBusModal = async (societe = null) => {
+      //   // ... (votre fonction showBusModal reste inchangée)
+      //   const isEdit = societe !== null;
+      //   busForm.reset();
         
+      //   if (isEdit) {
+      //     modalTitle.textContent = 'Modifier la société';
+      //     busIdInput.value = societe.id;
+      //     document.getElementById('modal-nom').value = societe.nom;
+
+      //     const { data: details, error } = await supabaseClient
+      //       .from('societes_bus')
+      //       .select(`
+      //         lignes_bus (ligne),
+      //         contacts_bus (nom, tel),
+      //         chauffeurs_bus (nom, tel)
+      //       `)
+      //       .eq('id', societe.id)
+      //       .single();
+
+      //     if (error) {
+      //       notyf.error("Erreur chargement détails: " + error.message);
+      //       return;
+      //     }
+
+      //     document.getElementById('modal-lignes').value = details.lignes_bus.map(l => l.ligne).join(', ');
+      //     document.getElementById('modal-contacts').value = details.contacts_bus.map(c => `${c.nom}, ${c.tel}`).join('\n');
+      //     document.getElementById('modal-chauffeurs').value = details.chauffeurs_bus.map(c => `${c.nom}, ${c.tel}`).join('\n');
+
+      //   } else {
+      //     modalTitle.textContent = 'Ajouter une société';
+      //     busIdInput.value = '';
+      //   }
+      //   modal.style.display = 'flex';
+      //   lucide.createIcons();
+      // }
+
+      // hideBusModal = () => {
+      //   modal.style.display = 'none';
+      // }
+
+// ============================================================
+  // ==  NOUVELLE LOGIQUE AVEC LA CLASSE  ==
+  // ============================================================
+
+  window.showBusModal = async (societe = null) => {
+    const isEdit = societe !== null;
+    
+    busModal.open({
+      title: isEdit ? 'Modifier la société' : 'Ajouter une société',
+      onOpen: async () => {
         if (isEdit) {
-          modalTitle.textContent = 'Modifier la société';
           busIdInput.value = societe.id;
           document.getElementById('modal-nom').value = societe.nom;
 
+          // Charger les détails supplémentaires
           const { data: details, error } = await supabaseClient
             .from('societes_bus')
-            .select(`
-              lignes_bus (ligne),
-              contacts_bus (nom, tel),
-              chauffeurs_bus (nom, tel)
-            `)
+            .select(`lignes_bus (ligne), contacts_bus (nom, tel), chauffeurs_bus (nom, tel)`)
             .eq('id', societe.id)
             .single();
 
@@ -294,18 +349,17 @@
           document.getElementById('modal-lignes').value = details.lignes_bus.map(l => l.ligne).join(', ');
           document.getElementById('modal-contacts').value = details.contacts_bus.map(c => `${c.nom}, ${c.tel}`).join('\n');
           document.getElementById('modal-chauffeurs').value = details.chauffeurs_bus.map(c => `${c.nom}, ${c.tel}`).join('\n');
-
         } else {
-          modalTitle.textContent = 'Ajouter une société';
-          busIdInput.value = '';
+          busIdInput.value = ''; // Mode création
         }
-        modal.style.display = 'flex';
-        lucide.createIcons();
       }
+    });
+  }
 
-      hideBusModal = () => {
-        modal.style.display = 'none';
-      }
+  window.hideBusModal = () => {
+    busModal.close();
+  }
+
 
       function parseContactList(text) {
         // ... (votre fonction parseContactList reste inchangée)
@@ -334,23 +388,23 @@
           new_chauffeurs: parseContactList(document.getElementById('modal-chauffeurs').value)
         };
 
-        const submitButton = document.getElementById('modal-submit-button');
-        submitButton.disabled = true;
-        submitButton.textContent = 'Enregistrement...';
 
+        busModal.startLoading();
+
+
+       try {
         const { error } = await supabaseClient.rpc('upsert_societe_bus', societeData);
+        if (error) throw error;
 
-        submitButton.disabled = false;
-        submitButton.textContent = 'Enregistrer';
-
-        if (error) {
-          notyf.error("Erreur: " + error.message);
-        } else {
-          notyf.success(busId ? "Société mise à jour !" : "Société ajoutée !");
-          hideBusModal();
-          updateSocieteDisplay();
-        }
-      }
+        notyf.success(busId ? "Société mise à jour !" : "Société ajoutée !");
+        busModal.close(); // Fermeture propre
+        updateSocieteDisplay();
+    } catch (error) {
+        notyf.error("Erreur: " + error.message);
+    } finally {
+        busModal.stopLoading(); // Restauration du bouton
+    }
+  }
 
       deleteBus = async (id, nom) => {
         // ... (votre fonction deleteBus reste inchangée)

@@ -300,3 +300,85 @@ export function setupPreviewModal() {
     if (e.key === 'Escape') window.closePreviewModal();
   });
 }
+
+
+// ... (code existant: imports, loadComponent, cleanPhoneNumber...)
+
+// ================= GESTIONNAIRE DE MODALE (NOUVEAU) =================
+/**
+ * Classe utilitaire pour gérer les modales CRUD standardisées.
+ */
+export class ModalManager {
+  /**
+   * @param {Object} elements - Les IDs des éléments du DOM
+   * @param {string} elements.modalId - ID de la div principale du modal
+   * @param {string} [elements.formId] - ID du formulaire (optionnel)
+   * @param {string} [elements.titleId] - ID du titre h3 (optionnel)
+   * @param {string} [elements.submitBtnId] - ID du bouton de soumission (optionnel)
+   */
+  constructor({ modalId, formId, titleId, submitBtnId }) {
+    this.modal = document.getElementById(modalId);
+    this.form = document.getElementById(formId);
+    this.title = document.getElementById(titleId);
+    this.submitBtn = document.getElementById(submitBtnId);
+    
+    // Sauvegarde du contenu initial du bouton pour le restaurer après le chargement
+    this.defaultSubmitContent = this.submitBtn ? this.submitBtn.innerHTML : 'Enregistrer';
+  }
+
+  /**
+   * Ouvre la modale
+   * @param {Object} options
+   * @param {string} [options.title] - Le titre à afficher
+   * @param {Function} [options.onOpen] - Fonction callback pour pré-remplir les champs (mode édition)
+   */
+  open({ title, onOpen = null } = {}) {
+    if (!this.modal) return;
+    
+    // 1. Reset du formulaire
+    if (this.form) this.form.reset();
+    
+    // 2. Mise à jour du titre
+    if (this.title && title) this.title.textContent = title;
+
+    // 3. Exécution de la logique de remplissage (si fournie)
+    if (onOpen) onOpen();
+
+    // 4. Affichage
+    this.modal.style.display = 'flex';
+    
+    // 5. Rafraîchir les icônes (si Lucide est présent)
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  /**
+   * Ferme la modale
+   */
+  close() {
+    if (this.modal) this.modal.style.display = 'none';
+  }
+
+  /**
+   * Passe le bouton en état de chargement
+   * @param {string} text - Texte à afficher (ex: "Enregistrement...")
+   */
+  startLoading(text = 'Enregistrement...') {
+    if (this.submitBtn) {
+      this.submitBtn.disabled = true;
+      this.submitBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> <span>${text}</span>`;
+      if (window.lucide) window.lucide.createIcons();
+    }
+  }
+
+  /**
+   * Restaure le bouton à son état initial
+   * @param {string} [htmlContent] - HTML optionnel pour remplacer le contenu par défaut
+   */
+  stopLoading(htmlContent = null) {
+    if (this.submitBtn) {
+      this.submitBtn.disabled = false;
+      this.submitBtn.innerHTML = htmlContent || this.defaultSubmitContent;
+      if (window.lucide) window.lucide.createIcons();
+    }
+  }
+}
