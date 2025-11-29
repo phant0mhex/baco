@@ -36,6 +36,7 @@ window.cleanPhoneNumber = cleanPhoneNumber;
 window.formatPhoneNumber = formatPhoneNumber;
 window.formatDate = formatDate;          // <-- AJOUTER
 window.highlightText = highlightText;    // <-- AJOUTER
+window.exportToCSV = exportToCSV;
 // -------------------------
 
 /**

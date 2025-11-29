@@ -24,6 +24,65 @@
       window.updateSocieteDisplay = updateSocieteDisplay;
       window.updateChauffeursDisplay = updateChauffeursDisplay;
       
+
+      // Ajoutez cette fonction dans window.pageInit
+window.exportBusData = async () => {
+  const lignesSelectionnees = Array.from(document.querySelectorAll('#ligneCheckboxes input:checked'))
+    .map(cb => cb.value);
+
+  if (lignesSelectionnees.length === 0) {
+    notyf.error("Veuillez sélectionner au moins une ligne pour exporter.");
+    return;
+  }
+
+  notyf.success("Préparation de l'export...");
+
+  try {
+    // 1. Récupérer les IDs des sociétés
+    const { data: lignesData, error: lignesError } = await supabaseClient
+      .from('lignes_bus')
+      .select('societe_id, ligne')
+      .in('ligne', lignesSelectionnees);
+
+    if (lignesError) throw lignesError;
+    const societeIds = [...new Set(lignesData.map(item => item.societe_id))];
+
+    if (societeIds.length === 0) {
+      notyf.error("Aucune donnée à exporter.");
+      return;
+    }
+
+    // 2. Récupérer les données complètes (Sociétés + Contacts + Chauffeurs)
+    const { data: societes, error: socError } = await supabaseClient
+      .from('societes_bus')
+      .select(`
+        nom,
+        lignes_bus (ligne),
+        contacts_bus (nom, tel),
+        chauffeurs_bus (nom, tel)
+      `)
+      .in('id', societeIds)
+      .order('nom');
+
+    if (socError) throw socError;
+
+    // 3. Aplatir les données pour le CSV
+    const exportData = societes.map(s => ({
+      Société: s.nom,
+      Lignes: s.lignes_bus.map(l => l.ligne).join(', '),
+      Contacts: s.contacts_bus.map(c => `${c.nom} (${c.tel})`).join(' | '),
+      Chauffeurs: s.chauffeurs_bus.map(c => `${c.nom} (${c.tel})`).join(' | ')
+    }));
+
+    window.exportToCSV(exportData, `export_bus_${new Date().toISOString().split('T')[0]}.csv`);
+
+  } catch (error) {
+    console.error("Erreur export:", error);
+    notyf.error("Erreur lors de l'export.");
+  }
+};
+
+
       // --- FONCTION 1 : AFFICHER LES SOCIÉTÉS ---
       async function updateSocieteDisplay() {
         const lignesSelectionnees = Array.from(document.querySelectorAll('#ligneCheckboxes input:checked'))

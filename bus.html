@@ -50,7 +50,11 @@
         <h1 class="text-3xl font-bold text-gray-800">Section Bus</h1>
         <p class="mt-1 text-sm text-gray-500">Filtrer les sociétés et chauffeurs par ligne de bus.</p>
       </div>
-      <div class="mt-4 md:mt-0 admin-only">
+      <div class="mt-4 md:mt-0 admin-only flex gap-2">
+        <button onclick="window.exportBusData()" class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition-colors">
+    <i data-lucide="download" class="w-5 h-5"></i>
+    <span>Exporter</span>
+  </button>
         <button onclick="showBusModal()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
           <i data-lucide="plus" class="w-5 h-5"></i>
           <span>Ajouter une société</span>
