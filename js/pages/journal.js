@@ -13,6 +13,7 @@ window.pageInit = () => {
   const logFeed = document.getElementById('log-feed');
   const filterAuthorSelect = document.getElementById('filter-author');
   const filterDateInput = document.getElementById('filter-date');
+  const paginationContainer = document.getElementById('pagination-container'); // Nouveau
 
   // --- Modale d'édition ---
   const editModal = document.getElementById('edit-log-modal');
@@ -56,8 +57,8 @@ window.pageInit = () => {
         
       if (profile) currentUserFullName = profile.full_name || profile.username;
       
-      loadAuthors(); // Charger la liste des auteurs pour le filtre
-      loadLogFeed(); // Charger le journal
+      loadAuthors(); 
+      loadLogFeed();
     } catch (error) {
       console.error("Erreur init:", error.message);
     }
@@ -75,17 +76,15 @@ window.pageInit = () => {
       },
       onChange: (selectedDates, dateStr) => {
         selectedDateFilter = dateStr;
-        currentPage = 1;
+        currentPage = 1; // Reset pagination au filtre
         loadLogFeed();
       }
     });
   }
 
-  // --- CHARGEMENT DES AUTEURS (Pour le filtre) ---
+  // --- CHARGEMENT DES AUTEURS ---
   const loadAuthors = async () => {
     try {
-      // On récupère tous les profils qui ont posté au moins un message (optimisation possible)
-      // Pour faire simple, on prend tous les profils
       const { data, error } = await supabaseClient
         .from('profiles')
         .select('id, full_name')
@@ -93,11 +92,9 @@ window.pageInit = () => {
         
       if (error) throw error;
       
-      // Sauvegarde pour les mentions aussi
-      userCache = data.map(u => ({ ...u, username: u.full_name.split(' ')[0].toLowerCase() })); // Mock username
+      userCache = data.map(u => ({ ...u, username: u.full_name.split(' ')[0].toLowerCase() }));
 
       if(filterAuthorSelect) {
-          // Garder la sélection actuelle si rechargement
           const currentVal = filterAuthorSelect.value;
           filterAuthorSelect.innerHTML = '<option value="all">Tous les auteurs</option>' + 
             data.map(u => `<option value="${u.id}">${u.full_name}</option>`).join('');
@@ -105,38 +102,37 @@ window.pageInit = () => {
           
           filterAuthorSelect.addEventListener('change', (e) => {
             selectedAuthorFilter = e.target.value;
-            currentPage = 1;
+            currentPage = 1; // Reset pagination au filtre
             loadLogFeed();
           });
       }
     } catch (e) { console.error("Erreur auteurs", e); }
   }
 
-  // --- CHARGEMENT DU FLUX ---
+  // --- CHARGEMENT DU FLUX (PAGINÉ) ---
   const loadLogFeed = async () => {
     logFeed.innerHTML = '<div class="flex justify-center items-center py-20"><i data-lucide="loader-2" class="w-10 h-10 text-blue-600 animate-spin"></i></div>';
-    if (paginationContainer) paginationContainer.innerHTML = '';
+    if (paginationContainer) paginationContainer.innerHTML = ''; // Vider la pagination pendant le chargement
     lucide.createIcons();
     
     try {
-
       // Calculer l'intervalle pour la pagination
       const from = (currentPage - 1) * rowsPerPage;
       const to = from + rowsPerPage - 1;
 
+      // Construire la requête
       let query = supabaseClient
         .from('main_courante')
         .select(`
             *, 
             profiles ( full_name, avatar_url ),
             log_reactions ( user_id, emoji ) 
-        `, { count: 'exact' }) // On joint les réactions !
+        `, { count: 'exact' }) // Demander le nombre total exact
         .order('created_at', { ascending: false })
-        .range(from, to);
+        .range(from, to); // Appliquer la pagination
 
       // --- APPLICATION DES FILTRES ---
       if (selectedDateFilter) {
-        // Filtrer du début à la fin de la journée sélectionnée
         const start = `${selectedDateFilter}T00:00:00`;
         const end = `${selectedDateFilter}T23:59:59`;
         query = query.gte('created_at', start).lte('created_at', end);
@@ -147,7 +143,7 @@ window.pageInit = () => {
       }
       // -------------------------------
 
-      const { data, error } = await query;
+      const { data, count, error } = await query;
       if (error) throw error;
       
       // Marquer comme lu
@@ -160,6 +156,7 @@ window.pageInit = () => {
         return;
       }
       
+      // Rendu des cartes (Inchangé)
       logFeed.innerHTML = data.map(entry => {
         const author = entry.profiles; 
         const timestamp = window.formatDate(entry.created_at, 'short');
@@ -169,11 +166,9 @@ window.pageInit = () => {
         const safeContent = entry.message_content.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n');
         const isUrgent = entry.is_urgent || false;
 
-        // --- LOGIQUE RÉACTIONS ---
-        // Grouper les réactions par emoji
+        // Réactions
         const reactionsMap = { '👍': 0, '👀': 0, '⚠️': 0 };
         let myReaction = null;
-
         if (entry.log_reactions) {
             entry.log_reactions.forEach(r => {
                 if (reactionsMap[r.emoji] !== undefined) reactionsMap[r.emoji]++;
@@ -181,15 +176,12 @@ window.pageInit = () => {
             });
         }
 
-        // Générer le HTML des boutons de réaction
         const reactionButtons = Object.keys(reactionsMap).map(emoji => {
             const count = reactionsMap[emoji];
             const isActive = (myReaction === emoji);
             const activeClass = isActive 
                 ? 'bg-blue-100 border-blue-300 text-blue-800' 
                 : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100';
-            
-            // Si c'est ma réaction, cliquer l'enlève. Sinon, ça l'ajoute (et remplace l'ancienne via SQL UNIQUE)
             const action = isActive ? 'remove' : 'add';
             
             return `
@@ -201,9 +193,7 @@ window.pageInit = () => {
                 </button>
             `;
         }).join('');
-        // -------------------------
 
-        // Styles Urgent
         const cardClass = isUrgent 
           ? 'bg-red-50 border-l-4 border-red-500 shadow-md' 
           : 'bg-white border border-gray-200 shadow-sm';
@@ -242,19 +232,17 @@ window.pageInit = () => {
           </div>
         `;
       }).join('');
-      lucide.createIcons();
       
+      lucide.createIcons();
 
-// Gérer l'affichage de la pagination
+      // Gérer l'affichage de la pagination
       const totalPages = Math.ceil(count / rowsPerPage);
       renderPagination(totalPages, count, from, to);
-
-
+      
     } catch (error) {
       logFeed.innerHTML = `<p class="text-red-600 text-center">Erreur: ${error.message}</p>`;
     }
   }
-
 
   // --- RENDU PAGINATION ---
   const renderPagination = (totalPages, totalRows, from, to) => {
@@ -304,50 +292,40 @@ window.pageInit = () => {
     paginationContainer.innerHTML = infoHtml + buttonsHtml;
     lucide.createIcons();
   }
-  
-  // --- GESTION DES RÉACTIONS ---
-  window.toggleReaction = async (logId, emoji, action) => {
-      if(!currentUserId) return;
 
-      try {
-          if (action === 'remove') {
-              await supabaseClient
-                  .from('log_reactions')
-                  .delete()
-                  .match({ log_id: logId, user_id: currentUserId });
-          } else {
-              // On supprime d'abord toute autre réaction de l'utilisateur sur ce message (pour garantir 1 réaction/pers)
-              // Note: Le UNIQUE(log_id, user_id) en SQL gère déjà les conflits, mais on veut remplacer l'emoji s'il change.
-              // Le plus simple est l'UPSERT ou Delete+Insert. Ici, UPSERT via .upsert()
-              const { error } = await supabaseClient
-                  .from('log_reactions')
-                  .upsert({ log_id: logId, user_id: currentUserId, emoji: emoji }, { onConflict: 'log_id, user_id' });
-              
-              if(error) throw error;
-          }
-          // Recharger juste pour mettre à jour l'UI (Optimisation: mettre à jour le DOM localement)
-          loadLogFeed();
-      } catch (e) {
-          console.error("Erreur réaction", e);
-          notyf.error("Impossible de réagir.");
-      }
+  // --- ACTIONS GLOBALES ---
+
+  window.changePage = (page) => {
+    if (page < 1) return;
+    currentPage = page;
+    loadLogFeed();
+    // Remonter en haut de la liste
+    const filters = document.querySelector('.bg-white.p-4.rounded-xl'); // Cibler la barre de filtres
+    if(filters) filters.scrollIntoView({ behavior: 'smooth' });
   }
 
-  // --- GESTION FILTRES (Reset) ---
+  window.toggleReaction = async (logId, emoji, action) => {
+      if(!currentUserId) return;
+      try {
+          if (action === 'remove') {
+              await supabaseClient.from('log_reactions').delete().match({ log_id: logId, user_id: currentUserId });
+          } else {
+              const { error } = await supabaseClient.from('log_reactions').upsert({ log_id: logId, user_id: currentUserId, emoji: emoji }, { onConflict: 'log_id, user_id' });
+              if(error) throw error;
+          }
+          loadLogFeed();
+      } catch (e) { console.error(e); notyf.error("Impossible de réagir."); }
+  }
+
   window.resetFilters = () => {
     selectedDateFilter = null;
     selectedAuthorFilter = 'all';
-    
-    // Reset UI
+    currentPage = 1; // Reset pagination
     if(filterDateInput && filterDateInput._flatpickr) filterDateInput._flatpickr.clear();
     if(filterAuthorSelect) filterAuthorSelect.value = 'all';
-    
     loadLogFeed();
   }
 
-  // --- (Le reste des fonctions CRUD existantes: handlePostSubmit, deleteLogEntry, etc.) ---
-  // --- Copiez-collez vos fonctions handlePostSubmit, deleteLogEntry, openEditLogModal... ICI ---
-  
   const handlePostSubmit = async (e) => {
     e.preventDefault();
     const textarea = document.getElementById('log-message');
@@ -369,13 +347,15 @@ window.pageInit = () => {
 
       if (logError) throw logError;
       
-      // Mentions (simplifié)
       const mentions = message.match(/@(\w+)/g);
-      if (mentions) { /* Logique de notification inchangée */ }
+      if (mentions) { 
+          // Logique de notification (inchangée) 
+      }
 
       notyf.success(isUrgent ? 'Message URGENT publié !' : 'Message publié.');
       textarea.value = '';
       if(urgentCheckbox) urgentCheckbox.checked = false;
+      currentPage = 1; // Retour à la première page lors d'un post
       loadLogFeed();
     } catch (error) { notyf.error(error.message); } 
     finally {
@@ -427,8 +407,5 @@ window.pageInit = () => {
     finally { editLogSubmitBtn.disabled = false; }
   }
 
-  // --- Écouteurs initiaux ---
   logForm.addEventListener('submit', handlePostSubmit);
-  // (Ajoutez ici les écouteurs pour les mentions handleInput/handleKeydown si vous les utilisez)
-
 };
