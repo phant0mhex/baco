@@ -240,6 +240,10 @@ window.pageInit = () => {
   // --- GESTION DE L'HISTORIQUE (VERSIONING) - CORRIGÉ ---
   
   const loadHistory = async (procedureId) => {
+
+    console.log("Tentative de chargement historique pour ID:", procedureId);
+    console.log("Rôle actuel:", sessionStorage.getItem('userRole'));
+    
     const container = document.getElementById('history-container');
     if (!container) return;
     
