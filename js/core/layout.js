@@ -10,7 +10,7 @@ import { initGlobalSearch } from '../modules/search.js';
 import { loadJournalNotificationCount, loadNotificationCount } from '../modules/notifications.js';
 import { setupThemeToggle } from '../modules/theme.js';
 import { loadComponent, loadLatestChangelog, injectCalendarStyles, setupGoToTop, cleanPhoneNumber, formatPhoneNumber, formatDate, 
-  highlightText  } from '../modules/utils.js';
+  highlightText, exportToCSV  } from '../modules/utils.js';
 
 // --- EXPORTS GLOBAUX ---
 // (Ces exports sont utilisés par les autres modules)
