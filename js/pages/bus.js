@@ -25,57 +25,83 @@
       window.updateChauffeursDisplay = updateChauffeursDisplay;
       
 
-window.exportBusData = async (format) => { // Accepte un paramètre 'format' ('xlsx' ou 'pdf')
-  const lignesSelectionnees = Array.from(document.querySelectorAll('#ligneCheckboxes input:checked'))
-    .map(cb => cb.value);
+// --- NOUVELLE FONCTION D'EXPORT FILTRÉE ---
+  window.exportBusData = async (format) => {
+    const lignesSelectionnees = Array.from(document.querySelectorAll('#ligneCheckboxes input:checked'))
+      .map(cb => cb.value);
 
-  if (lignesSelectionnees.length === 0) {
-    notyf.error("Sélectionnez au moins une ligne.");
-    return;
-  }
-
-  notyf.success("Génération en cours...");
-
-  try {
-    // 1. Récupération des données (identique à avant)
-    const { data: lignesData, error: lErr } = await supabaseClient
-      .from('lignes_bus').select('societe_id').in('ligne', lignesSelectionnees);
-    if (lErr) throw lErr;
-    
-    const societeIds = [...new Set(lignesData.map(i => i.societe_id))];
-    if (societeIds.length === 0) { notyf.error("Aucune donnée."); return; }
-
-    const { data: societes, error: sErr } = await supabaseClient
-      .from('societes_bus')
-      .select(`nom, lignes_bus(ligne), contacts_bus(nom, tel), chauffeurs_bus(nom, tel)`)
-      .in('id', societeIds)
-      .order('nom');
-    if (sErr) throw sErr;
-
-    // 2. Formatage des données
-    const exportData = societes.map(s => ({
-      Société: s.nom,
-      Lignes: s.lignes_bus.map(l => l.ligne).join(', '),
-      Contacts: s.contacts_bus.map(c => `${c.nom} (${c.tel})`).join('\n'), // \n pour le PDF
-      Chauffeurs: s.chauffeurs_bus.map(c => `${c.nom} (${c.tel})`).join('\n')
-    }));
-
-    const dateStr = new Date().toISOString().split('T')[0];
-    const filename = `Bus_Export_${dateStr}`;
-
-    // 3. Choix du format
-    if (format === 'xlsx') {
-      window.exportToXLSX(exportData, `${filename}.xlsx`);
-    } else if (format === 'pdf') {
-      window.exportToPDF(exportData, `${filename}.pdf`, "Liste des Sociétés de Bus");
+    if (lignesSelectionnees.length === 0) {
+      notyf.error("Sélectionnez au moins une ligne.");
+      return;
     }
 
-  } catch (error) {
-    console.error(error);
-    notyf.error("Erreur export.");
-  }
-};
+    notyf.success("Génération en cours...");
 
+    try {
+      // 1. Trouver les sociétés qui opèrent sur ces lignes
+      const { data: lignesData, error: lErr } = await supabaseClient
+        .from('lignes_bus')
+        .select('societe_id')
+        .in('ligne', lignesSelectionnees);
+        
+      if (lErr) throw lErr;
+      
+      const societeIds = [...new Set(lignesData.map(i => i.societe_id))];
+      
+      if (societeIds.length === 0) { 
+          notyf.error("Aucune société trouvée."); 
+          return; 
+      }
+
+      // 2. Récupérer les infos complètes
+      const { data: societes, error: sErr } = await supabaseClient
+        .from('societes_bus')
+        .select(`
+          nom, 
+          lignes_bus(ligne), 
+          contacts_bus(nom, tel), 
+          chauffeurs_bus(nom, tel)
+        `)
+        .in('id', societeIds)
+        .order('nom');
+        
+      if (sErr) throw sErr;
+
+      // 3. Formatage avec FILTRAGE STRICT des lignes
+      const exportData = [];
+
+      societes.forEach(s => {
+        // Récupérer toutes les lignes de cette société
+        const toutesLesLignes = s.lignes_bus.map(l => l.ligne);
+        
+        // NE GARDER QUE celles qui sont cochées par l'utilisateur
+        const lignesAffichees = toutesLesLignes.filter(l => lignesSelectionnees.includes(l));
+
+        if (lignesAffichees.length > 0) {
+            exportData.push({
+                "Ligne": lignesAffichees.join(', '), // La ligne est ajoutée en "en-tête" (première colonne)
+                "Société": s.nom,
+                "Contacts": s.contacts_bus.map(c => `${c.nom} (${window.formatPhoneNumber(window.cleanPhoneNumber(c.tel))})`).join('\n'),
+                "Chauffeurs": s.chauffeurs_bus.map(c => `${c.nom} (${window.formatPhoneNumber(window.cleanPhoneNumber(c.tel))})`).join('\n')
+            });
+        }
+      });
+
+      const dateStr = new Date().toISOString().split('T')[0];
+      const filename = `Bus_Export_${dateStr}`;
+
+      if (format === 'xlsx') {
+        window.exportToXLSX(exportData, `${filename}.xlsx`);
+      } else if (format === 'pdf') {
+        // On passe les lignes sélectionnées dans le titre du PDF
+        window.exportToPDF(exportData, `${filename}.pdf`, `Bus - Lignes : ${lignesSelectionnees.join(', ')}`);
+      }
+
+    } catch (error) {
+      console.error(error);
+      notyf.error("Erreur lors de l'export.");
+    }
+  };
 
       // --- FONCTION 1 : AFFICHER LES SOCIÉTÉS ---
       async function updateSocieteDisplay() {
