@@ -30,7 +30,7 @@ window.pageInit = () => {
   
   // Pagination
   let currentPage = 1;
-  const rowsPerPage = 20; // Nombre de messages par page
+  const rowsPerPage = 3; // Nombre de messages par page
 
   // Filtres
   let selectedDateFilter = null;
