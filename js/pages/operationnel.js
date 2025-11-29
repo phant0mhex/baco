@@ -226,6 +226,7 @@ const loadHistory = async (procedureId) => {
   }
 };
 
+
 // Fonction pour restaurer (à attacher à window)
 window.restoreVersion = (content) => {
   if(!confirm("Attention : Le contenu actuel de l'éditeur sera remplacé. Continuer ?")) return;
@@ -311,36 +312,44 @@ window.restoreVersion = (content) => {
 
   // --- Fonctions Modales (ATTACHER À WINDOW) ---
   
-  window.showProcedureModal = async (entry = null) => {
+window.showProcedureModal = async (entry = null) => {
     procedureForm.reset();
     const isEdit = entry !== null;
     modalTitle.textContent = isEdit ? `Modifier: ${entry.titre}` : 'Ajouter une procédure';
     procedureIdInput.value = isEdit ? entry.id : '';
     currentProcedureId = isEdit ? entry.id.toString() : null; 
+    
     document.getElementById('modal-titre').value = isEdit ? entry.titre : '';
     document.getElementById('modal-categorie').value = isEdit ? entry.categorie : '';
+    
     if (easyMDE) easyMDE.value(isEdit ? entry.contenu : '');
-else document.getElementById('modal-contenu').value = isEdit ? entry.contenu : '';
-// AJOUT : Gestion de l'historique
+    else document.getElementById('modal-contenu').value = isEdit ? entry.contenu : '';
+
+    // --- DEBUT AJOUT HISTORIQUE ---
     let historyDiv = document.getElementById('history-container');
+    
+    // Créer la zone d'historique si elle n'existe pas encore dans le modal
     if (!historyDiv) {
-        // Créer le conteneur s'il n'existe pas, juste avant les boutons du bas
         historyDiv = document.createElement('div');
         historyDiv.id = 'history-container';
-        historyDiv.className = 'mt-4 border-t pt-4';
-        // Insérer avant la div des boutons (dernière div du form)
-        const form = document.getElementById('procedure-form');
-        form.querySelector('.flex.justify-end').before(historyDiv);
+        historyDiv.className = 'mt-4 border-t pt-4 hidden'; // Caché par défaut
+        // On l'insère avant les boutons du bas
+        const footer = procedureForm.querySelector('.bg-gray-50.border-t');
+        if (footer) footer.before(historyDiv);
+        else procedureForm.appendChild(historyDiv);
     }
 
     if (isEdit) {
       await loadLinkedContent(entry.id, 'modal-links-list');
-      loadHistory(entry.id);
+      loadHistory(entry.id); // <-- Appel pour charger les versions
     } else {
       currentLinks = [];
       renderLinks(modalLinksList, currentLinks);
-      if(historyDiv) historyDiv.innerHTML = '';
+      if (historyDiv) historyDiv.innerHTML = ''; 
+      if (historyDiv) historyDiv.style.display = 'none';
     }
+    // --- FIN AJOUT HISTORIQUE ---
+
     modal.classList.remove('invisible', 'opacity-0');
     modalPanel.classList.remove('scale-95');
     lucide.createIcons();
